@@ -350,8 +350,8 @@ export async function confirmarImportacao(anterior: EstadoImportacao, fd: FormDa
   if (!podeImportarCarteira(sessao.papel)) return { etapa: "inicio", erro: "Seu papel não importa carteira." };
   if (anterior.etapa !== "previa") return { etapa: "inicio", erro: "Envie o arquivo novamente." };
   const selecionadas = new Set(fd.getAll("linha").filter((v): v is string => typeof v === "string"));
-  const linhas: LinhaCarteira[] = anterior.parse.validas.filter((l) => selecionadas.size === 0 || selecionadas.has(String(l.linha)));
-  if (linhas.length === 0) return { etapa: "inicio", erro: "Nenhuma linha válida para importar." };
+  const linhas: LinhaCarteira[] = anterior.parse.validas.filter((l) => selecionadas.has(String(l.linha)));
+  if (linhas.length === 0) return { etapa: "inicio", erro: "Nenhuma linha selecionada para importar." };
 
   const supabase = await criarClienteServidor();
   const membros = await listarMembros(supabase, sessao.escritorioId);

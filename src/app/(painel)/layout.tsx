@@ -33,15 +33,13 @@ export default async function LayoutPainel({ children }: { children: React.React
                 {i.rotulo}
               </Link>
             ))}
-            {socio ? (
-              <>
-                <Link href="/configuracoes" className="rounded-md px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800">
-                  Configurações
-                </Link>
-                <Link href="/admin/status" className="rounded-md px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800">
-                  Rotinas
-                </Link>
-              </>
+            <Link href="/configuracoes" className="rounded-md px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+              Configurações
+            </Link>
+            {socio || sessao.papel === "administrativo" || sessao.papel === "advogado" ? (
+              <Link href="/admin/status" className="rounded-md px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                Rotinas
+              </Link>
             ) : null}
           </nav>
           <div className="ml-auto flex items-center gap-2 text-sm">

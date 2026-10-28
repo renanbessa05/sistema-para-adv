@@ -47,7 +47,7 @@ export default async function PaginaNovoProcesso({ searchParams }: { searchParam
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2">
             <Campo label="Número CNJ" className="sm:col-span-2">
-              <Input name="numero_cnj" required defaultValue={decomposto?.mascara ?? cnj ?? ""} placeholder="0000000-00.0000.8.11.0000" inputMode="numeric" pattern="[0-9.\-\s]{20,25}" title="20 dígitos, com ou sem máscara" />
+              <Input name="numero_cnj" required defaultValue={decomposto?.mascara ?? cnj ?? ""} placeholder="0000000-00.0000.8.11.0000" inputMode="numeric" minLength={20} maxLength={25} />
             </Campo>
             <Campo label="Comarca (TJ-MT)">
               <Select name="comarca_id" defaultValue="">
