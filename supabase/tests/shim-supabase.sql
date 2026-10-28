@@ -58,3 +58,7 @@ $$;
 
 grant usage on schema public to anon, authenticated, service_role, supabase_auth_admin;
 grant all on schema public to service_role;
+
+-- Mesmo search_path do Supabase para esta sessão (índices com gin_trgm_ops e funções não qualificadas)
+create schema if not exists extensions;
+select set_config('search_path', 'public, extensions', false);

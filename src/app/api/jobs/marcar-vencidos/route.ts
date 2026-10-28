@@ -18,7 +18,7 @@ export async function GET(request: Request) {
       "marcar-vencidos",
       async () => {
         const hoje = hojeNoFuso(escritorio.timezone);
-        const { data, error } = await admin.rpc("marcar_prazos_vencidos", { p_hoje: hoje, p_escritorio_id: escritorio.id });
+        const { data, error } = await admin.rpc("marcar_prazos_vencidos", { p_hoje: hoje });
         if (error) throw new Error(error.message);
         return { itens: Number(data ?? 0), detalhes: { hoje } };
       },

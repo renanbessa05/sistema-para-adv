@@ -4,8 +4,11 @@
 create schema if not exists ref;
 create schema if not exists app;
 
-create extension if not exists pgcrypto;
-create extension if not exists pg_trgm;
+-- Extensões no schema `extensions`, como no Supabase (em Postgres comum o shim de testes põe `extensions` no search_path).
+create schema if not exists extensions;
+grant usage on schema extensions to anon, authenticated, service_role;
+create extension if not exists pgcrypto with schema extensions;
+create extension if not exists pg_trgm with schema extensions;
 
 -- pgmq (filas) existe no Supabase; em Postgres comum (CI local) é ignorado e a fila própria é usada.
 do $$

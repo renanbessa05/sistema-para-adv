@@ -60,7 +60,17 @@ export async function subirBancoDeTeste(): Promise<BancoDeTeste> {
   urlBanco.pathname = `/${nomeBanco}`;
   const client = new Client({ connectionString: urlBanco.toString() });
   await client.connect();
-  await aplicarMigrations(client);
+  try {
+    await aplicarMigrations(client);
+  } catch (e) {
+    // Não deixa banco órfão quando uma migration falha.
+    await client.end().catch(() => undefined);
+    const limpeza = new Client({ connectionString: urlBase.toString() });
+    await limpeza.connect();
+    await limpeza.query(`drop database if exists ${nomeBanco} with (force)`).catch(() => undefined);
+    await limpeza.end();
+    throw e;
+  }
 
   const parar = async () => {
     try {
