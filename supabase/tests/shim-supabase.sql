@@ -2,12 +2,24 @@
 -- Reproduz o mínimo do Supabase: roles, schema auth com users, auth.uid(), auth.jwt() e auth.role().
 -- Em produção nada disto é aplicado: o Supabase já tem tudo.
 
+-- Roles são globais no cluster: vários bancos de teste em paralelo podem tentar criá-los ao mesmo tempo.
 do $$
+declare
+  r text;
 begin
-  if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
-  if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
-  if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role nologin bypassrls; end if;
-  if not exists (select 1 from pg_roles where rolname = 'supabase_auth_admin') then create role supabase_auth_admin nologin; end if;
+  foreach r in array array['anon', 'authenticated', 'service_role', 'supabase_auth_admin'] loop
+    if not exists (select 1 from pg_roles where rolname = r) then
+      begin
+        if r = 'service_role' then
+          execute 'create role service_role nologin bypassrls';
+        else
+          execute format('create role %I nologin', r);
+        end if;
+      exception when duplicate_object or unique_violation then
+        null; -- outro processo criou primeiro
+      end;
+    end if;
+  end loop;
 end
 $$;
 

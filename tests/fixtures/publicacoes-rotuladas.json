@@ -1,0 +1,24 @@
+{
+  "_descricao": "Conjunto de regressão do classificador de publicações. Cada caso tem o texto real (ou realista) e o rótulo confirmado pela advogada. Cresce toda semana com scripts/exportar-classificacoes.ts importar. Meta: tipo certo em 95% e gera_prazo certo em 95%.",
+  "meta_acerto": 0.95,
+  "casos": [
+    {
+      "id": "sintetico-contestacao",
+      "texto": "Processo 1002345-67.2025.8.11.0041. Classe: Procedimento Comum Cível. Intimação. Fica a parte requerida, por sua advogada, intimada para apresentar contestação no prazo legal de 15 (quinze) dias, sob pena de revelia.",
+      "esperado": { "tipo": "intimacao", "gera_prazo": true, "dias_sugeridos": 15 },
+      "observacao": "caso sintético de partida"
+    },
+    {
+      "id": "sintetico-despacho",
+      "texto": "Processo 1002345-67.2025.8.11.0041. Despacho: Aguarde-se o decurso do prazo. Após, voltem conclusos. Cumpra-se.",
+      "esperado": { "tipo": "despacho", "gera_prazo": false, "dias_sugeridos": null },
+      "observacao": "mero expediente"
+    },
+    {
+      "id": "sintetico-sentenca",
+      "texto": "Processo 1002345-67.2025.8.11.0041. Sentença: JULGO PROCEDENTE o pedido para condenar a requerida ao pagamento de R$ 10.000,00. Publique-se. Intimem-se.",
+      "esperado": { "tipo": "sentenca", "gera_prazo": true, "dias_sugeridos": 15 },
+      "observacao": "abre prazo de apelação"
+    }
+  ]
+}
