@@ -13,7 +13,7 @@ export async function proxy(request: NextRequest) {
 
   let resposta = NextResponse.next({ request });
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const chave = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const chave = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!url || !chave) return resposta;
 
   const supabase = createServerClient(url, chave, {

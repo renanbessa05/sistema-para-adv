@@ -43,9 +43,13 @@ function ler<T extends z.ZodTypeAny>(schema: T, origem: Record<string, string | 
   throw new Error(`Variáveis de ambiente inválidas: ${problemas}`);
 }
 
+/**
+ * O Supabase renomeou as chaves em 2025: `sb_publishable_…` substitui a anon key e `sb_secret_…` a service role.
+ * Aceitamos os dois nomes; internamente o código continua falando em ANON/SERVICE_ROLE.
+ */
 export const envPublico = ler(publicoSchema, {
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
 });
 
 let cacheServidor: z.infer<typeof servidorSchema> | undefined;
@@ -55,7 +59,12 @@ export function envServidor(): z.infer<typeof servidorSchema> {
   if (typeof window !== "undefined") {
     throw new Error("envServidor() não pode ser usado no browser");
   }
-  if (!cacheServidor) cacheServidor = ler(servidorSchema, process.env);
+  if (!cacheServidor) {
+    cacheServidor = ler(servidorSchema, {
+      ...process.env,
+      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY,
+    });
+  }
   return cacheServidor;
 }
 

@@ -11,7 +11,7 @@ Passo a passo para a primeira implantação (projeto `prod`) e para o ambiente `
 5. **Authentication → SMTP**: configurar a Resend (host `smtp.resend.com`, porta 465, usuário `resend`, senha = API key, remetente = `EMAIL_REMETENTE`). O SMTP padrão do Supabase limita a poucos e-mails por hora.
 6. **Authentication → URL Configuration**: Site URL = `https://<app>.vercel.app`; Redirect URLs = `https://<app>.vercel.app/auth/callback` e o preview `https://*.vercel.app/auth/callback`.
 7. **Storage**: os buckets `exportacoes` e `documentos` são criados pelo código na primeira vez (privados).
-8. Pegar `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` em Settings → API.
+8. Pegar em Settings → API Keys: `NEXT_PUBLIC_SUPABASE_URL`, a chave **publishable** (`sb_publishable_…`, vai em `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) e a chave **secret** (`sb_secret_…`, vai em `SUPABASE_SECRET_KEY`; só no servidor). Os nomes antigos anon/service role também funcionam.
 
 ## 2. Primeiro escritório e primeira usuária
 

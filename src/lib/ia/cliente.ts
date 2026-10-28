@@ -32,6 +32,7 @@ export interface PedidoEstruturado<T extends z.ZodType> {
   usuario: string;
   schema: T;
   maxTokens?: number;
+  /** Só para modelos que aceitam o parâmetro; os Claude 5 não aceitam e o padrão é não enviar. */
   temperatura?: number;
   agente: string;
 }
@@ -67,7 +68,8 @@ export function criarClienteIa(opcoes: { apiKey: string; baseURL?: string; fetch
         const resposta = await anthropic.messages.parse({
           model: pedido.modelo,
           max_tokens: pedido.maxTokens ?? 1024,
-          temperature: pedido.temperatura ?? 0,
+          // Os modelos Claude 5 rejeitam `temperature` ("Extra inputs are not permitted"); só enviamos quando pedido.
+          ...(pedido.temperatura !== undefined ? { temperature: pedido.temperatura } : {}),
           system: [
             {
               type: "text",
