@@ -1,0 +1,47 @@
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
+
+/**
+ * Proxy (antigo middleware) do Next 16: renova a sessão do Supabase a cada requisição
+ * e manda quem não está logado para /login nas rotas do painel.
+ */
+const ROTAS_PUBLICAS = [/^\/login/, /^\/convite\//, /^\/auth\//, /^\/api\/health/, /^\/api\/jobs\//, /^\/api\/whatsapp\//, /^\/_next\//, /^\/favicon/];
+
+export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  if (ROTAS_PUBLICAS.some((re) => re.test(pathname))) return NextResponse.next();
+
+  let resposta = NextResponse.next({ request });
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const chave = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !chave) return resposta;
+
+  const supabase = createServerClient(url, chave, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        for (const { name, value } of cookiesToSet) request.cookies.set(name, value);
+        resposta = NextResponse.next({ request });
+        for (const { name, value, options } of cookiesToSet) resposta.cookies.set(name, value, options);
+      },
+    },
+  });
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    const destino = request.nextUrl.clone();
+    destino.pathname = "/login";
+    destino.searchParams.set("voltar", pathname);
+    return NextResponse.redirect(destino);
+  }
+  return resposta;
+}
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
+};
