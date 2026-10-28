@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { obterSessao } from "@/server/sessao";
 import { sair } from "@/app/(auth)/login/actions";
 import { Badge } from "@/components/ui/badge";
+import { criarClienteServidor } from "@/lib/supabase/server";
 
 const ITENS = [
   { href: "/hoje", rotulo: "Hoje" },
@@ -20,6 +21,9 @@ export default async function LayoutPainel({ children }: { children: React.React
   const sessao = await obterSessao();
   if (!sessao) redirect("/sem-escritorio");
   const socio = sessao.papel === "socio";
+  const supabase = await criarClienteServidor();
+  const { count } = await supabase.from("notificacoes").select("id", { count: "exact", head: true }).eq("destinatario_id", sessao.usuarioId).eq("canal", "painel").in("status", ["enviada", "entregue"]).is("lida_em", null);
+  const naoLidas = count ?? 0;
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
       <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
@@ -41,8 +45,16 @@ export default async function LayoutPainel({ children }: { children: React.React
                 Rotinas
               </Link>
             ) : null}
+            {socio ? (
+              <Link href="/admin/metricas" className="rounded-md px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                Métricas
+              </Link>
+            ) : null}
           </nav>
           <div className="ml-auto flex items-center gap-2 text-sm">
+            <Link href="/notificacoes" className="relative rounded-md px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800" aria-label="Notificações">
+              🔔{naoLidas ? <span className="ml-1 rounded-full bg-red-600 px-1.5 text-xs text-white">{naoLidas}</span> : null}
+            </Link>
             <span>{sessao.nome}</span>
             <Badge tom="contorno">{PAPEIS[sessao.papel] ?? sessao.papel}</Badge>
             <form action={sair}>
