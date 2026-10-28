@@ -1,0 +1,70 @@
+{
+  "status": "success",
+  "message": "Comunicações listadas com sucesso.",
+  "count": 5,
+  "items": [
+    {
+      "id": 418233004,
+      "data_disponibilizacao": "2026-10-28",
+      "datadisponibilizacao": "28/10/2026",
+      "siglaTribunal": "TJMT",
+      "tipoComunicacao": "Intimação",
+      "tipoDocumento": "Decisão",
+      "nomeOrgao": "Vara Especializada de Família e Sucessões de Cuiabá",
+      "idOrgao": 11044,
+      "texto": "<p>Processo n. 0003210-45.2026.8.11.0041 &ndash; segredo de justi&ccedil;a (CPC, art. 189, II).</p><p>DECIS&Atilde;O</p><p>Defiro a tutela de urg&ecirc;ncia para fixar alimentos provis&oacute;rios em 30% do sal&aacute;rio m&iacute;nimo. Designo audi&ecirc;ncia de concilia&ccedil;&atilde;o para 10/12/2026, &agrave;s 14h, por videoconfer&ecirc;ncia. Cite-se e intime-se.</p>",
+      "numero_processo": "00032104520268110041",
+      "numeroprocessocommascara": "0003210-45.2026.8.11.0041",
+      "meio": "D",
+      "meiocompleto": "Diário de Justiça Eletrônico Nacional",
+      "link": "https://pje.tjmt.jus.br/pje/Processo/ConsultaDocumento/listView.seam?x=26102700000000000000000004",
+      "nomeClasse": "ALIMENTOS - LEI ESPECIAL Nº 5.478/68",
+      "codigoClasse": "69",
+      "numeroComunicacao": 2026102800004,
+      "ativo": true,
+      "hash": "d1e2f3a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60",
+      "status": "P",
+      "motivo_cancelamento": null,
+      "data_cancelamento": null,
+      "destinatarios": [
+        { "nome": "M. F. S. (menor, rep. por sua genitora)", "polo": "A", "comunicacao_id": 418233004 }
+      ],
+      "destinatarioadvogados": [
+        {
+          "id": 90014,
+          "comunicacao_id": 418233004,
+          "advogado": { "id": 55001, "nome": "MARIA EXEMPLO DA SILVA", "numero_oab": "12345", "uf_oab": "MT" }
+        }
+      ]
+    },
+    {
+      "id": 418233005,
+      "data_disponibilizacao": "2026-10-28",
+      "datadisponibilizacao": "28/10/2026",
+      "siglaTribunal": "TJMT",
+      "tipoComunicacao": "Edital",
+      "tipoDocumento": "Edital",
+      "nomeOrgao": "3ª Vara Cível de Sinop",
+      "idOrgao": 11015,
+      "texto": "<p>EDITAL DE CITA&Ccedil;&Atilde;O &ndash; PRAZO DE 20 DIAS</p><p>Processo: 1001234-98.2025.8.11.0015</p><p>FINALIDADE: CITA&Ccedil;&Atilde;O do requerido PEDRO FICT&Iacute;CIO MOREIRA, atualmente em lugar incerto e n&atilde;o sabido, para responder &agrave; a&ccedil;&atilde;o no prazo de 15 dias, que come&ccedil;a a correr do t&eacute;rmino do prazo deste edital (CPC, arts. 256 e 257).</p>",
+      "numero_processo": "10012349820258110015",
+      "numeroprocessocommascara": "1001234-98.2025.8.11.0015",
+      "meio": "E",
+      "meiocompleto": "Edital",
+      "link": null,
+      "nomeClasse": "EXECUÇÃO DE TÍTULO EXTRAJUDICIAL",
+      "codigoClasse": "159",
+      "numeroComunicacao": 2026102800005,
+      "ativo": true,
+      "hash": "e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4",
+      "status": "P",
+      "motivo_cancelamento": null,
+      "data_cancelamento": null,
+      "destinatarios": [
+        { "nome": "COOPERATIVA DE CRÉDITO EXEMPLO", "polo": "A", "comunicacao_id": 418233005 },
+        { "nome": "PEDRO FICTÍCIO MOREIRA", "polo": "P", "comunicacao_id": 418233005 }
+      ],
+      "destinatarioadvogados": []
+    }
+  ]
+}

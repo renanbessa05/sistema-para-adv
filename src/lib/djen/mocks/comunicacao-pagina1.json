@@ -1,0 +1,111 @@
+{
+  "status": "success",
+  "message": "Comunicações listadas com sucesso.",
+  "count": 5,
+  "items": [
+    {
+      "id": 418233001,
+      "data_disponibilizacao": "2026-10-27",
+      "datadisponibilizacao": "27/10/2026",
+      "siglaTribunal": "TJMT",
+      "tipoComunicacao": "Intimação",
+      "tipoDocumento": "Despacho",
+      "nomeOrgao": "4ª Vara Cível de Cuiabá",
+      "idOrgao": 11041,
+      "texto": "<p>PODER JUDICI&Aacute;RIO DO ESTADO DE MATO GROSSO<br/>COMARCA DE CUIAB&Aacute; - 4&ordf; VARA C&Iacute;VEL</p><p>Processo n&ordm; <b>1004521-88.2025.8.11.0041</b></p><p>AUTOR: HELENA FICT&Iacute;CIA DE ALMEIDA<br/>R&Eacute;U: COMERCIAL EXEMPLO LTDA</p><p>Vistos.</p><p>Intime-se a parte autora para, no prazo de 15 (quinze) dias, apresentar impugna&ccedil;&atilde;o &agrave; contesta&ccedil;&atilde;o e aos documentos juntados, nos termos dos arts. 350 e 351 do CPC.</p><p>Ap&oacute;s, conclusos.</p><p>Cuiab&aacute;, 24 de outubro de 2026.</p><p>Juiz(a) de Direito</p>",
+      "numero_processo": "10045218820258110041",
+      "numeroprocessocommascara": "1004521-88.2025.8.11.0041",
+      "meio": "D",
+      "meiocompleto": "Diário de Justiça Eletrônico Nacional",
+      "link": "https://pje.tjmt.jus.br/pje/Processo/ConsultaDocumento/listView.seam?x=26102400000000000000000001",
+      "nomeClasse": "PROCEDIMENTO COMUM CÍVEL",
+      "codigoClasse": "7",
+      "numeroComunicacao": 2026102700001,
+      "ativo": true,
+      "hash": "3f1a9c2e7b4d5e6f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f7",
+      "status": "P",
+      "motivo_cancelamento": null,
+      "data_cancelamento": null,
+      "destinatarios": [
+        { "nome": "HELENA FICTÍCIA DE ALMEIDA", "polo": "A", "comunicacao_id": 418233001 },
+        { "nome": "COMERCIAL EXEMPLO LTDA", "polo": "P", "comunicacao_id": 418233001 }
+      ],
+      "destinatarioadvogados": [
+        {
+          "id": 90011,
+          "comunicacao_id": 418233001,
+          "advogado": { "id": 55001, "nome": "MARIA EXEMPLO DA SILVA", "numero_oab": "12345", "uf_oab": "MT" }
+        }
+      ]
+    },
+    {
+      "id": 418233002,
+      "data_disponibilizacao": "2026-10-27",
+      "datadisponibilizacao": "27/10/2026",
+      "siglaTribunal": "TJMT",
+      "tipoComunicacao": "Citação",
+      "tipoDocumento": "Ato ordinatório",
+      "nomeOrgao": "2ª Vara Cível de Várzea Grande",
+      "idOrgao": 11002,
+      "texto": "<div><p>ESTADO DE MATO GROSSO<br>PODER JUDICI&Aacute;RIO<br>2&ordf; VARA C&Iacute;VEL DE V&Aacute;RZEA GRANDE</p><p>Processo: 1012345-55.2024.8.11.0002</p><p>CITA&Ccedil;&Atilde;O</p><p>Fica a parte requerida CONSTRUTORA FICT&Iacute;CIA S/A citada para, querendo, apresentar contesta&ccedil;&atilde;o no prazo de 15 (quinze) dias &uacute;teis, sob pena de revelia (CPC, arts. 335 e 344).</p><p>V&aacute;rzea Grande, 26 de outubro de 2026.</p><p>Gestor(a) Judici&aacute;rio(a)</p></div>",
+      "numero_processo": "10123455520248110002",
+      "numeroprocessocommascara": "1012345-55.2024.8.11.0002",
+      "meio": "D",
+      "meiocompleto": "Diário de Justiça Eletrônico Nacional",
+      "link": "https://pje.tjmt.jus.br/pje/Processo/ConsultaDocumento/listView.seam?x=26102600000000000000000002",
+      "nomeClasse": "PROCEDIMENTO COMUM CÍVEL",
+      "codigoClasse": "7",
+      "numeroComunicacao": 2026102700002,
+      "ativo": true,
+      "hash": "b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90a1",
+      "status": "P",
+      "motivo_cancelamento": null,
+      "data_cancelamento": null,
+      "destinatarios": [
+        { "nome": "JOSÉ FICTÍCIO PEREIRA", "polo": "A", "comunicacao_id": 418233002 },
+        { "nome": "CONSTRUTORA FICTÍCIA S/A", "polo": "P", "comunicacao_id": 418233002 }
+      ],
+      "destinatarioadvogados": []
+    },
+    {
+      "id": 418233003,
+      "data_disponibilizacao": "2026-10-27",
+      "datadisponibilizacao": "27/10/2026",
+      "siglaTribunal": "TJMT",
+      "tipoComunicacao": "Intimação",
+      "tipoDocumento": "Sentença",
+      "nomeOrgao": "1ª Vara Cível de Rondonópolis",
+      "idOrgao": 11003,
+      "texto": "<p>Processo 1000777-73.2023.8.11.0003</p><p>SENTEN&Ccedil;A</p><p>Ante o exposto, JULGO PROCEDENTE o pedido para condenar a r&eacute; ao pagamento de R$ 12.000,00 (doze mil reais), com corre&ccedil;&atilde;o monet&aacute;ria pelo IPCA e juros pela taxa SELIC. Condeno a r&eacute; ao pagamento das custas e honor&aacute;rios de 10% sobre o valor da condena&ccedil;&atilde;o (art. 85, &sect; 2&ordm;, CPC).</p><p>P.R.I.</p>",
+      "numero_processo": "10007777320238110003",
+      "numeroprocessocommascara": "1000777-73.2023.8.11.0003",
+      "meio": "D",
+      "meiocompleto": "Diário de Justiça Eletrônico Nacional",
+      "link": null,
+      "nomeClasse": "PROCEDIMENTO COMUM CÍVEL",
+      "codigoClasse": "7",
+      "numeroComunicacao": 2026102700003,
+      "ativo": false,
+      "hash": "c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8",
+      "status": "C",
+      "motivo_cancelamento": "Publicação em duplicidade; ver comunicação 2026102700009.",
+      "data_cancelamento": "2026-10-27",
+      "destinatarios": [
+        { "nome": "ANA FICTÍCIA RIBEIRO", "polo": "A", "comunicacao_id": 418233003 },
+        { "nome": "SEGURADORA EXEMPLO S/A", "polo": "P", "comunicacao_id": 418233003 }
+      ],
+      "destinatarioadvogados": [
+        {
+          "id": 90012,
+          "comunicacao_id": 418233003,
+          "advogado": { "id": 55001, "nome": "MARIA EXEMPLO DA SILVA", "numero_oab": "12345", "uf_oab": "MT" }
+        },
+        {
+          "id": 90013,
+          "comunicacao_id": 418233003,
+          "advogado": { "id": 55002, "nome": "CARLOS EXEMPLO DOS SANTOS", "numero_oab": "98765", "uf_oab": "SP" }
+        }
+      ]
+    }
+  ]
+}

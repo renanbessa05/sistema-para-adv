@@ -1,0 +1,57 @@
+{
+  "took": 12,
+  "timed_out": false,
+  "_shards": { "total": 1, "successful": 1, "skipped": 0, "failed": 0 },
+  "hits": {
+    "total": { "value": 1, "relation": "eq" },
+    "max_score": 1.0,
+    "hits": [
+      {
+        "_index": "api_publica_tjmt",
+        "_id": "TJMT_G1_10045218820258110041",
+        "_score": 1.0,
+        "_source": {
+          "numeroProcesso": "10045218820258110041",
+          "classe": { "codigo": 7, "nome": "Procedimento Comum Cível" },
+          "sistema": { "codigo": 1, "nome": "PJe" },
+          "formato": { "codigo": 1, "nome": "Eletrônico" },
+          "tribunal": "TJMT",
+          "dataHoraUltimaAtualizacao": "2026-10-27T03:12:44.517Z",
+          "grau": "G1",
+          "@timestamp": "2026-10-27T03:12:44.517Z",
+          "dataAjuizamento": "2025-03-14T00:00:00.000Z",
+          "movimentos": [
+            {
+              "codigo": 26,
+              "nome": "Distribuição",
+              "dataHora": "2025-03-14T11:02:31.000Z",
+              "complementosTabelados": [
+                { "codigo": 2, "descricao": "tipo_de_distribuicao_redistribuicao", "valor": 1, "nome": "Sorteio" }
+              ]
+            },
+            { "codigo": 85, "nome": "Petição", "dataHora": "2025-04-02T16:45:10.000Z" },
+            { "codigo": 60, "nome": "Expedição de documento", "dataHora": "2025-04-15T09:20:00.000Z" },
+            {
+              "codigo": 51,
+              "nome": "Audiência",
+              "dataHora": "2025-08-20T14:00:00.000Z",
+              "complementosTabelados": [
+                { "codigo": 5, "descricao": "tipo_de_audiencia", "valor": 11, "nome": "Instrução e Julgamento" }
+              ]
+            },
+            { "codigo": 123, "nome": "Remessa", "dataHora": "2026-09-30T18:05:12.000Z" },
+            { "codigo": 92, "nome": "Publicação", "dataHora": "2026-10-24T10:00:00.000Z" }
+          ],
+          "id": "TJMT_G1_10045218820258110041",
+          "nivelSigilo": 0,
+          "orgaoJulgador": { "codigoMunicipioIBGE": 5103403, "codigo": 11041, "nome": "4ª Vara Cível de Cuiabá" },
+          "assuntos": [
+            { "codigo": 7779, "nome": "Indenização por Dano Material" },
+            { "codigo": 7780, "nome": "Indenização por Dano Moral" }
+          ]
+        },
+        "sort": [1761534764517]
+      }
+    ]
+  }
+}
