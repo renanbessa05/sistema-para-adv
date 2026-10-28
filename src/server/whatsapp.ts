@@ -2,7 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { criarClienteIa, rotearMensagem, type ClienteIa, type RoteamentoIntent } from "@/lib/ia";
 import { criarClienteWhatsapp, extrairEventos, type ClienteWhatsapp, type MensagemRecebida } from "@/lib/whatsapp";
-import { calcularPeriodos, formatarBr, hojeNoFuso } from "@/lib/prazos";
+import { calcularPeriodos, formatarBr } from "@/lib/prazos";
 import { envServidor } from "@/lib/config/env";
 import { carregarCalendario } from "./calendario";
 

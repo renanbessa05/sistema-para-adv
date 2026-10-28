@@ -11,6 +11,8 @@ export default defineConfig({
     trace: "retain-on-failure",
     locale: "pt-BR",
     timezoneId: "America/Cuiaba",
+    // Ambiente com Chromium pré-instalado fora do cache do Playwright (ex.: sessão na nuvem)
+    launchOptions: process.env.PLAYWRIGHT_CHROMIUM_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } : undefined,
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: process.env.CI

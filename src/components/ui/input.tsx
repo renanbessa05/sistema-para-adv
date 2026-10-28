@@ -24,12 +24,13 @@ export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLab
   return <label className={cn("mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300", className)} {...props} />;
 }
 
+/** Rótulo + controle. O <label> envolve o controle para que leitores de tela e testes associem os dois. */
 export function Campo({ label, erro, children, className }: { label: string; erro?: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn("flex flex-col", className)}>
-      <Label>{label}</Label>
+    <label className={cn("flex flex-col", className)}>
+      <span className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{label}</span>
       {children}
-      {erro ? <p className="mt-1 text-xs text-red-600">{erro}</p> : null}
-    </div>
+      {erro ? <span className="mt-1 text-xs text-red-600">{erro}</span> : null}
+    </label>
   );
 }
