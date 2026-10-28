@@ -25,5 +25,5 @@ Rode `pnpm lint`, `pnpm typecheck` e `pnpm test`. O motor de prazos (`src/lib/pr
 - `src/lib/prazos` motor de prazos (puro, 100% coberto; regra em `docs/regras/prazos.md`); `src/lib/cnj` número CNJ; `src/lib/djen` e `src/lib/datajud` conectores; `src/lib/ia` cliente com saída estruturada, classificador e roteador de intents (prompts versionados em `prompts/`); `src/lib/whatsapp` e `src/lib/notificacoes` regras puras.
 - `src/server/*` casos de uso e rotinas (`jobs/`): só aqui se toca o banco. `src/app/api/jobs/*` rotas dos crons; `src/app/api/whatsapp/webhook` webhook da Meta.
 - `supabase/migrations` em ordem; `supabase/tests` roda as migrations num Postgres real com o shim do Supabase (roles, auth.uid/jwt) e prova RLS e papéis.
-- `docs/escopo-revisado.md` é o plano; `docs/deploy.md` como colocar no ar; `docs/runbooks` operação; `docs/lgpd` registro e fornecedores.
+- `docs/escopo-revisado.md` é o plano; `docs/deploy.md` como colocar no ar; `docs/proximos-passos.md` estado atual e pendências; `docs/runbooks` operação; `docs/lgpd` registro e fornecedores.
 - Teste de banco local: Postgres 16 em `postgres://adv_teste:adv_teste@127.0.0.1:5432/postgres` (ou `DATABASE_URL_TESTE`).
