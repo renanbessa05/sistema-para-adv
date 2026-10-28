@@ -42,7 +42,7 @@ create table if not exists public.clientes (
   atualizado_em timestamptz not null default now()
 );
 create unique index if not exists clientes_documento_unq on public.clientes (escritorio_id, cpf_cnpj) where cpf_cnpj is not null;
-create index if not exists clientes_nome_trgm on public.clientes using gin (nome gin_trgm_ops);
+create index if not exists clientes_nome_trgm on public.clientes using gin (nome extensions.gin_trgm_ops);
 create index if not exists clientes_escritorio_idx on public.clientes (escritorio_id, ativo);
 drop trigger if exists clientes_atualizado_em on public.clientes;
 create trigger clientes_atualizado_em before update on public.clientes for each row execute function app.set_atualizado_em();
@@ -119,7 +119,7 @@ create table if not exists public.processo_partes (
   criado_em timestamptz not null default now()
 );
 create index if not exists processo_partes_processo_idx on public.processo_partes (processo_id);
-create index if not exists processo_partes_nome_trgm on public.processo_partes using gin (nome gin_trgm_ops);
+create index if not exists processo_partes_nome_trgm on public.processo_partes using gin (nome extensions.gin_trgm_ops);
 create index if not exists processo_partes_cliente_idx on public.processo_partes (escritorio_id, cliente_id);
 
 create table if not exists public.processo_colaboradores (
