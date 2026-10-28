@@ -16,6 +16,6 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: process.env.CI
-    ? { command: "pnpm start", url: "http://localhost:3000/api/health", reuseExistingServer: true, timeout: 120_000 }
+    ? { command: "pnpm start", url: "http://localhost:3000/login", reuseExistingServer: true, timeout: 120_000 }
     : undefined,
 });
