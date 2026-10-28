@@ -1,0 +1,57 @@
+# Configuração do Supabase local (supabase start) e referência para o painel do projeto na nuvem.
+project_id = "sistema-para-adv"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "ref", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[db.migrations]
+enabled = true
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/auth/callback"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+enable_signup = false
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = false
+enable_confirmations = false
+double_confirm_changes = false
+max_frequency = "60s"
+otp_length = 6
+otp_expiry = 3600
+
+# Claims escritorio_id e papel no JWT (função criada na migration 0004).
+# Na nuvem: Authentication → Hooks → Customize Access Token → public.custom_access_token_hook
+[auth.hook.custom_access_token]
+enabled = true
+uri = "pg-functions://postgres/public/custom_access_token_hook"
+
+[auth.mfa]
+max_enrolled_factors = 10
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[edge_runtime]
+enabled = false
