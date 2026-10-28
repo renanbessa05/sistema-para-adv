@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["gru1"],
+  "crons": [
+    { "path": "/api/jobs/captar-djen", "schedule": "0 10,11,12 * * 1-5" },
+    { "path": "/api/jobs/classificar", "schedule": "*/5 10-22 * * 1-5" },
+    { "path": "/api/jobs/enriquecer-datajud", "schedule": "30 9 * * *" },
+    { "path": "/api/jobs/drenar-notificacoes", "schedule": "*/5 * * * *" },
+    { "path": "/api/jobs/alertas-publicacao", "schedule": "0 12-22 * * 1-5" },
+    { "path": "/api/jobs/alertas-prazo", "schedule": "0 11 * * 1-5" },
+    { "path": "/api/jobs/resumo-do-dia", "schedule": "30 11 * * 1-5" },
+    { "path": "/api/jobs/marcar-vencidos", "schedule": "5 4 * * *" },
+    { "path": "/api/jobs/exportar-prazos", "schedule": "0 22 * * 1-5" },
+    { "path": "/api/jobs/atualizar-metricas", "schedule": "0 3 * * *" },
+    { "path": "/api/jobs/captacao-vigilante", "schedule": "0 13 * * 1-5" }
+  ]
+}

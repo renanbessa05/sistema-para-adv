@@ -1,0 +1,82 @@
+{
+  "_descricao": "Casos de referência do motor de prazos, calculados à mão sobre o calendário de teste (src/lib/prazos/__tests__/fixture-calendario.ts). Os 30 casos reais contados pela advogada substituem ou complementam estes quando chegarem (semana 3 do plano).",
+  "casos": [
+    {
+      "id": "djen-15-uteis-marco",
+      "descricao": "Contestação, 15 dias úteis, disponibilizada numa sexta-feira",
+      "calendario": "cuiaba",
+      "entrada": { "origem": "publicacao_djen", "dataDisponibilizacao": "2026-03-06", "ato": { "descricao": "Contestação", "quantidade": 15, "contagem": "dias_uteis" } },
+      "esperado": { "dataPublicacao": "2026-03-09", "dataInicioContagem": "2026-03-10", "dataFinal": "2026-03-30", "dataInterna": "2026-03-26", "calendarioIncompleto": false }
+    },
+    {
+      "id": "djen-dobro-cuiaba",
+      "descricao": "Fazenda Pública em dobro (30 dias úteis) atravessando Sexta-feira Santa, aniversário de Cuiabá e Tiradentes",
+      "calendario": "cuiaba",
+      "entrada": { "origem": "publicacao_djen", "dataDisponibilizacao": "2026-03-06", "ato": { "descricao": "Contestação (Fazenda)", "quantidade": 15, "contagem": "dias_uteis", "multiplicador": 2, "fundamentoDobro": "CPC art. 183" } },
+      "esperado": { "dataFinal": "2026-04-23", "quantidadeEfetiva": 30, "calendarioIncompleto": false }
+    },
+    {
+      "id": "djen-dobro-sem-comarca",
+      "descricao": "Mesmo caso sem comarca: o feriado municipal não é aplicado e o motor avisa",
+      "calendario": "semComarca",
+      "entrada": { "origem": "publicacao_djen", "dataDisponibilizacao": "2026-03-06", "ato": { "descricao": "Contestação (Fazenda)", "quantidade": 15, "contagem": "dias_uteis", "multiplicador": 2 } },
+      "esperado": { "dataFinal": "2026-04-22", "calendarioIncompleto": true }
+    },
+    {
+      "id": "djen-recesso-carnaval",
+      "descricao": "15 dias úteis atravessando o recesso de 20/12 a 20/01 e o Carnaval de 2027",
+      "calendario": "cuiaba",
+      "entrada": { "origem": "publicacao_djen", "dataDisponibilizacao": "2026-12-15", "ato": { "descricao": "Réplica", "quantidade": 15, "contagem": "dias_uteis" } },
+      "esperado": { "dataPublicacao": "2026-12-16", "dataInicioContagem": "2026-12-17", "dataFinal": "2027-02-11", "calendarioIncompleto": false }
+    },
+    {
+      "id": "djen-recesso-sem-2027",
+      "descricao": "Mesmo caso com calendário de 2027 não carregado: Carnaval não é pulado e o motor marca calendário incompleto",
+      "calendario": "so2026",
+      "entrada": { "origem": "publicacao_djen", "dataDisponibilizacao": "2026-12-15", "ato": { "descricao": "Réplica", "quantidade": 15, "contagem": "dias_uteis" } },
+      "esperado": { "dataFinal": "2027-02-08", "calendarioIncompleto": true }
+    },
+    {
+      "id": "corridos-processual-recesso",
+      "descricao": "5 dias corridos processuais: fim de semana conta, recesso pausa",
+      "calendario": "cuiaba",
+      "entrada": { "origem": "publicacao_djen", "dataPublicacao": "2026-12-16", "ato": { "descricao": "Prazo em dias corridos", "quantidade": 5, "contagem": "dias_corridos" } },
+      "esperado": { "dataInicioContagem": "2026-12-17", "dataFinal": "2027-01-22" }
+    },
+    {
+      "id": "material-30-corridos",
+      "descricao": "Prazo material de 30 dias corridos: corre no recesso, sem protração",
+      "calendario": "cuiaba",
+      "entrada": { "origem": "manual", "dataPublicacao": "2026-12-16", "ato": { "descricao": "Prazo material", "quantidade": 30, "contagem": "dias_corridos", "tipo": "material" } },
+      "esperado": { "dataInicioContagem": "2026-12-17", "dataFinal": "2027-01-15" }
+    },
+    {
+      "id": "material-vence-domingo",
+      "descricao": "Prazo material que vence no domingo não é protraído",
+      "calendario": "cuiaba",
+      "entrada": { "origem": "manual", "dataPublicacao": "2026-03-05", "ato": { "descricao": "Prazo material", "quantidade": 3, "contagem": "dias_corridos", "tipo": "material" } },
+      "esperado": { "dataFinal": "2026-03-08" }
+    },
+    {
+      "id": "corridos-processual-vence-domingo",
+      "descricao": "Prazo processual em dias corridos que vence no domingo é protraído para segunda (CPC art. 224, §1º)",
+      "calendario": "cuiaba",
+      "entrada": { "origem": "manual", "dataPublicacao": "2026-03-05", "ato": { "descricao": "Prazo processual corrido", "quantidade": 3, "contagem": "dias_corridos" } },
+      "esperado": { "dataFinal": "2026-03-09" }
+    },
+    {
+      "id": "horas-48",
+      "descricao": "48 horas viram 2 dias civis com aviso",
+      "calendario": "cuiaba",
+      "entrada": { "origem": "manual", "dataPublicacao": "2026-03-09", "ato": { "descricao": "48 horas", "quantidade": 48, "contagem": "horas" } },
+      "esperado": { "dataInicioContagem": "2026-03-10", "dataFinal": "2026-03-11", "quantidadeEfetiva": 2, "contagem": "dias_corridos" }
+    },
+    {
+      "id": "embargos-5-uteis-sem-seguranca",
+      "descricao": "Embargos de declaração, 5 dias úteis, sem dias de segurança",
+      "calendario": "cuiaba",
+      "entrada": { "origem": "publicacao_djen", "dataDisponibilizacao": "2026-03-06", "ato": { "descricao": "Embargos de declaração", "quantidade": 5, "contagem": "dias_uteis" }, "diasSeguranca": 0 },
+      "esperado": { "dataFinal": "2026-03-16", "dataInterna": "2026-03-16" }
+    }
+  ]
+}
