@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Campo, Input, Select, Textarea } from "@/components/ui/input";
+import { Campo, Input, Select } from "@/components/ui/input";
 import { ignorarPublicacao, marcarDuplicada, marcarSemPrazo, marcarTratada, vincularPublicacao } from "../actions";
 
 export const metadata = { title: "Publicação" };
