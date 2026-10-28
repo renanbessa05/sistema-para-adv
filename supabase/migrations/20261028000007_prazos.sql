@@ -322,7 +322,7 @@ begin
      set status = 'confirmado',
          data_final = nova_final,
          data_interna = nova_interna,
-         data_sugerida_ia = case when nova_final <> data_anterior then coalesce(p.data_sugerida_ia, data_anterior) else p.data_sugerida_ia end,
+         data_sugerida_ia = coalesce(p.data_sugerida_ia, data_anterior),   -- a data que o sistema sugeriu, para medir o acerto da IA
          data_confirmada = nova_final,
          ato_id = coalesce(p_ato_id, p.ato_id),
          ato_descricao = coalesce(ato.nome, p.ato_descricao),

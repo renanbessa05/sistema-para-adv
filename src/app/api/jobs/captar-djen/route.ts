@@ -3,7 +3,6 @@ import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { autorizarCron } from "@/server/jobs/protecao";
 import { captarDjen } from "@/server/jobs/captar-djen";
 
-export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 export async function GET(request: Request) {

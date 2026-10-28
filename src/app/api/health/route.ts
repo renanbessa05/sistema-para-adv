@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { envPublico, envServidor } from "@/lib/config/env";
 
-export const dynamic = "force-dynamic";
 
 /** Saúde do app e do banco. Usado pela Vercel, pelo vigilante de captação e pelo runbook. */
 export async function GET() {

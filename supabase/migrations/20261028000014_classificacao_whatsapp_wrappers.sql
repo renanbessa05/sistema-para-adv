@@ -112,3 +112,6 @@ as $$
 $$;
 revoke execute on function app.registrar_acao_whatsapp(uuid, uuid, public.aprovacao_objeto, uuid, jsonb) from public, anon, authenticated;
 grant execute on function app.registrar_acao_whatsapp(uuid, uuid, public.aprovacao_objeto, uuid, jsonb) to service_role;
+
+-- O grant em publicacoes é por lista de colunas (0006): liberar leitura das colunas novas
+grant select (classificacao, confianca_ia, revisar_classificacao) on public.publicacoes to authenticated;

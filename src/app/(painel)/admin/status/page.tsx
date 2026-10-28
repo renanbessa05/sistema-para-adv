@@ -7,7 +7,6 @@ import { formatarDataHora } from "@/lib/utils";
 import { redirect } from "next/navigation";
 
 export const metadata = { title: "Rotinas" };
-export const dynamic = "force-dynamic";
 
 const JOBS = ["captar-djen", "classificar", "enriquecer-datajud", "drenar-notificacoes", "alertas-publicacao", "alertas-prazo", "resumo-do-dia", "marcar-vencidos", "exportar-prazos", "atualizar-metricas", "captacao-vigilante"];
 

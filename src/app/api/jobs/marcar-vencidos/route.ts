@@ -4,7 +4,6 @@ import { hojeNoFuso } from "@/lib/prazos";
 import { autorizarCron } from "@/server/jobs/protecao";
 import { executarJob, listarEscritoriosAtivos } from "@/server/jobs/registro";
 
-export const dynamic = "force-dynamic";
 
 /** 0h05 de Cuiabá: prazos confirmados ou prorrogados com data final anterior a hoje viram `vencido`. */
 export async function GET(request: Request) {

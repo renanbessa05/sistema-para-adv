@@ -4,7 +4,6 @@ import { envServidor } from "@/lib/config/env";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { processarWebhook } from "@/server/whatsapp";
 
-export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /** Verificação do webhook pela Meta (uma vez, ao cadastrar a URL). */

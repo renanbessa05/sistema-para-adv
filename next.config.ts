@@ -1,9 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
+  // App interno, sempre dinâmico (sessão por cookie em toda página): sem cache de componentes.
+  cacheComponents: false,
   turbopack: {
     rules: {
       "*.css": {

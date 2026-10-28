@@ -9,7 +9,6 @@ import { Alert } from "@/components/ui/alert";
 import { formatarData } from "@/lib/utils";
 
 export const metadata = { title: "Hoje" };
-export const dynamic = "force-dynamic";
 
 type Prazo = { id: string; ato_descricao: string; data_final: string; data_interna: string | null; status: string; processo_id: string | null; processos: { numero_cnj_mascara: string | null } | null };
 type Tarefa = { id: string; titulo: string; vencimento: string | null; status: string; prioridade: string | null };
