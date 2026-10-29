@@ -104,6 +104,14 @@ export const REGRAS: Record<EventoNotificacao, RegraNotificacao> = {
     somenteDiasUteis: false,
     template: "alerta_prazo",
   },
+  parcela_vencida: {
+    // Parcela de honorários vencida (job cobranca-parcelas, 11h UTC em dias úteis): quem cobra é sócio e administrativo.
+    destinatarios: "socios_e_administrativo",
+    canais: ["painel", "email"],
+    horarioLocal: "imediato",
+    somenteDiasUteis: true,
+    template: "alerta_prazo",
+  },
   tarefa_atrasada: {
     // Não gera WhatsApp próprio: aparece no painel e como linha do resumo do dia.
     destinatarios: "responsavel",

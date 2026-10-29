@@ -19,6 +19,8 @@ export default defineConfig({
       thresholds: {
         // O motor de prazos é o coração do MVP: nada entra sem cobertura total.
         "src/lib/prazos/**/*.ts": { lines: 100, functions: 100, branches: 100, statements: 100 },
+        // Honorários: piso, teto do art. 50 e bloqueio por tabela vencida protegem a advogada; nada entra sem cobertura total.
+        "src/lib/honorarios/calculo.ts": { lines: 100, functions: 100, branches: 100, statements: 100 },
       },
     },
   },

@@ -10,6 +10,7 @@ export const ROTULO_OBJETO_APROVACAO: Record<string, string> = {
   contrato: "Contrato de honorários",
   minuta: "Minuta",
   mensagem_cliente: "Mensagem ao cliente",
+  calculo: "Cálculo",
 };
 
 export const ROTULO_STATUS_APROVACAO: Record<string, string> = {
@@ -67,6 +68,7 @@ export function respostaAtrasada(a: Pick<Aprovacao, "prazo_resposta_em">, agora:
 export function linkDoObjeto(objetoTipo: string, objetoId: string): string | null {
   if (objetoTipo === "prazo") return `/prazos/${objetoId}`;
   if (objetoTipo === "tarefa_reatribuicao" || objetoTipo === "tarefa_conclusao") return `/tarefas/${objetoId}`;
+  if (objetoTipo === "contrato") return `/contratos/${objetoId}`;
   return null;
 }
 

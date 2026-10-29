@@ -49,9 +49,9 @@ describe("tabela REGRAS", () => {
   it("cobre todos os eventos com canais não vazios", () => {
     const eventos: EventoNotificacao[] = [
       "nova_publicacao", "publicacao_sem_processo", "publicacao_sem_tratamento_24h", "publicacao_sem_tratamento_48h", "prazo_d3", "prazo_d1", "prazo_d0", "prazo_vencido",
-      "tarefa_atrasada", "tarefa_reatribuida", "resumo_do_dia", "captacao_falhou", "calendario_incompleto", "convite",
+      "tarefa_atrasada", "tarefa_reatribuida", "resumo_do_dia", "captacao_falhou", "calendario_incompleto", "convite", "parcela_vencida",
     ];
-    // Mesmo conjunto do enum public.evento_notificacao (migration 0010): nada a mais, nada a menos
+    // Mesmo conjunto do enum public.evento_notificacao (migrations 0010 e 0030): nada a mais, nada a menos
     expect(Object.keys(REGRAS).sort()).toEqual([...eventos].sort());
     for (const e of eventos) {
       expect(REGRAS[e], e).toBeDefined();

@@ -17,7 +17,8 @@ export type EventoNotificacao =
   | "resumo_do_dia"
   | "captacao_falhou"
   | "calendario_incompleto"
-  | "convite";
+  | "convite"
+  | "parcela_vencida";
 
 export type Canal = "painel" | "whatsapp" | "email";
 
