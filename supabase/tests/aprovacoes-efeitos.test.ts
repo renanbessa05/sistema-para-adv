@@ -56,7 +56,7 @@ describe("efeitos de aprovação e teto de IA", () => {
   });
 
   it("sem função para o tipo, decide sem efeito", async () => {
-    const id = await criar("minuta", "dddddddd-dddd-4ddd-8ddd-dddddddddddd");
+    const id = await criar("mensagem_cliente", "dddddddd-dddd-4ddd-8ddd-dddddddddddd");
     const decidida = await db.comoUsuario(comoSocioA, async (c) => (await c.query("select * from public.decidir_aprovacao($1, 'rejeitada', 'não')", [id])).rows[0]);
     expect(decidida.status).toBe("rejeitada");
     expect(decidida.efeito_aplicado_em).toBeNull();
