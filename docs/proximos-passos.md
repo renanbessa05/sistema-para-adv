@@ -1,4 +1,4 @@
-# Próximos passos (estado em 28/10/2026)
+# Próximos passos (estado em 29/10/2026)
 
 Resumo de onde o sistema está, o que só o escritório pode fazer e o que ainda falta da Fase 1. O plano completo está em `docs/escopo-revisado.md`; a implantação, em `docs/deploy.md`.
 
@@ -6,11 +6,11 @@ Resumo de onde o sistema está, o que só o escritório pode fazer e o que ainda
 
 | Área | Estado | Onde |
 |---|---|---|
-| Banco (15 migrations, RLS, papéis, RPCs) | Pronto; testado num Postgres real no CI | `supabase/migrations`, `supabase/tests` |
+| Banco (21 migrations, RLS, papéis, RPCs, MFA por policy, Vault) | Pronto; testado num Postgres real no CI | `supabase/migrations`, `supabase/tests` |
 | Motor de prazos (TJ-MT, CPC, recesso, dobro, feriados por comarca) | Pronto; 100% de cobertura; 11 casos de referência | `src/lib/prazos`, `tests/fixtures/prazos-casos.json`, `docs/regras/prazos.md` |
 | Captação DJEN + dedup + classificação por IA + sugestão de prazo | Pronto; roda pelos crons de `vercel.json` | `src/server/jobs/captar-djen.ts`, `classificar.ts`, `src/lib/djen`, `src/lib/ia` |
 | Enriquecimento pelo DataJud | Pronto | `src/server/jobs/enriquecer-datajud.ts`, `src/lib/datajud` |
-| Telas: Hoje, Publicações, Prazos, Tarefas, Processos (lista, detalhe, kanban, importação CSV), Clientes, Aprovações, Configurações (escritório, equipe, atos, fases, calendário, ausências, notificações), Rotinas, Métricas, Notificações | Pronto | `src/app/(painel)` |
+| Telas: Hoje, Publicações, Prazos, Tarefas, Processos (lista, detalhe, kanban, importação CSV), Clientes, Aprovações, Configurações (escritório, equipe, atos, fases, calendário, ausências, notificações, integrações, segurança), Rotinas, Divergências, Métricas, Notificações, MFA (`/mfa`, `/mfa/cadastro`) | Pronto | `src/app/(painel)`, `src/app/(auth)/mfa` |
 | Notificações (painel, e-mail via Resend, WhatsApp por template), alertas D-3/D-1/D0, 24 h/48 h sem tratamento, resumo do dia, vigilante da captação, exportação diária de prazos | Pronto | `src/server/notificacoes.ts`, `src/server/jobs/*` |
 | WhatsApp: webhook assinado, intents de leitura e de escrita com eco + "Confirma?", verificação de telefone | Pronto (templates ainda não submetidos à Meta) | `src/server/whatsapp.ts`, `src/lib/whatsapp` |
 | Operação: `/admin/status`, `/admin/metricas`, `/api/health`, runbooks, LGPD | Pronto | `docs/runbooks`, `docs/lgpd` |
@@ -29,19 +29,24 @@ Resumo de onde o sistema está, o que só o escritório pode fazer e o que ainda
 9. **LGPD**: nomear o encarregado, aprovar `docs/lgpd/*`, pedir à Anthropic a incorporação das cláusulas-padrão da ANPD, incluir a cláusula de uso de IA no contrato de honorários.
 10. **Rede do ambiente do Claude Code**: liberar os domínios listados em `docs/deploy.md`, seção 7, para que as próximas sessões consigam testar DJEN, DataJud e Meta daqui.
 
-## 3. O que ainda falta da Fase 1 (próximas sessões)
+## 3. Feito em 29/10/2026 (antes só previsto)
 
-- MFA TOTP obrigatório para sócio e advogado (policy restritiva com `aal2`) e tela de cadastro do autenticador.
-- Mover `WHATSAPP_ACCESS_TOKEN` e `DATAJUD_API_KEY` para o Vault (`app.segredo` já existe; falta o fluxo de gravação e a leitura nos jobs).
-- Tela `/admin/divergencias` para a operação paralela (`docs/runbooks/operacao-paralela.md`).
-- Regras de notificação para os eventos `publicacao_sem_processo` e `prazo_vencido` (existem no enum, não em `REGRAS`).
-- Convite para e-mail que já tem usuário no Auth (hoje só o fluxo de usuário novo).
-- Suspender/prorrogar prazo a partir de `suspenso`/`prorrogado` (hoje só a partir de `confirmado`).
-- Competência de Juizado deduzida do órgão julgador do DataJud, sem sugerir data (decisão 1.4.10 do escopo).
+- MFA TOTP obrigatório para sócio e advogado: policy restritiva com `aal2` nas tabelas sensíveis e checagem nas RPCs; telas `/mfa` e `/mfa/cadastro`; Configurações → Segurança. Exige habilitar TOTP em Authentication → Multi-Factor no painel do Supabase.
+- Segredos do WhatsApp e do DataJud no Vault, por escritório, pela tela Configurações → Integrações; variável de ambiente segue como fallback.
+- Tela `/admin/divergencias` da operação paralela, com contagem de semanas limpas (meta 4).
+- Eventos `publicacao_sem_processo` e `prazo_vencido` nas regras de notificação e emitidos pelos jobs.
+- Convite para e-mail que já tem usuário no Auth (vínculo + link de acesso por e-mail).
+- Suspender/prorrogar a partir de `suspenso`/`prorrogado` e `retomar_prazo`.
+- Competência (vara comum, juizado, 2º grau) deduzida do DataJud; juizado exige conferência manual do prazo.
+
+## 4. O que ainda falta da Fase 1 (próximas sessões)
+
+- Validar no Supabase real (não só no CI): `app.mfa_satisfeita()` lendo `auth.mfa_factors` e as funções `vault.*` executadas pelo dono das RPCs. Se der "permission denied", uma migration nova corrige.
 - Contratos e honorários (T1.37, condicional) com gerador de `.docx`.
 - Playwright além da fumaça: tratar publicação, confirmar prazo, concluir tarefa, com Supabase local no CI.
+- Template próprio `prazo_vencido` na Meta (hoje reaproveita `alerta_prazo`); erros da Graph API ainda não registram em Integrações.
 
-## 4. Como rodar localmente
+## 5. Como rodar localmente
 
 ```bash
 pnpm install
