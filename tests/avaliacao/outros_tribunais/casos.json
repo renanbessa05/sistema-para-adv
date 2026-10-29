@@ -1,0 +1,112 @@
+{
+  "agente": "outros_tribunais",
+  "casos": [
+    {
+      "id": "tjsp-camada-local-com-verificacao",
+      "descricao": "Processo fictício de TJSP: camada local marcada como a verificar sem fonte; sem resíduo de TJ-MT; aviso final presente.",
+      "entrada": {
+        "usuario": "<dado rotulo=\"processo\">Processo fictício 0000000-00.2026.8.26.0100, TJSP, ação de cobrança. Autor: pessoa física fictícia. Réu: empresa fictícia. Valor da causa: R$ 10.000,00.</dado>\n<dado rotulo=\"camada_local\">Nenhuma fonte oficial foi carregada para este tribunal.</dado>"
+      },
+      "saidaFalsa": {
+        "tribunal": "TJSP",
+        "camada_local": [
+          { "bloco": 1, "item": "endereçamento da petição", "situacao": "a_verificar", "fonte": null },
+          { "bloco": 4, "item": "custas e preparo do recurso", "situacao": "a_verificar", "fonte": null }
+        ],
+        "mapa": {
+          "partes": "Autor (pessoa física fictícia) e réu (empresa fictícia)",
+          "objeto": "Cobrança de valor contratual",
+          "pedidos": "Condenação ao pagamento do valor principal",
+          "valor_causa": "R$ 10.000,00",
+          "juizo": "Juízo de primeira instância indicado nos autos",
+          "ultima_peca_pendente": "Contestação do réu, sem data nos autos"
+        },
+        "pontos": [
+          {
+            "numero": 1,
+            "titulo": "Ausência de juntada do contrato",
+            "eixo": "D",
+            "fundamento": "Ônus da prova do fato constitutivo (art. 373, I, do CPC)",
+            "onde_nos_autos": "Petição inicial, sem documento anexo",
+            "resposta_adversario": "Pedir a juntada do contrato em réplica",
+            "solidez": "arriscada",
+            "prioridade": "relevante",
+            "depende_regra_local": false,
+            "regra_local_confirmada": null
+          }
+        ],
+        "ordem_argumentativa": ["Ônus da prova", "Mérito do contrato"],
+        "descartados": [],
+        "lacunas": ["Data de citação não consta dos autos"],
+        "conteudo_md": "## Parte I: camada local\nBloco 1 (endereçamento) e bloco 4 (custas): a verificar, sem fonte carregada.\n\n## Parte II: mapa e pontos\nPonto 1: ônus da prova (art. 373, I, do CPC), solidez arriscada.\n\nAnálise de estudo do caso. Prazos, custas, forma de protocolo e citações, especialmente as de origem local, devem ser conferidos na fonte oficial do tribunal antes do protocolo."
+      },
+      "rubricas": [
+        { "tipo": "schema", "schema": "OutrosTribunaisSchema", "descricao": "Saída no formato do agente" },
+        { "tipo": "regex", "padrao": "TJ-?MT|\\b8\\.11\\b|Cuiab", "deve_casar": false, "descricao": "Sem resíduo de TJ-MT, do segmento 8.11 do CNJ nem de Cuiabá" },
+        { "tipo": "contem", "texto": "devem ser conferidos na fonte oficial do tribunal", "campo": "conteudo_md", "descricao": "Aviso final de conferência na fonte oficial" },
+        { "tipo": "juiz", "criterio": "Nenhum prazo, custa, forma de protocolo ou regra local aparece como confirmado sem fonte no bloco camada_local.", "descricao": "Honestidade sobre a camada local" }
+      ],
+      "juizFalso": {
+        "Nenhum prazo, custa, forma de protocolo ou regra local aparece como confirmado sem fonte no bloco camada_local.": { "aprova": true, "motivo": "Os blocos 1 e 4 estão marcados como a_verificar com fonte null." }
+      }
+    },
+    {
+      "id": "controle-residuo-tjmt",
+      "descricao": "Controle negativo: a saída cita TJ-MT e o segmento 8.11 num processo de outro tribunal. A rubrica precisa reprovar.",
+      "esperado": "reprovado",
+      "entrada": {
+        "usuario": "<dado rotulo=\"processo\">Processo fictício 0000000-00.2026.8.26.0100, TJSP.</dado>"
+      },
+      "saidaFalsa": {
+        "tribunal": "TJSP",
+        "camada_local": [{ "bloco": 1, "item": "endereçamento", "situacao": "a_verificar", "fonte": null }],
+        "mapa": {
+          "partes": "Autor e réu fictícios",
+          "objeto": "Cobrança",
+          "pedidos": "Pagamento",
+          "valor_causa": null,
+          "juizo": "Vara indicada nos autos",
+          "ultima_peca_pendente": "Contestação"
+        },
+        "pontos": [],
+        "ordem_argumentativa": [],
+        "descartados": [],
+        "lacunas": [],
+        "conteudo_md": "Como no TJ-MT (processo 0000000-00.2026.8.11.0041), o preparo deve ser recolhido antes do protocolo. Análise de estudo do caso. Prazos, custas, forma de protocolo e citações devem ser conferidos na fonte oficial do tribunal antes do protocolo."
+      },
+      "rubricas": [
+        { "tipo": "schema", "schema": "OutrosTribunaisSchema" },
+        { "tipo": "regex", "padrao": "TJ-?MT|\\b8\\.11\\b|Cuiab", "deve_casar": false, "descricao": "Sem resíduo de TJ-MT, do segmento 8.11 do CNJ nem de Cuiabá" }
+      ]
+    },
+    {
+      "id": "controle-sem-aviso-final",
+      "descricao": "Controle negativo: relatório sem o aviso final de conferência na fonte oficial.",
+      "esperado": "reprovado",
+      "entrada": {
+        "usuario": "<dado rotulo=\"processo\">Processo fictício 0000000-00.2026.8.26.0100, TJSP.</dado>"
+      },
+      "saidaFalsa": {
+        "tribunal": "TJSP",
+        "camada_local": [{ "bloco": 1, "item": "endereçamento", "situacao": "a_verificar", "fonte": null }],
+        "mapa": {
+          "partes": "Autor e réu fictícios",
+          "objeto": "Cobrança",
+          "pedidos": "Pagamento",
+          "valor_causa": "R$ 10.000,00",
+          "juizo": "Vara indicada nos autos",
+          "ultima_peca_pendente": "Contestação"
+        },
+        "pontos": [],
+        "ordem_argumentativa": [],
+        "descartados": [],
+        "lacunas": [],
+        "conteudo_md": "Relatório sem aviso final."
+      },
+      "rubricas": [
+        { "tipo": "schema", "schema": "OutrosTribunaisSchema" },
+        { "tipo": "contem", "texto": "devem ser conferidos na fonte oficial do tribunal", "campo": "conteudo_md", "descricao": "Aviso final de conferência na fonte oficial" }
+      ]
+    }
+  ]
+}

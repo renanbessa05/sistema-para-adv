@@ -64,6 +64,11 @@ export default async function LayoutPainel({ children }: { children: React.React
                 Métricas
               </Link>
             ) : null}
+            {socio ? (
+              <Link href="/admin/ia" className="rounded-md px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                Custo IA
+              </Link>
+            ) : null}
           </nav>
           <div className="ml-auto flex items-center gap-2 text-sm">
             <Link href="/notificacoes" className="relative rounded-md px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800" aria-label="Notificações">

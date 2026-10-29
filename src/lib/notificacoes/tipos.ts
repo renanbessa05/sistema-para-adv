@@ -19,7 +19,8 @@ export type EventoNotificacao =
   | "calendario_incompleto"
   | "convite"
   | "parcela_vencida"
-  | "audiencia_d1";
+  | "audiencia_d1"
+  | "ia_teto_proximo";
 
 export type Canal = "painel" | "whatsapp" | "email";
 

@@ -120,6 +120,13 @@ export const REGRAS: Record<EventoNotificacao, RegraNotificacao> = {
     somenteDiasUteis: true,
     template: "alerta_prazo",
   },
+  ia_teto_proximo: {
+    // Gasto de IA do mês chegou ao percentual de alerta (job alertas-ia, 12h UTC, todo dia; uma vez por mês). Sócios, por painel e e-mail.
+    destinatarios: "socios",
+    canais: ["painel", "email"],
+    horarioLocal: "imediato",
+    somenteDiasUteis: false,
+  },
   tarefa_atrasada: {
     // Não gera WhatsApp próprio: aparece no painel e como linha do resumo do dia.
     destinatarios: "responsavel",

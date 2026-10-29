@@ -1,0 +1,75 @@
+{
+  "agente": "julgador",
+  "casos": [
+    {
+      "id": "sentenca-sem-aviso-do-modelo",
+      "descricao": "Sentença fictícia: minuta sem aviso (o aviso é acrescentado pelo código), mapa com seis seções.",
+      "entrada": {
+        "usuario": "<dado rotulo=\"autos\">Processo fictício. Petição inicial de cobrança; contestação apresentada; réplica juntada; autos conclusos para sentença.</dado>"
+      },
+      "saidaFalsa": {
+        "fase": "sentenca",
+        "justificativa_fase": "Autos conclusos para sentença após a réplica, sem outras provas pendentes.",
+        "ultima_peca_pendente": "Réplica juntada",
+        "mapa_md": "5.1 Linha do tempo\nPetição, contestação e réplica.\n5.2 Teses das partes\nAutor: cobrança. Réu: inexistência de dívida.\n5.3 Fatos controvertidos e prova\nExistência do contrato.\n5.4 Fragilidades\nProva documental frágil do autor.\n5.5 Questões decisivas\nÔnus da prova.\n5.6 Previsão\nProcedência parcial, provável.",
+        "minuta_md": "Vistos. Trata-se de ação de cobrança. Ante o exposto, julgo parcialmente procedente o pedido, nos termos do art. 487, I, do CPC.",
+        "questoes_decisivas": ["Ônus da prova do contrato"],
+        "divergencias": [],
+        "lacunas": ["Valor exato da dívida não consta dos autos"]
+      },
+      "juizFalso": {
+        "A saída respeita a fase informada e não inclui o aviso de previsão no texto da minuta.": { "aprova": true, "motivo": "minuta_md traz só o pronunciamento, sem aviso." }
+      },
+      "rubricas": [
+        { "tipo": "schema", "schema": "JulgadorSchema" },
+        { "tipo": "nao_contem", "texto": "minuta de previsão judicial para estudo do caso", "campo": "minuta_md", "descricao": "O aviso é do código, não do modelo" },
+        { "tipo": "regex", "padrao": "Aviso:", "deve_casar": false, "campo": "minuta_md", "descricao": "Nenhum rótulo de aviso na minuta" },
+        { "tipo": "regex", "padrao": "5\\.1[\\s\\S]*5\\.6", "deve_casar": true, "campo": "mapa_md", "descricao": "Mapa com as seções 5.1 a 5.6" },
+        { "tipo": "juiz", "criterio": "A saída respeita a fase informada e não inclui o aviso de previsão no texto da minuta.", "descricao": "Coerência com a fase" }
+      ]
+    },
+    {
+      "id": "controle-aviso-escrito-pelo-modelo",
+      "descricao": "Controle negativo: o modelo escreveu o aviso na minuta. A rubrica precisa reprovar.",
+      "esperado": "reprovado",
+      "entrada": {
+        "usuario": "<dado rotulo=\"autos\">Processo fictício em fase de sentença.</dado>"
+      },
+      "saidaFalsa": {
+        "fase": "sentenca",
+        "justificativa_fase": "Autos conclusos para sentença.",
+        "ultima_peca_pendente": "Réplica",
+        "mapa_md": "5.1 Linha do tempo\n5.2 Teses\n5.3 Fatos\n5.4 Fragilidades\n5.5 Questões\n5.6 Previsão",
+        "minuta_md": "**Aviso:** minuta de previsão judicial para estudo do caso. Não é decisão oficial. Vistos. Julgo procedente o pedido.",
+        "questoes_decisivas": [],
+        "divergencias": [],
+        "lacunas": []
+      },
+      "rubricas": [
+        { "tipo": "schema", "schema": "JulgadorSchema" },
+        { "tipo": "regex", "padrao": "Aviso:", "deve_casar": false, "campo": "minuta_md", "descricao": "Nenhum rótulo de aviso na minuta" }
+      ]
+    },
+    {
+      "id": "sem-pronunciamento-minuta-vazia",
+      "descricao": "Fase sem pronunciamento: minuta vazia é válida e não ganha aviso.",
+      "entrada": {
+        "usuario": "<dado rotulo=\"autos\">Processo fictício com citação ainda pendente de juntada da carta.</dado>"
+      },
+      "saidaFalsa": {
+        "fase": "sem_pronunciamento",
+        "justificativa_fase": "A citação não foi juntada; não há pronunciamento cabível ainda.",
+        "ultima_peca_pendente": "Carta de citação",
+        "mapa_md": "5.1 Linha do tempo\n5.2 Teses\n5.3 Fatos\n5.4 Fragilidades\n5.5 Questões\n5.6 Previsão",
+        "minuta_md": "",
+        "questoes_decisivas": [],
+        "divergencias": [],
+        "lacunas": ["Juntada da carta de citação"]
+      },
+      "rubricas": [
+        { "tipo": "schema", "schema": "JulgadorSchema" },
+        { "tipo": "regex", "padrao": "5\\.1[\\s\\S]*5\\.6", "deve_casar": true, "campo": "mapa_md", "descricao": "Mapa com as seções 5.1 a 5.6" }
+      ]
+    }
+  ]
+}

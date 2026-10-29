@@ -1,0 +1,37 @@
+name: Avaliação de agentes (manual)
+
+# Só dispara à mão. Chama a API do Claude com custo: o CI normal roda a avaliação em modo falso (tests/avaliacao).
+on:
+  workflow_dispatch:
+    inputs:
+      agente:
+        description: "Agente a avaliar (outros_tribunais ou julgador)"
+        required: true
+        type: choice
+        options:
+          - outros_tribunais
+          - julgador
+
+jobs:
+  avaliar:
+    name: avaliação real de ${{ inputs.agente }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SKIP_ENV_VALIDATION: "1"
+      NEXT_PUBLIC_SUPABASE_URL: https://exemplo.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: chave-de-build
+      IA_TESTE_REAL: "1"
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Avaliar o agente contra a API (sem gravar no banco)
+        run: pnpm exec tsx scripts/avaliar-agente.ts --agente "${{ inputs.agente }}" --real --json

@@ -6,7 +6,7 @@ export default defineConfig({
     alias: { "@": path.resolve(__dirname, "src"), "server-only": path.resolve(__dirname, "tests/mocks/server-only.ts") },
   },
   test: {
-    include: ["src/**/*.test.ts", "supabase/tests/**/*.test.ts", "scripts/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "supabase/tests/**/*.test.ts", "scripts/**/*.test.ts", "tests/avaliacao/**/*.test.ts"],
     exclude: ["node_modules", ".next", "tests/e2e/**"],
     environment: "node",
     testTimeout: 120_000,
