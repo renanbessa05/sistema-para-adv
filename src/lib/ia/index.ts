@@ -4,6 +4,8 @@ export * from "./classificador-publicacao";
 export * from "./roteador-intents";
 export * from "./schemas/classificacao";
 export * from "./schemas/intents";
+export * from "./schemas/intents-cliente";
+export * from "./atendimento-cliente";
 export * from "./lacunas";
 export * from "./agentes/registro";
 export * from "./historico";

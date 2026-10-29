@@ -9,6 +9,7 @@ export const AREAS: { href: string; rotulo: string; descricao: string; papeis: P
   { href: "/configuracoes/calendario", rotulo: "Calendário forense", descricao: "Feriados e suspensões do TJ-MT por ano e comarca.", papeis: ["socio", "administrativo"] },
   { href: "/configuracoes/ausencias", rotulo: "Ausências", descricao: "Férias e licenças, com substituto para as notificações.", papeis: ["socio", "advogado", "estagiario", "administrativo"] },
   { href: "/configuracoes/notificacoes", rotulo: "Notificações", descricao: "Canais ativos por evento (painel, WhatsApp, e-mail).", papeis: ["socio"] },
+  { href: "/configuracoes/atendimento", rotulo: "Atendimento", descricao: "Envio ao cliente por WhatsApp (desligado por padrão), horário e textos.", papeis: ["socio"] },
   { href: "/configuracoes/lgpd", rotulo: "LGPD", descricao: "Pedidos dos titulares, exportação, anonimização e retenção de dados.", papeis: ["socio"] },
   { href: "/configuracoes/relatorios", rotulo: "Relatórios", descricao: "CSV mensal de produtividade por pessoa, gerado no dia 1.", papeis: ["socio"] },
   { href: "/configuracoes/honorarios", rotulo: "Honorários", descricao: "Tabela OAB/MT vigente (URH) e fatores de complexidade.", papeis: ["socio"] },

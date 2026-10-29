@@ -70,6 +70,7 @@ export function linkDoObjeto(objetoTipo: string, objetoId: string): string | nul
   if (objetoTipo === "tarefa_reatribuicao" || objetoTipo === "tarefa_conclusao") return `/tarefas/${objetoId}`;
   if (objetoTipo === "contrato") return `/contratos/${objetoId}`;
   if (objetoTipo === "minuta") return `/minutas/${objetoId}`;
+  if (objetoTipo === "mensagem_cliente") return "/atendimento";
   return null;
 }
 

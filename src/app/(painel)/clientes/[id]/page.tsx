@@ -13,6 +13,7 @@ import { CamposCliente, type ClienteFormulario } from "../formulario-cliente";
 import { atualizarCliente } from "../actions";
 import { CartaoDocumentos } from "@/components/dominio/CartaoDocumentos";
 import { listarDocumentos } from "@/server/documentos";
+import { CartaoContatos, type ContatoCliente } from "./cartao-contatos";
 
 export const metadata = { title: "Cliente" };
 export const dynamic = "force-dynamic";
@@ -32,6 +33,7 @@ export default async function PaginaCliente({ params, searchParams }: { params: 
     listarDocumentos(supabase, { clienteId: id }).catch(() => []),
     supabase.from("escritorios").select("timezone").eq("id", sessao.escritorioId).maybeSingle(),
   ]);
+  const { data: contatosData } = await supabase.from("clientes_contatos").select("id, telefone_e164, verificado_em, opt_in_em, opt_out_em").eq("cliente_id", id).eq("ativo", true).order("criado_em");
   const timeZone = (escritorio?.timezone as string | undefined) ?? "America/Cuiaba";
   const nomes = mapaNomes(membros);
   type ParteProcesso = { processo_id: string; polo: string; processos: { id: string; numero_cnj_mascara: string | null; status: string; segredo_justica: boolean; responsavel_id: string | null } | null };
@@ -139,6 +141,7 @@ export default async function PaginaCliente({ params, searchParams }: { params: 
         </CardContent>
       </Card>
 
+      <CartaoContatos clienteId={id} contatos={(contatosData ?? []) as ContatoCliente[]} podeGerir={sessao.papel === "socio" || sessao.papel === "advogado"} />
       <CartaoDocumentos documentos={documentos} voltar={`/clientes/${id}`} clienteId={id} papel={sessao.papel} timeZone={timeZone} />
     </div>
   );

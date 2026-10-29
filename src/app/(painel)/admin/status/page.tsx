@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 
 export const metadata = { title: "Rotinas" };
 
-const JOBS = ["captar-djen", "classificar", "enriquecer-datajud", "drenar-notificacoes", "alertas-publicacao", "alertas-prazo", "resumo-do-dia", "marcar-vencidos", "exportar-prazos", "atualizar-metricas", "captacao-vigilante"];
+const JOBS = ["captar-djen", "classificar", "enriquecer-datajud", "drenar-notificacoes", "alertas-publicacao", "alertas-prazo", "resumo-do-dia", "marcar-vencidos", "exportar-prazos", "atualizar-metricas", "captacao-vigilante", "enviar-mensagens-cliente"];
 
 export default async function PaginaStatus() {
   const sessao = await exigirSessao();

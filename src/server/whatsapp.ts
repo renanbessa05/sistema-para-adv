@@ -7,6 +7,7 @@ import { envServidor } from "@/lib/config/env";
 import { carregarCalendario } from "./calendario";
 import { clienteWhatsappDoAmbiente, clienteWhatsappDoEscritorio } from "./integracoes";
 import { clienteIaDoAmbiente, executarAgente } from "./ia/executar";
+import { atenderCliente, identificarCliente } from "./atendimento-cliente";
 
 /**
  * Atendimento da equipe pelo WhatsApp: lista fechada de intents.
@@ -69,6 +70,10 @@ async function tratarMensagem(admin: SupabaseClient, m: MensagemRecebida, deps: 
   };
 
   if (!tel) {
+    // Não é da equipe: pode ser contato de cliente (lote 14). Número ambíguo não recebe resposta.
+    const ident = await identificarCliente(admin, telefone);
+    if (ident.tipo === "ambiguo") return null;
+    if (ident.tipo === "verificado" || ident.tipo === "nao_verificado") return atenderCliente(admin, m, ident, { whatsappDe: deps.whatsappDe, ia: deps.ia, agora: deps.agora });
     return responder("Este número não está cadastrado na equipe. Peça a um sócio para cadastrar seu telefone no painel.");
   }
   if (!tel.verificado_em) {

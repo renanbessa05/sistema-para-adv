@@ -127,6 +127,13 @@ export const REGRAS: Record<EventoNotificacao, RegraNotificacao> = {
     horarioLocal: "imediato",
     somenteDiasUteis: false,
   },
+  cliente_pediu_contato: {
+    // Cliente pediu falar com a equipe pelo WhatsApp (lote 14): responsável do processo e sócios, no painel e por e-mail.
+    destinatarios: "responsavel_e_socios",
+    canais: ["painel", "email"],
+    horarioLocal: "imediato",
+    somenteDiasUteis: false,
+  },
   tarefa_atrasada: {
     // Não gera WhatsApp próprio: aparece no painel e como linha do resumo do dia.
     destinatarios: "responsavel",

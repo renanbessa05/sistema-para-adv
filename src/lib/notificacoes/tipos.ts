@@ -20,7 +20,8 @@ export type EventoNotificacao =
   | "convite"
   | "parcela_vencida"
   | "audiencia_d1"
-  | "ia_teto_proximo";
+  | "ia_teto_proximo"
+  | "cliente_pediu_contato";
 
 export type Canal = "painel" | "whatsapp" | "email";
 

@@ -29,6 +29,7 @@ const ROTULO_EVENTO: Record<string, string> = {
   captacao_falhou: "Captação do DJEN falhou",
   calendario_incompleto: "Calendário forense incompleto",
   convite: "Convite para a equipe",
+  cliente_pediu_contato: "Cliente pediu contato pelo WhatsApp",
 };
 const ROTULO_DESTINATARIOS: Record<string, string> = { responsavel: "responsável", responsavel_e_socios: "responsável e sócios", socios: "sócios", socios_e_administrativo: "sócios e administrativo", todos_ativos: "todos os ativos", usuario_alvo: "pessoa envolvida" };
 const CANAIS: Canal[] = ["painel", "whatsapp", "email"];
