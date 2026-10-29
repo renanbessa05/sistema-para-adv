@@ -4,6 +4,7 @@ import { obterSessao } from "@/server/sessao";
 import { sair } from "@/app/(auth)/login/actions";
 import { Badge } from "@/components/ui/badge";
 import { criarClienteServidor } from "@/lib/supabase/server";
+import { exigirMfaSeNecessario } from "@/server/mfa";
 
 const ITENS = [
   { href: "/hoje", rotulo: "Hoje" },
@@ -20,6 +21,7 @@ const PAPEIS: Record<string, string> = { socio: "Sócio(a)", advogado: "Advogado
 export default async function LayoutPainel({ children }: { children: React.ReactNode }) {
   const sessao = await obterSessao();
   if (!sessao) redirect("/sem-escritorio");
+  await exigirMfaSeNecessario(sessao);
   const socio = sessao.papel === "socio";
   const supabase = await criarClienteServidor();
   const { count } = await supabase.from("notificacoes").select("id", { count: "exact", head: true }).eq("destinatario_id", sessao.usuarioId).eq("canal", "painel").in("status", ["enviada", "entregue"]).is("lida_em", null);
@@ -43,6 +45,11 @@ export default async function LayoutPainel({ children }: { children: React.React
             {socio || sessao.papel === "administrativo" || sessao.papel === "advogado" ? (
               <Link href="/admin/status" className="rounded-md px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800">
                 Rotinas
+              </Link>
+            ) : null}
+            {socio || sessao.papel === "administrativo" || sessao.papel === "advogado" ? (
+              <Link href="/admin/divergencias" className="rounded-md px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                Divergências
               </Link>
             ) : null}
             {socio ? (
