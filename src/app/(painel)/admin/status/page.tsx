@@ -5,25 +5,85 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { formatarDataHora } from "@/lib/utils";
 import { redirect } from "next/navigation";
+import { ROTINAS_MONITORADAS, avaliarRotinas } from "@/lib/operacao/rotinas";
+import { Alert } from "@/components/ui/alert";
 
 export const metadata = { title: "Rotinas" };
+export const dynamic = "force-dynamic";
 
-const JOBS = ["captar-djen", "classificar", "enriquecer-datajud", "drenar-notificacoes", "alertas-publicacao", "alertas-prazo", "resumo-do-dia", "marcar-vencidos", "exportar-prazos", "atualizar-metricas", "captacao-vigilante", "enviar-mensagens-cliente"];
-
+/** Só sócio e suporte veem a operação. Rotina sem execução no limite dela aparece em alerta. */
 export default async function PaginaStatus() {
   const sessao = await exigirSessao();
-  if (!["socio", "advogado", "administrativo"].includes(sessao.papel)) redirect("/hoje");
+  if (!["socio", "suporte"].includes(sessao.papel)) redirect("/hoje");
   // Leitura com service role, filtrada pelo escritório da sessão: jobs_execucoes não tem policy para usuários.
   const admin = criarClienteAdmin();
-  const { data: execucoes } = await admin.from("jobs_execucoes").select("job, iniciado_em, finalizado_em, status, itens, erro, detalhes").or(`escritorio_id.eq.${sessao.escritorioId},escritorio_id.is.null`).order("iniciado_em", { ascending: false }).limit(300);
+  const { data: execucoes } = await admin.from("jobs_execucoes").select("job, iniciado_em, finalizado_em, status, itens, erro, detalhes").or(`escritorio_id.eq.${sessao.escritorioId},escritorio_id.is.null`).order("iniciado_em", { ascending: false }).limit(500);
   const { data: captacoes } = await admin.from("captacoes").select("iniciada_em, finalizada_em, status, itens_recebidos, itens_novos, itens_duplicados, erros").eq("escritorio_id", sessao.escritorioId).order("iniciada_em", { ascending: false }).limit(10);
+  const { data: backups } = await admin.from("backups_tenant").select("gerado_em, tamanho_bytes, status, erro, contagens").eq("escritorio_id", sessao.escritorioId).order("gerado_em", { ascending: false }).limit(5);
 
   const ultimaPorJob = new Map<string, (typeof execucoes extends (infer T)[] | null ? T : never)>();
   for (const e of execucoes ?? []) if (!ultimaPorJob.has(e.job)) ultimaPorJob.set(e.job, e);
 
+  const alertas = avaliarRotinas(
+    ROTINAS_MONITORADAS.map((rotina) => {
+      const e = ultimaPorJob.get(rotina);
+      return { rotina, ultimoInicio: e?.iniciado_em ? new Date(e.iniciado_em) : null };
+    }),
+    new Date(),
+  );
+
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-semibold">Rotinas</h1>
+      {alertas.length > 0 && (
+        <Alert tom="perigo" titulo="Rotinas sem execução no prazo">
+          <ul className="list-disc pl-5">
+            {alertas.map((a) => (
+              <li key={a.rotina}>
+                <span className="font-mono text-xs">{a.rotina}</span>:{" "}
+                {a.motivo === "nunca_executou" ? "nunca executou" : `última execução há ${a.horasSemExecucao} h (limite ${a.limiteHoras} h)`}
+              </li>
+            ))}
+          </ul>
+        </Alert>
+      )}
+      <Card>
+        <CardHeader>
+          <CardTitle>Backups do escritório</CardTitle>
+          <CardDescription>Snapshot diário em área privada do Supabase. A restauração é manual (runbook restauracao-por-tenant).</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <THead>
+              <TR>
+                <TH>Gerado em</TH>
+                <TH>Status</TH>
+                <TH>Tamanho</TH>
+                <TH>Linhas</TH>
+                <TH>Erro</TH>
+              </TR>
+            </THead>
+            <TBody>
+              {(backups ?? []).map((b, i) => (
+                <TR key={i}>
+                  <TD>{formatarDataHora(b.gerado_em)}</TD>
+                  <TD>
+                    <Badge tom={b.status === "ok" ? "sucesso" : "perigo"}>{b.status}</Badge>
+                  </TD>
+                  <TD>{b.tamanho_bytes ? `${Math.round(Number(b.tamanho_bytes) / 1024)} KB` : "—"}</TD>
+                  <TD>{Object.values((b.contagens as Record<string, number>) ?? {}).reduce((s, n) => s + Number(n), 0)}</TD>
+                  <TD className="max-w-md truncate text-xs text-red-700">{b.erro ?? ""}</TD>
+                </TR>
+              ))}
+              {(backups ?? []).length === 0 && (
+                <TR>
+                  <TD colSpan={5}>Nenhum backup registrado ainda.</TD>
+                </TR>
+              )}
+            </TBody>
+          </Table>
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>Última execução de cada rotina</CardTitle>
@@ -42,7 +102,7 @@ export default async function PaginaStatus() {
               </TR>
             </THead>
             <TBody>
-              {JOBS.map((job) => {
+              {ROTINAS_MONITORADAS.map((job) => {
                 const e = ultimaPorJob.get(job);
                 return (
                   <TR key={job}>

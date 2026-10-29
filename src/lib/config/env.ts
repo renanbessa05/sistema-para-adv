@@ -39,6 +39,8 @@ const servidorSchema = z.object({
   VOYAGE_MODELO: z.string().optional(),
   /** "true" liga o onboarding (/onboarding) e o cadastro de escritório; o banco também exige app.cadastro_aberto = on. */
   ONBOARDING_ATIVO: z.string().optional(),
+  /** Sentry: só liga com a chave presente (ver src/lib/operacao/sentry.ts). */
+  SENTRY_DSN: z.string().optional(),
 });
 
 function ler<T extends z.ZodTypeAny>(schema: T, origem: Record<string, string | undefined>): z.infer<T> {
