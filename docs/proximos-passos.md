@@ -39,9 +39,16 @@ Resumo de onde o sistema está, o que só o escritório pode fazer e o que ainda
 - Suspender/prorrogar a partir de `suspenso`/`prorrogado` e `retomar_prazo`.
 - Competência (vara comum, juizado, 2º grau) deduzida do DataJud; juizado exige conferência manual do prazo.
 
+## 3a. Feito em 29/10/2026 à noite (sessão local)
+
+- `.env.local` montado e validado contra Supabase, Claude, DataJud e Resend; `.env.example` passou a ser versionado.
+- Supabase `qcikrqyzrtgfhtlfbabi` configurado pela CLI (`supabase config push`): schema `ref` exposto na API, sign-ups desligados, hook de claims ativo, URLs do Auth apontando para `sistema-para-adv.vercel.app`. `app.mfa_satisfeita()` e Vault validados no banco real (pendência 1 da seção 4 fechada).
+- Projeto `sistema-para-adv` criado na Vercel, ligado ao GitHub, com as variáveis de produção.
+- Rotinas agendadas pelo Postgres (`pg_cron` + `pg_net`, migration 0023) porque o plano Hobby da Vercel recusa crons frequentes; ADR 0003 tem o adendo. Pendente: decidir sobre o plano Pro (uso comercial pelos termos da Vercel).
+- Região do Supabase é `us-west-2`, não São Paulo como o plano previa: decidir antes de carregar dados de clientes.
+
 ## 4. O que ainda falta da Fase 1 (próximas sessões)
 
-- Validar no Supabase real (não só no CI): `app.mfa_satisfeita()` lendo `auth.mfa_factors` e as funções `vault.*` executadas pelo dono das RPCs. Se der "permission denied", uma migration nova corrige.
 - Contratos e honorários (T1.37, condicional) com gerador de `.docx`.
 - Playwright além da fumaça: tratar publicação, confirmar prazo, concluir tarefa, com Supabase local no CI.
 - Template próprio `prazo_vencido` na Meta (hoje reaproveita `alerta_prazo`); erros da Graph API ainda não registram em Integrações.

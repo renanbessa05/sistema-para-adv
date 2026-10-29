@@ -8,5 +8,8 @@ A captação do DJEN é leve, mas o enriquecimento de centenas de processos pelo
 ## Decisão
 `vercel.json` agenda rotas `/api/jobs/<nome>` protegidas por `Authorization: Bearer <CRON_SECRET>`. Cada rota processa um lote pequeno e termina. Trabalho que não cabe numa execução vai para filas no Postgres (`pgmq` quando disponível; tabela de fila própria como alternativa), drenadas a cada 5 minutos. Cada rodada registra início, fim, itens e erros em `captacoes` ou `jobs_execucoes`; toda rotina é idempotente. Horários escritos em UTC com deslocamento fixo de 4 h (Cuiabá não tem horário de verão).
 
+## Adendo de 29/10/2026: agendador no Postgres
+O plano Hobby da Vercel recusa cron com mais de uma execução por dia, e o Pro ficou para depois. O agendamento saiu de `vercel.json` e foi para o banco (migration `20261029000023`): `pg_cron` dispara, nos mesmos horários UTC, `app.chamar_rotina(<nome>)`, que faz GET em `/api/jobs/<nome>` pelo `pg_net` com o Bearer lido do Vault (`app:url`, `app:cron_secret`). Rotas, jobs, fila e registro em `jobs_execucoes` não mudaram. Trocar de volta para o Vercel Cron é devolver os `crons` ao `vercel.json` e desagendar com `cron.unschedule`. Alternativa descartada: GitHub Actions (cobra 1 minuto por execução e atrasa vários minutos).
+
 ## Consequências
 Uma tecnologia a menos (sem worker separado nem Edge Functions). Limites externos respeitados por ritmo: ~20 requisições por minuto no DJEN e 120 no DataJud. Se um job passar de 800 s, migra para um worker separado sem mudar o restante.

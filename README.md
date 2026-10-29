@@ -36,4 +36,4 @@ pnpm db:migrar --embutido                       # aplica as migrations num banco
 
 ## Rotinas
 
-Agendadas em `vercel.json` (UTC; Cuiabá = UTC-4) e protegidas por `Authorization: Bearer $CRON_SECRET`. Estado em `/admin/status`.
+Agendadas no próprio Postgres pelo `pg_cron` (migration `20261029000023`, horários em UTC; Cuiabá = UTC-4): o banco chama `/api/jobs/<rotina>` com `Authorization: Bearer $CRON_SECRET` via `pg_net`. As credenciais ficam no Vault (`pnpm rotinas:credenciais` grava `app:url` e `app:cron_secret`). Estado em `/admin/status`; agendamentos em `select * from app.rotinas_agendadas()`.
