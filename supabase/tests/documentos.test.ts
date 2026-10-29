@@ -50,9 +50,9 @@ describe("documentos", () => {
     comoServiceRole(async (c) => {
       const r = await c.query(
         `insert into public.documentos (escritorio_id, processo_id, tipo, nome, caminho, mime, tamanho, hash_sha256, origem)
-         values ($1, $2, 'autos', $3, $1 || '/' || coalesce($2::text, 'geral') || '/' || gen_random_uuid()::text || '.pdf', 'application/pdf', 1234, md5($3), 'upload')
+         values ($1, $2, 'autos', $3, $4, 'application/pdf', 1234, md5($3), 'upload')
          returning id`,
-        [escritorio, processo, nome],
+        [escritorio, processo, nome, `${escritorio}/${processo ?? "geral"}/${crypto.randomUUID()}.pdf`],
       );
       return r.rows[0].id as string;
     });
@@ -115,8 +115,8 @@ describe("documentos", () => {
       db.comoUsuario(claims, async (c) => {
         const r = await c.query(
           `insert into public.documentos (escritorio_id, processo_id, tipo, nome, caminho, mime, tamanho, hash_sha256)
-           values ($1, $2, 'anexo', 'novo.pdf', $1 || '/x/' || gen_random_uuid()::text || '.pdf', 'application/pdf', 10, md5(random()::text)) returning id`,
-          [escritorioA, processoAberto],
+           values ($1, $2, 'anexo', 'novo.pdf', $3, 'application/pdf', 10, md5(random()::text)) returning id`,
+          [escritorioA, processoAberto, `${escritorioA}/x/${crypto.randomUUID()}.pdf`],
         );
         return r.rows[0].id as string;
       });
