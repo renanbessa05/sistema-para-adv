@@ -83,60 +83,63 @@ function normalizar(texto: string): string {
 export type ResultadoConvite = { ok: true; aviso?: string } | { ok: false; erro: string };
 
 /**
- * Convida um membro: a linha em escritorio_membros é gravada antes, pelo cliente do sócio (RLS),
- * com usuario_id nulo; o convite do Auth cria o usuário e a trigger vincular_membro_por_email o liga à linha.
- * Service role só para o convite em si.
+ * Convida um membro: a linha em escritorio_membros é gravada antes, pelo cliente do sócio (RLS), com usuario_id
+ * nulo; o convite do Auth cria o usuário e a trigger vincular_membro_por_email o liga à linha (o clique no e-mail
+ * de convite é o aceite). Service role só para o convite em si.
  *
- * Se o e-mail já tem usuário no Auth, a trigger não dispara: a RPC vincular_membro_existente (service role) faz o
- * vínculo e a pessoa recebe um link de acesso por e-mail (Resend). Os claims do JWT (escritorio_id, papel) só
- * mudam no próximo login/refresh, por isso o link de acesso: ao entrar por ele a sessão já nasce com o escritório.
+ * Se o e-mail já tem usuário no Auth, a trigger não dispara: a RPC vincular_membro_existente (service role) liga o
+ * usuário à linha pendente DESTE escritório sem aceitar por ele; a pessoa recebe um e-mail e aceita em
+ * /convite/aceitar. Só depois do aceite o escritório entra nos claims (próximo login/refresh) e no WhatsApp.
  */
-export async function enviarConvite(email: string): Promise<ResultadoConvite> {
+export async function enviarConvite(email: string, escritorio: { id: string; nome: string }): Promise<ResultadoConvite> {
   const admin = criarClienteAdmin();
   const redirectTo = `${envServidor().APP_URL}/auth/callback`;
   const { error } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo });
   if (!error) return { ok: true };
   if (!/already|registered|exists/i.test(error.message)) return { ok: false, erro: `Não foi possível enviar o convite: ${error.message}` };
-  return vincularUsuarioExistente(admin, email, redirectTo);
+  return vincularUsuarioExistente(admin, email, escritorio);
 }
 
-async function vincularUsuarioExistente(admin: SupabaseClient, email: string, redirectTo: string): Promise<ResultadoConvite> {
-  const { data: usuarioId, error: erroVinculo } = await admin.rpc("vincular_membro_existente", { p_email: email });
-  if (erroVinculo) return { ok: false, erro: `Este e-mail já tem usuário no sistema e o vínculo automático falhou: ${erroVinculo.message}` };
+async function vincularUsuarioExistente(admin: SupabaseClient, email: string, escritorio: { id: string; nome: string }): Promise<ResultadoConvite> {
+  const { data: usuarioId, error: erroVinculo } = await admin.rpc("vincular_membro_existente", { p_email: email, p_escritorio_id: escritorio.id });
+  if (erroVinculo) return { ok: false, erro: `Este e-mail já tem usuário no sistema e o vínculo falhou: ${erroVinculo.message}` };
   if (!usuarioId) return { ok: false, erro: "Este e-mail já tem usuário no sistema, mas não havia convite pendente para vincular." };
 
   const env = envServidor();
-  if (!env.RESEND_API_KEY || !env.EMAIL_REMETENTE) {
-    return { ok: true, aviso: "Usuário já existia: vínculo feito. Sem e-mail configurado, peça que a pessoa entre com o próprio e-mail (o escritório aparece no próximo login)." };
-  }
+  const urlAceite = `${env.APP_URL}/convite/aceitar`;
+  const avisoBase = `Usuário já existia: o convite fica pendente até a pessoa aceitar em ${urlAceite} (entrando com o próprio e-mail).`;
+  if (!env.RESEND_API_KEY || !env.EMAIL_REMETENTE) return { ok: true, aviso: `${avisoBase} Sem e-mail configurado, avise a pessoa você mesmo.` };
 
-  const { data: link, error: erroLink } = await admin.auth.admin.generateLink({ type: "magiclink", email, options: { redirectTo } });
-  const url = link?.properties?.action_link;
-  if (erroLink || !url) {
-    return { ok: true, aviso: `Usuário já existia: vínculo feito, mas o link de acesso não pôde ser gerado (${erroLink?.message ?? "sem link"}). A pessoa pode entrar com o próprio e-mail.` };
-  }
-  const envio = await enviarEmail(emailDeVinculo(email, url));
-  if (!envio.ok) {
-    return { ok: true, aviso: `Usuário já existia: vínculo feito, mas o e-mail não foi enviado (${envio.erro ?? "erro"}). A pessoa pode entrar com o próprio e-mail.` };
-  }
-  return { ok: true, aviso: "Usuário já existia: vínculo feito e link de acesso enviado" };
+  const envio = await enviarEmail(emailDeConvitePendente(email, escritorio.nome, urlAceite));
+  if (!envio.ok) return { ok: true, aviso: `${avisoBase} O e-mail não foi enviado (${envio.erro ?? "erro"}); avise a pessoa você mesmo.` };
+  return { ok: true, aviso: "Usuário já existia: convite registrado e e-mail enviado; ele vale depois que a pessoa aceitar." };
+}
+
+/** Reenvia o e-mail de aceite para quem já tem usuário mas ainda não aceitou o convite (aceito_em nulo). */
+export async function reenviarAcessoPendente(email: string, escritorio: { id: string; nome: string }): Promise<ResultadoConvite> {
+  const env = envServidor();
+  const urlAceite = `${env.APP_URL}/convite/aceitar`;
+  if (!env.RESEND_API_KEY || !env.EMAIL_REMETENTE) return { ok: true, aviso: `Sem e-mail configurado: peça que a pessoa entre com o próprio e-mail e aceite em ${urlAceite}.` };
+  const envio = await enviarEmail(emailDeConvitePendente(email, escritorio.nome, urlAceite));
+  if (!envio.ok) return { ok: false, erro: `O e-mail não foi enviado (${envio.erro ?? "erro"}).` };
+  return { ok: true, aviso: "E-mail de aceite reenviado." };
 }
 
 function escaparHtml(texto: string): string {
   return texto.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-function emailDeVinculo(email: string, url: string): Email {
-  const urlSegura = escaparHtml(url);
+function emailDeConvitePendente(email: string, escritorioNome: string, urlAceite: string): Email {
+  const nome = escaparHtml(escritorioNome);
   return {
     para: email,
-    assunto: "Você foi adicionado(a) a um escritório na Assistente Jurídica",
+    assunto: `Convite para a equipe de ${escritorioNome} na Assistente Jurídica`,
     html: `<p>Olá,</p>
-<p>Sua conta (${escaparHtml(email)}) foi adicionada à equipe de um escritório na Assistente Jurídica.</p>
-<p>Use o link abaixo para entrar; ele já abre a sua sessão com o novo escritório:</p>
-<p><a href="${urlSegura}">${urlSegura}</a></p>
-<p>Se você já estava com a sessão aberta, saia e entre de novo para que o acesso ao escritório apareça.</p>`,
-    texto: `Sua conta (${email}) foi adicionada à equipe de um escritório na Assistente Jurídica.\nEntre pelo link: ${url}\nSe já estava com a sessão aberta, saia e entre de novo.`,
+<p>Sua conta (${escaparHtml(email)}) foi convidada para a equipe de <strong>${nome}</strong> na Assistente Jurídica.</p>
+<p>Nada muda até você aceitar. Para aceitar, entre com o seu e-mail e abra:</p>
+<p><a href="${escaparHtml(urlAceite)}">${escaparHtml(urlAceite)}</a></p>
+<p>Se não reconhece este convite, ignore este e-mail.</p>`,
+    texto: `Sua conta (${email}) foi convidada para a equipe de ${escritorioNome} na Assistente Jurídica.\nNada muda até você aceitar. Para aceitar, entre com o seu e-mail e abra: ${urlAceite}\nSe não reconhece este convite, ignore este e-mail.`,
   };
 }
 

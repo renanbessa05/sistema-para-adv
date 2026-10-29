@@ -32,18 +32,31 @@ describe("semanasConsecutivasLimpas", () => {
     expect(semanasConsecutivasLimpas([], "2026-11-20")).toBe(0);
   });
 
-  it("conta semanas a partir da primeira registrada, inclusive as sem registro, até a última sexta concluída", () => {
-    // Primeira conferência em 23/10, explicada; 30/10 e 06/11 sem registro; hoje é sexta 13/11
-    expect(semanasConsecutivasLimpas([explicada("2026-10-23")], "2026-11-13")).toBe(4);
+  it("conta só semanas conferidas (com registro) e explicadas, de trás para frente, até a última sexta concluída", () => {
+    const quatro = [explicada("2026-10-23"), explicada("2026-10-30"), explicada("2026-11-06"), explicada("2026-11-13")];
+    expect(semanasConsecutivasLimpas(quatro, "2026-11-13")).toBe(4);
     // Na quinta 12/11 a semana de 13/11 ainda não conta
-    expect(semanasConsecutivasLimpas([explicada("2026-10-23")], "2026-11-12")).toBe(3);
+    expect(semanasConsecutivasLimpas(quatro, "2026-11-12")).toBe(3);
+  });
+
+  it("semana sem registro interrompe a sequência: não dá para provar o que não foi conferido", () => {
+    // 30/10 e 06/11 sem registro: só 13/11 conta, mesmo com 23/10 limpa
+    expect(semanasConsecutivasLimpas([explicada("2026-10-23"), explicada("2026-11-13")], "2026-11-13")).toBe(1);
+    // A última sexta ainda não conferida zera
+    expect(semanasConsecutivasLimpas([explicada("2026-10-23")], "2026-11-13")).toBe(0);
   });
 
   it("divergência sem causa zera a contagem naquela semana", () => {
-    const lista = [explicada("2026-10-23"), semCausa("2026-10-30"), explicada("2026-11-06")];
+    const lista = [explicada("2026-10-23"), semCausa("2026-10-30"), explicada("2026-11-06"), explicada("2026-11-13")];
     expect(semanasConsecutivasLimpas(lista, "2026-11-13")).toBe(2); // 13/11 e 06/11
     expect(semanasConsecutivasLimpas([semCausa("2026-11-13")], "2026-11-13")).toBe(0);
     expect(semanasConsecutivasLimpas([{ semana: "2026-11-13", causa: "   " }], "2026-11-13")).toBe(0);
+  });
+
+  it("registro em dia que não é sexta é agrupado pela sexta da própria semana", () => {
+    // Quarta 11/11 e terça 03/11 valem pelas sextas 13/11 e 06/11
+    expect(semanasConsecutivasLimpas([explicada("2026-11-03"), explicada("2026-11-11")], "2026-11-13")).toBe(2);
+    expect(semanasConsecutivasLimpas([explicada("2026-11-06"), semCausa("2026-11-11")], "2026-11-13")).toBe(0);
   });
 
   it("naoExplicada: causa nula ou só espaços", () => {

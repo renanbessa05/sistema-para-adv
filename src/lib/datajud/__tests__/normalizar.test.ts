@@ -72,6 +72,9 @@ describe("deduzirCompetencia", () => {
 
   it("recurso inominado é juizado mesmo em turma recursal ou câmara", () => {
     expect(deduzirCompetencia({ grau: "TR", orgaoJulgadorNome: "Turma Recursal Única", classeNome: "Recurso Inominado Cível" })).toBe("juizado_especial");
+    // Só o código de grau já basta (JE/TR), mesmo com órgão que pareceria 2º grau
+    expect(deduzirCompetencia({ grau: "TR", orgaoJulgadorNome: "Turma Mista", classeNome: null })).toBe("juizado_especial");
+    expect(deduzirCompetencia({ grau: "JE", orgaoJulgadorNome: null, classeNome: null })).toBe("juizado_especial");
     expect(deduzirCompetencia({ grau: "G2", orgaoJulgadorNome: "2ª Câmara Cível", classeNome: "RECURSO INOMINADO" })).toBe("juizado_especial");
   });
 

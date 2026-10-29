@@ -11,7 +11,11 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (ROTAS_PUBLICAS.some((re) => re.test(pathname))) return NextResponse.next();
 
-  let resposta = NextResponse.next({ request });
+  // O layout do painel lê este cabeçalho para mandar de volta à página certa depois do segundo fator
+  const cabecalhos = new Headers(request.headers);
+  cabecalhos.set("x-pathname", `${pathname}${request.nextUrl.search}`);
+  const requisicao = { headers: cabecalhos };
+  let resposta = NextResponse.next({ request: requisicao });
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const chave = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!url || !chave) return resposta;
@@ -23,7 +27,7 @@ export async function proxy(request: NextRequest) {
       },
       setAll(cookiesToSet) {
         for (const { name, value } of cookiesToSet) request.cookies.set(name, value);
-        resposta = NextResponse.next({ request });
+        resposta = NextResponse.next({ request: requisicao });
         for (const { name, value, options } of cookiesToSet) resposta.cookies.set(name, value, options);
       },
     },

@@ -24,6 +24,7 @@ interface LinhaIntegracao {
   atualizado_em: string;
 }
 
+const ROTULO_STATUS: Record<string, string> = { ativa: "Ativa", inativa: "Inativa", erro: "Com erro" };
 const TOM_STATUS: Record<string, "sucesso" | "alerta" | "perigo" | "neutro"> = { ativa: "sucesso", erro: "perigo", inativa: "neutro" };
 const TOM_ORIGEM: Record<string, "sucesso" | "alerta" | "neutro"> = { vault: "sucesso", ambiente: "alerta", nenhum: "neutro" };
 
@@ -75,7 +76,7 @@ function CartaoIntegracao({ tipo, linha, timeZone, temAmbiente, configAmbiente }
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle>{def.rotulo}</CardTitle>
           <div className="flex flex-wrap gap-1">
-            <Badge tom={TOM_STATUS[status] ?? "neutro"}>{status}</Badge>
+            <Badge tom={TOM_STATUS[status] ?? "neutro"}>{ROTULO_STATUS[status] ?? status}</Badge>
             <Badge tom={TOM_ORIGEM[origem ?? "nenhum"]}>segredo: {rotuloOrigem(origem)}</Badge>
           </div>
         </div>

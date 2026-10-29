@@ -32,11 +32,11 @@ describe("migrations e RLS", () => {
     }
     await c.query("insert into public.escritorios (id, nome) values ($1, 'Escritório A'), ($2, 'Escritório B')", [escritorioA, escritorioB]);
     await c.query(
-      `insert into public.escritorio_membros (escritorio_id, usuario_id, email_convite, papel, nome_completo, oab_numero, oab_uf)
-       values ($1, $2, 'socio.a@teste.local', 'socio', 'Sócia A', '20817', 'MT'),
-              ($1, $3, 'adv.a@teste.local', 'advogado', 'Advogado A', '30000', 'MT'),
-              ($1, $4, 'est.a@teste.local', 'estagiario', 'Estagiário A', null, null),
-              ($5, $6, 'socio.b@teste.local', 'socio', 'Sócio B', '40000', 'MT')`,
+      `insert into public.escritorio_membros (escritorio_id, usuario_id, email_convite, papel, nome_completo, oab_numero, oab_uf, aceito_em)
+       values ($1, $2, 'socio.a@teste.local', 'socio', 'Sócia A', '20817', 'MT', now()),
+              ($1, $3, 'adv.a@teste.local', 'advogado', 'Advogado A', '30000', 'MT', now()),
+              ($1, $4, 'est.a@teste.local', 'estagiario', 'Estagiário A', null, null, now()),
+              ($5, $6, 'socio.b@teste.local', 'socio', 'Sócio B', '40000', 'MT', now())`,
       [escritorioA, socioA, advogadoA, estagiarioA, escritorioB, socioB],
     );
   }, 240_000);

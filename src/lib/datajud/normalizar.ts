@@ -60,6 +60,8 @@ export function deduzirCompetencia(dados: { grau?: string | null; orgaoJulgadorN
   const orgao = semAcento(dados.orgaoJulgadorNome);
   const classe = semAcento(dados.classeNome);
   const grau = semAcento(dados.grau);
+  // Códigos de grau do DataJud: G1/G2 verificados; JE (juizado) e TR (turma recursal) a confirmar na wiki do CNJ
+  if (grau === "je" || grau === "tr") return "juizado_especial";
   if (orgao.includes("juizado") || classe.includes("juizado") || classe.includes("recurso inominado")) return "juizado_especial";
   if (grau === "g2" || grau === "2" || grau.includes("segundo") || /\bturma\b/.test(orgao) || /\bcamara\b/.test(orgao)) return "segundo_grau";
   return "vara_comum";

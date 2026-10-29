@@ -3,11 +3,7 @@
 import { redirect } from "next/navigation";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { envServidor } from "@/lib/config/env";
-
-function destinoSeguro(voltar: FormDataEntryValue | null): string {
-  const v = typeof voltar === "string" ? voltar : "";
-  return v.startsWith("/") && !v.startsWith("//") ? v : "/hoje";
-}
+import { destinoSeguro } from "@/lib/seguranca/destino-seguro";
 
 export async function entrarComLink(fd: FormData) {
   const email = String(fd.get("email") ?? "").trim().toLowerCase();

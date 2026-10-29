@@ -42,7 +42,6 @@ export default async function PaginaNotificacoes({ searchParams }: { searchParam
   const { data: overrides } = await supabase.from("regras_notificacao").select("evento, canal, ativo").eq("escritorio_id", sessao.escritorioId);
   const override = new Map<string, boolean>((overrides ?? []).map((r) => [`${r.evento}:${r.canal}`, Boolean(r.ativo)]));
   const eventos = Object.keys(REGRAS) as EventoNotificacao[];
-  const eventosExtras = ["publicacao_sem_processo", "prazo_vencido"].filter((e) => !eventos.includes(e as EventoNotificacao));
 
   return (
     <div className="flex flex-col gap-4">
@@ -114,7 +113,6 @@ export default async function PaginaNotificacoes({ searchParams }: { searchParam
               })}
             </TBody>
           </Table>
-          {eventosExtras.length ? <p className="mt-2 text-xs text-zinc-500">Eventos sem regra padrão no código (só no banco): {eventosExtras.join(", ")}. (a confirmar)</p> : null}
         </CardContent>
       </Card>
     </div>

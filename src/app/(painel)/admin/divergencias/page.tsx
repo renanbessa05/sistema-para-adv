@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { exigirSessao } from "@/server/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { listarMembros, mapaNomes, obterTimezone } from "@/server/publicacoes";
@@ -26,7 +25,8 @@ type Params = { erro?: string; ok?: string; prazo?: string; publicacao?: string;
 /** Operação paralela: registro semanal do que divergiu entre o sistema e o PJe (docs/runbooks/operacao-paralela.md). */
 export default async function PaginaDivergencias({ searchParams }: { searchParams: Promise<Params> }) {
   const sessao = await exigirSessao();
-  if (sessao.papel === "estagiario") redirect("/hoje");
+  // Estagiário lê (a RLS libera o select); registrar e resolver são de sócio, advogado e administrativo
+  const podeRegistrar = sessao.papel !== "estagiario";
   const q = await searchParams;
   const supabase = await criarClienteServidor();
 
@@ -99,6 +99,7 @@ export default async function PaginaDivergencias({ searchParams }: { searchParam
         </Card>
       </div>
 
+      {podeRegistrar ? (
       <Card id="registrar">
         <CardHeader>
           <CardTitle>Registrar divergência</CardTitle>
@@ -162,6 +163,7 @@ export default async function PaginaDivergencias({ searchParams }: { searchParam
           </form>
         </CardContent>
       </Card>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -263,6 +265,8 @@ export default async function PaginaDivergencias({ searchParams }: { searchParam
                     <TD>
                       {d.resolvida_em ? (
                         <span className="text-xs text-zinc-500">resolvida em {formatarDataHora(d.resolvida_em, timeZone)}</span>
+                      ) : !podeRegistrar ? (
+                        <span className="text-xs text-zinc-500">aberta</span>
                       ) : (
                         <form action={resolver.bind(null, d.id)} className="flex flex-col gap-1">
                           {naoExplicada(d) ? <Input name="causa" placeholder="causa" required className="h-8 text-xs" /> : null}

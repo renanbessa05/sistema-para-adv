@@ -206,8 +206,51 @@ describe("MFA obrigatório para sócio e advogado", () => {
     for (const t of ["processos", "processo_partes", "clientes", "publicacoes", "publicacao_eventos", "prazos", "prazos_eventos", "tarefas", "tarefa_eventos", "aprovacoes", "ia_execucoes", "notificacoes", "conversas", "mensagens"]) {
       expect(tabelas).toContain(t);
     }
+    for (const t of ["integracoes", "divergencias_operacao", "atos_prazo", "exportacoes", "processo_colaboradores", "auditoria_acessos", "ausencias", "regras_notificacao", "fases_kanban", "captacoes"]) {
+      expect(tabelas).toContain(t);
+    }
     for (const t of ["escritorios", "escritorio_membros", "usuario_telefones", "escritorio_configuracoes"]) {
       expect(tabelas).not.toContain(t);
     }
+  });
+
+  // --- 0022: fechamento das brechas apontadas na revisão ---
+
+  it("(g) sócio em aal1 lê a equipe, mas não convida, promove nem desativa membro; telefone idem", async () => {
+    const cl = claims(socioComFator, "socio", "aal1");
+    await expect(
+      db.comoUsuario(cl, (c) => c.query("insert into public.escritorio_membros (escritorio_id, email_convite, papel, nome_completo) values ($1, 'intruso@teste.local', 'socio', 'Intruso')", [escritorio])),
+    ).rejects.toThrow(/row-level security/);
+    await expect(db.comoUsuario(cl, (c) => c.query("update public.escritorio_membros set papel = 'socio' where usuario_id = $1", [advogado]))).resolves.toMatchObject({ rowCount: 0 });
+    await expect(
+      db.comoUsuario(cl, (c) => c.query("insert into public.usuario_telefones (escritorio_id, usuario_id, telefone_e164) values ($1, $2, '+5565999990000')", [escritorio, socioComFator])),
+    ).rejects.toThrow(/row-level security/);
+    // Em aal2 a mesma inserção passa
+    const ok = await db.comoUsuario(claims(socioComFator, "socio", "aal2"), (c) =>
+      c.query("insert into public.escritorio_membros (escritorio_id, email_convite, papel, nome_completo) values ($1, 'novo.membro@teste.local', 'estagiario', 'Novo') returning id", [escritorio]),
+    );
+    expect(ok.rowCount).toBe(1);
+    const papel = await db.client.query("select papel::text from public.escritorio_membros where usuario_id = $1", [advogado]);
+    expect(papel.rows[0].papel).toBe("advogado");
+  });
+
+  it("(g) gerar_codigo_telefone e integracao_definir_segredo exigem segundo fator", async () => {
+    const telefone = await db.client.query("insert into public.usuario_telefones (escritorio_id, usuario_id, telefone_e164) values ($1, $2, '+5565999990001') returning id", [escritorio, socioComFator]);
+    const cl = claims(socioComFator, "socio", "aal1");
+    await expect(db.comoUsuario(cl, (c) => c.query("select public.gerar_codigo_telefone($1)", [telefone.rows[0].id]))).rejects.toMatchObject({ code: "42501", message: "Segundo fator obrigatório" });
+    await expect(db.comoUsuario(cl, (c) => c.query("select public.integracao_definir_segredo('datajud', 'chave')"))).rejects.toMatchObject({ code: "42501", message: "Segundo fator obrigatório" });
+    const codigo = await db.comoUsuario(claims(socioComFator, "socio", "aal2"), (c) => c.query("select public.gerar_codigo_telefone($1) as c", [telefone.rows[0].id]).then((r) => r.rows[0].c as string));
+    expect(codigo).toMatch(/^\d{6}$/);
+  });
+
+  it("(h) a carência vale só para conta com menos de 7 dias: conta antiga sem fator fica sem dados em aal1", async () => {
+    await db.client.query("update auth.users set created_at = now() - interval '8 days' where id = $1", [socioSemFator]);
+    expect(await db.comoUsuario(claims(socioSemFator, "socio", "aal1"), contarPrazos)).toBe(0);
+    expect(await db.comoUsuario(claims(socioSemFator, "socio", "aal1"), (c) => c.query("select app.mfa_satisfeita() as ok").then((r) => r.rows[0].ok))).toBe(false);
+    // ...mas ainda lê escritorios/membros para chegar à tela de cadastro, e em aal2 volta a ver tudo
+    const membros = await db.comoUsuario(claims(socioSemFator, "socio", "aal1"), (c) => c.query("select count(*)::int as n from public.escritorio_membros").then((r) => r.rows[0].n as number));
+    expect(membros).toBeGreaterThan(0);
+    expect(await db.comoUsuario(claims(socioSemFator, "socio", "aal2"), contarPrazos)).toBe(1);
+    await db.client.query("update auth.users set created_at = now() where id = $1", [socioSemFator]);
   });
 });

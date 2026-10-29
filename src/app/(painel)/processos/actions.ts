@@ -186,7 +186,8 @@ export async function atualizarProcesso(processoId: string, fd: FormData) {
   });
   if (!lido.success) falhar(destino, `Dados inválidos: ${lido.error.issues[0]?.path.join(".")}`);
   const supabase = await criarClienteServidor();
-  const { error } = await supabase.from("processos").update(lido.data).eq("id", processoId).eq("escritorio_id", sessao.escritorioId);
+  // A competência escolhida na tela é ajuste manual (inclusive "vara comum"): o DataJud deixa de sobrescrevê-la
+  const { error } = await supabase.from("processos").update({ ...lido.data, competencia_manual: true }).eq("id", processoId).eq("escritorio_id", sessao.escritorioId);
   if (error) falhar(destino, `Não foi possível salvar: ${error.message}`);
   revalidatePath(destino);
   revalidatePath("/processos");

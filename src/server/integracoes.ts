@@ -60,9 +60,27 @@ export function clienteWhatsappDoAmbiente(): ClienteWhatsapp | null {
   return criarClienteWhatsapp({ accessToken: seg.valor, phoneNumberId: seg.config.phone_number_id });
 }
 
-/** Cliente do DataJud do escritório; sem segredo devolve o motivo legível para o registro do job. */
-export async function clienteDatajudDoEscritorio(admin: SupabaseClient, escritorioId: string): Promise<{ cliente: ClienteDatajud; origem: "vault" | "ambiente" } | { cliente: null; motivo: string }> {
+/** Limpa `ultimo_erro` e volta a 'ativa' quando a integração voltou a funcionar (só muda linhas em 'erro'). */
+export async function registrarSucessoIntegracao(admin: SupabaseClient, escritorioId: string, tipo: TipoIntegracaoComSegredo): Promise<void> {
+  const { error } = await admin.rpc("integracao_registrar_sucesso", { p_escritorio: escritorioId, p_tipo: tipo });
+  if (error) console.warn(`[integracoes] integracao_registrar_sucesso(${tipo}) falhou: ${error.message}`);
+}
+
+/**
+ * Cliente do DataJud do escritório; sem segredo devolve o motivo legível para o registro do job.
+ * `cache` (chave → cliente) faz escritórios com a mesma chave pública do CNJ dividirem o mesmo limitador de
+ * requisições dentro de uma execução, em vez de cada um zerar o ritmo (120 req/min valem por chave).
+ */
+export async function clienteDatajudDoEscritorio(
+  admin: SupabaseClient,
+  escritorioId: string,
+  cache?: Map<string, ClienteDatajud>,
+): Promise<{ cliente: ClienteDatajud; origem: "vault" | "ambiente" } | { cliente: null; motivo: string }> {
   const seg = await obterSegredo(admin, escritorioId, "datajud");
   if (!seg.valor || !seg.origem) return { cliente: null, motivo: mensagemSemSegredo("datajud") };
-  return { cliente: criarClienteDatajud({ baseUrl: envServidor().DATAJUD_BASE_URL, apiKey: seg.valor }), origem: seg.origem };
+  const existente = cache?.get(seg.valor);
+  if (existente) return { cliente: existente, origem: seg.origem };
+  const cliente = criarClienteDatajud({ baseUrl: envServidor().DATAJUD_BASE_URL, apiKey: seg.valor });
+  cache?.set(seg.valor, cliente);
+  return { cliente, origem: seg.origem };
 }

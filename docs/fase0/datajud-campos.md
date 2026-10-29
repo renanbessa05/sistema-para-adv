@@ -19,7 +19,7 @@ Fonte: `POST https://api-publica.datajud.cnj.jus.br/api_publica_tjmt/_search`, h
 |---|---|---|---|
 | `numeroProcesso` | string, 20 dígitos | `numero_cnj`; chave de junção com `publicacoes.numero_cnj` | verificado |
 | `tribunal` | string (`"TJMT"`) | `tribunal` | verificado |
-| `grau` | string (`"G1"`, `"G2"`…) | `grau`; pode haver um `_source` por grau | verificado; lista completa (`JE`, `TR`…) a confirmar |
+| `grau` | string (`"G1"`, `"G2"`…) | `grau`; pode haver um `_source` por grau; `deduzirCompetencia` trata `JE`/`TR` como juizado e `G2` como 2º grau | verificado só `G1`/`G2`; `JE`, `TR` e os valores `"2"`/`"Segundo"` aceitos pela dedução são (a confirmar) |
 | `classe.codigo` / `classe.nome` | number / string | `classe_codigo`, `classe_nome` (TPU) | verificado |
 | `assuntos[].codigo` / `.nome` | number / string | `assuntos[]` (TPU) | verificado |
 | `sistema.codigo` / `.nome` | number / string | `sistema` (nome: `"PJe"`) | verificado |

@@ -5,9 +5,14 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { exigirSessao } from "@/server/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
-import { enviarConvite } from "@/server/equipe";
+import { enviarConvite, reenviarAcessoPendente } from "@/server/equipe";
 
 const DESTINO = "/configuracoes/equipe";
+
+async function escritorioDaSessao(supabase: Awaited<ReturnType<typeof criarClienteServidor>>, id: string): Promise<{ id: string; nome: string }> {
+  const { data } = await supabase.from("escritorios").select("nome").eq("id", id).maybeSingle();
+  return { id, nome: (data?.nome as string | undefined) ?? "seu escritório" };
+}
 
 function t(fd: FormData, n: string): string {
   const v = fd.get(n);
@@ -67,7 +72,7 @@ export async function convidarMembro(fd: FormData) {
   });
   if (error) falhar(/unique|duplicate/i.test(error.message) ? "Já existe membro com este e-mail no escritório." : `Não foi possível gravar o membro: ${error.message}`);
 
-  const convite = await enviarConvite(lido.data.email);
+  const convite = await enviarConvite(lido.data.email, await escritorioDaSessao(supabase, sessao.escritorioId));
   revalidatePath(DESTINO);
   if (!convite.ok) redirect(`${DESTINO}?ok=${encodeURIComponent("Membro gravado.")}&erro=${encodeURIComponent(convite.erro)}`);
   if (convite.aviso) redirect(`${DESTINO}?ok=${encodeURIComponent("Membro gravado.")}&aviso=${encodeURIComponent(convite.aviso)}`);
@@ -78,10 +83,12 @@ export async function reenviarConvite(membroId: string) {
   const sessao = await exigirSessao();
   if (sessao.papel !== "socio") falhar("Só o sócio reenvia convites.");
   const supabase = await criarClienteServidor();
-  const { data: membro } = await supabase.from("escritorio_membros").select("email_convite, usuario_id").eq("id", membroId).eq("escritorio_id", sessao.escritorioId).maybeSingle();
+  const { data: membro } = await supabase.from("escritorio_membros").select("email_convite, usuario_id, aceito_em").eq("id", membroId).eq("escritorio_id", sessao.escritorioId).maybeSingle();
   if (!membro) falhar("Membro não encontrado.");
-  if (membro.usuario_id) falhar("Este membro já aceitou o convite.");
-  const convite = await enviarConvite(membro.email_convite as string);
+  if (membro.aceito_em) falhar("Este membro já aceitou o convite.");
+  const escritorio = await escritorioDaSessao(supabase, sessao.escritorioId);
+  // usuario_id preenchido sem aceite = pessoa que já tinha conta e ainda não aceitou: só reenvia o e-mail de aceite
+  const convite = membro.usuario_id ? await reenviarAcessoPendente(membro.email_convite as string, escritorio) : await enviarConvite(membro.email_convite as string, escritorio);
   if (!convite.ok) falhar(convite.erro);
   revalidatePath(DESTINO);
   if (convite.aviso) redirect(`${DESTINO}?aviso=${encodeURIComponent(convite.aviso)}`);

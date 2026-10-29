@@ -77,19 +77,19 @@ export function ultimaSextaConcluida(hoje: string): string {
 }
 
 /**
- * Semanas consecutivas (sextas) sem divergência não explicada, contadas para trás a partir da última sexta
- * concluída. Só conta a partir da primeira semana registrada: antes da primeira conferência não há o que
- * provar. Uma semana sem nenhum registro, mas posterior à primeira conferência, conta como limpa
- * (a conferência semanal é obrigatória pelo runbook; se não foi feita, registre como "outro").
+ * Semanas consecutivas (sextas) conferidas e sem divergência não explicada, contadas para trás a partir da
+ * última sexta concluída. Uma semana só conta como limpa se tem ao menos um registro (a conferência foi feita;
+ * sem divergência, registra-se "outro / conferência sem divergência") e nenhum registro sem causa. Semana sem
+ * registro interrompe a sequência: não dá para provar o que não foi conferido. Registros em dias que não são
+ * sexta são agrupados pela sexta de referência da própria semana.
  */
 export function semanasConsecutivasLimpas(divergencias: readonly { semana: string; causa: string | null }[], hoje: string): number {
   if (divergencias.length === 0) return 0;
-  const semanasSujas = new Set(divergencias.filter(naoExplicada).map((d) => d.semana));
-  const primeira = divergencias.map((d) => d.semana).sort()[0];
+  const conferidas = new Set(divergencias.map((d) => sextaDeReferencia(d.semana)));
+  const semanasSujas = new Set(divergencias.filter(naoExplicada).map((d) => sextaDeReferencia(d.semana)));
   let semana = ultimaSextaConcluida(hoje);
   let n = 0;
-  while (semana >= primeira) {
-    if (semanasSujas.has(semana)) break;
+  while (conferidas.has(semana) && !semanasSujas.has(semana)) {
     n += 1;
     semana = adicionarDias(semana, -7);
   }

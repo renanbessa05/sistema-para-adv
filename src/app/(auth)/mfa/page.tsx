@@ -23,6 +23,30 @@ export default async function PaginaMfa({ searchParams }: { searchParams: Promis
   if (!user) redirect(`/login?voltar=${encodeURIComponent(`/mfa?voltar=${destino}`)}`);
 
   const [fatores, nivel] = await Promise.all([supabase.auth.mfa.listFactors(), supabase.auth.mfa.getAuthenticatorAssuranceLevel()]);
+  const falhaAuth = fatores.error?.message ?? nivel.error?.message ?? null;
+  if (falhaAuth) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-zinc-50 p-4 dark:bg-zinc-900">
+        <Card className="w-full max-w-sm">
+          <CardHeader>
+            <CardTitle>Não foi possível verificar o segundo fator</CardTitle>
+            <CardDescription>O serviço de autenticação não respondeu. Nada foi alterado na sua conta.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <Alert tom="perigo">{falhaAuth}</Alert>
+            <a href={`/mfa?voltar=${encodeURIComponent(destino)}`} className="text-sm underline">
+              Tentar de novo
+            </a>
+            <form action={sair} className="text-center">
+              <button type="submit" className="text-xs text-zinc-500 underline-offset-2 hover:underline">
+                Sair e entrar com outra conta
+              </button>
+            </form>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
   const totp = (fatores.data?.totp ?? []).map((f) => ({ id: f.id, nome: f.friendly_name ?? "Autenticador" }));
   if (totp.length === 0) redirect(`/mfa/cadastro?voltar=${encodeURIComponent(destino)}`);
   if (nivel.data?.currentLevel === "aal2") redirect(destino);

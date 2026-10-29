@@ -6,7 +6,7 @@ import { z } from "zod";
 import { exigirSessao } from "@/server/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { mensagemErroBanco } from "@/server/publicacoes";
-import { registrarDivergencia, resolverDivergencia, TIPOS_DIVERGENCIA } from "@/server/divergencias";
+import { registrarDivergencia, resolverDivergencia, sextaDeReferencia, TIPOS_DIVERGENCIA } from "@/server/divergencias";
 
 const DESTINO = "/admin/divergencias";
 
@@ -49,9 +49,10 @@ export async function registrar(fd: FormData) {
   });
   if (!lido.success) falhar(lido.error.issues[0]?.message ?? "Dados inválidos");
   const supabase = await criarClienteServidor();
+  // A conferência é semanal: qualquer dia escolhido vira a sexta-feira de referência daquela semana
   const r = await registrarDivergencia(supabase, {
     escritorioId: sessao.escritorioId,
-    semana: lido.data.semana,
+    semana: sextaDeReferencia(lido.data.semana),
     tipo: lido.data.tipo,
     descricao: lido.data.descricao,
     causa: lido.data.causa,

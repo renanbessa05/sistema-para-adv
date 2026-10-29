@@ -26,8 +26,31 @@ export default async function PaginaCadastroMfa({ searchParams }: { searchParams
 
   const sessao = await obterSessao();
   const obrigatorio = sessao ? exigeMfa(sessao.papel) : false;
-  const { data: fatores } = await supabase.auth.mfa.listFactors();
+  const { data: fatores, error: erroFatores } = await supabase.auth.mfa.listFactors();
   const jaTemVerificado = (fatores?.totp ?? []).length > 0;
+  if (erroFatores) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-zinc-50 p-4 dark:bg-zinc-900">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Não foi possível consultar seus autenticadores</CardTitle>
+            <CardDescription>Sem essa resposta, cadastrar um autenticador novo poderia duplicar o que você já tem. Nada foi alterado.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <Alert tom="perigo">{erroFatores.message}</Alert>
+            <a href={`/mfa/cadastro?voltar=${encodeURIComponent(destino)}`} className="text-sm underline">
+              Tentar de novo
+            </a>
+            <form action={sair} className="text-center">
+              <button type="submit" className="text-xs text-zinc-500 underline-offset-2 hover:underline">
+                Sair e entrar com outra conta
+              </button>
+            </form>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-zinc-50 p-4 dark:bg-zinc-900">

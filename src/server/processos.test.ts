@@ -2,19 +2,17 @@ import { describe, expect, it } from "vitest";
 import { competenciaAposDatajud, lerValorMonetario } from "./processos";
 
 describe("competenciaAposDatajud", () => {
-  it("substitui só o padrão vara_comum pela dedução do DataJud", () => {
-    expect(competenciaAposDatajud("vara_comum", "juizado_especial")).toBe("juizado_especial");
-    expect(competenciaAposDatajud("vara_comum", "segundo_grau")).toBe("segundo_grau");
-    expect(competenciaAposDatajud(null, "juizado_especial")).toBe("juizado_especial");
-    expect(competenciaAposDatajud(undefined, "segundo_grau")).toBe("segundo_grau");
+  it("grava a dedução do DataJud enquanto a equipe não ajustou a competência", () => {
+    expect(competenciaAposDatajud(false, "juizado_especial")).toBe("juizado_especial");
+    expect(competenciaAposDatajud(false, "segundo_grau")).toBe("segundo_grau");
+    expect(competenciaAposDatajud(false, "vara_comum")).toBe("vara_comum");
   });
 
-  it("não apaga ajuste manual da equipe nem grava quando a dedução é o próprio padrão", () => {
-    expect(competenciaAposDatajud("juizado_especial", "vara_comum")).toBeUndefined();
-    expect(competenciaAposDatajud("outra", "juizado_especial")).toBeUndefined();
-    expect(competenciaAposDatajud("segundo_grau", "juizado_especial")).toBeUndefined();
-    expect(competenciaAposDatajud("vara_comum", "vara_comum")).toBeUndefined();
-    expect(competenciaAposDatajud("vara_comum", null)).toBeUndefined();
+  it("respeita qualquer ajuste manual, inclusive vara comum, e não grava sem dedução", () => {
+    expect(competenciaAposDatajud(true, "juizado_especial")).toBeUndefined();
+    expect(competenciaAposDatajud(true, "vara_comum")).toBeUndefined();
+    expect(competenciaAposDatajud(false, null)).toBeUndefined();
+    expect(competenciaAposDatajud(false, undefined)).toBeUndefined();
   });
 });
 

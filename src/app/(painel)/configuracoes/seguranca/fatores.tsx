@@ -5,17 +5,22 @@ import { useRouter } from "next/navigation";
 import { criarClienteBrowser } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
-/** Remover um fator exige sessão aal2 no Supabase Auth; quando falha, mostra o motivo e o caminho para resolver. */
+/**
+ * Remover um fator exige sessão aal2 no Supabase Auth; quando falha, mostra o motivo e o caminho para resolver.
+ * Para sócio e advogado o último autenticador verificado não é removível aqui: cadastre o novo antes de remover o antigo
+ * (a carência do banco vale só para contas com menos de 7 dias, então remover o último trancaria o acesso aos dados).
+ */
 export function BotaoRemoverFator({ id, nome, ultimoVerificado }: { id: string; nome: string; ultimoVerificado: boolean }) {
   const router = useRouter();
   const [erro, setErro] = useState<string | null>(null);
   const [removendo, setRemovendo] = useState(false);
 
+  if (ultimoVerificado) {
+    return <p className="max-w-xs text-xs text-zinc-500">Único autenticador verificado: cadastre outro antes de remover este.</p>;
+  }
+
   async function remover() {
-    const aviso = ultimoVerificado
-      ? `Este é o único autenticador verificado. Sem ele, no próximo acesso você terá que cadastrar outro antes de ver qualquer dado. Remover "${nome}"?`
-      : `Remover o autenticador "${nome}"?`;
-    if (!window.confirm(aviso)) return;
+    if (!window.confirm(`Remover o autenticador "${nome}"?`)) return;
     setRemovendo(true);
     setErro(null);
     try {

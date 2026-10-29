@@ -1,6 +1,8 @@
 import "server-only";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { criarClienteServidor } from "@/lib/supabase/server";
+import { destinoSeguro } from "@/lib/seguranca/destino-seguro";
 import type { Papel, Sessao } from "./sessao";
 
 /** Papéis que só entram no painel com segundo fator (docs/regras/permissoes.md, "Segundo fator"). */
@@ -24,10 +26,16 @@ export async function listarFatores(): Promise<FatorMfa[]> {
   return (data?.all ?? []).map((f) => ({ id: f.id, nome: f.friendly_name ?? null, tipo: f.factor_type, status: f.status, criadoEm: f.created_at }));
 }
 
+/** Caminho da página atual (cabeçalho x-pathname posto pelo proxy), já saneado, para voltar depois do segundo fator. */
+async function caminhoAtual(): Promise<string> {
+  const h = await headers();
+  return destinoSeguro(h.get("x-pathname"), "/hoje");
+}
+
 /**
  * MFA (TOTP) obrigatório para sócio e advogado: quem não tem fator verificado vai cadastrar; quem tem,
  * mas entrou só com senha ou link (aal1), vai validar o código. O banco aplica a mesma regra por policy
- * restritiva (app.mfa_satisfeita), então este redirecionamento é conveniência, não a barreira.
+ * restritiva (app.mfa_satisfeita) e nas RPCs; este redirecionamento é a conveniência da interface.
  * Outros papéis não são exigidos.
  */
 export async function exigirMfaSeNecessario(sessao: Sessao): Promise<void> {
@@ -38,6 +46,8 @@ export async function exigirMfaSeNecessario(sessao: Sessao): Promise<void> {
   if (nivel.error) throw new Error(`Não foi possível verificar o nível da sessão: ${nivel.error.message}`);
   // `totp` só traz fatores verificados; `all` inclui os pendentes de verificação.
   const temTotpVerificado = (fatores.data?.totp ?? []).length > 0;
-  if (!temTotpVerificado) redirect("/mfa/cadastro");
-  if (nivel.data?.currentLevel !== "aal2") redirect("/mfa");
+  if (!temTotpVerificado || nivel.data?.currentLevel !== "aal2") {
+    const voltar = encodeURIComponent(await caminhoAtual());
+    redirect(temTotpVerificado ? `/mfa?voltar=${voltar}` : `/mfa/cadastro?voltar=${voltar}`);
+  }
 }

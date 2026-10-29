@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ErroDatajud, type ClienteDatajud } from "@/lib/datajud";
-import { clienteDatajudDoEscritorio, registrarErroIntegracao } from "../integracoes";
+import { clienteDatajudDoEscritorio, registrarErroIntegracao, registrarSucessoIntegracao } from "../integracoes";
 import { competenciaAposDatajud } from "@/server/processos";
 import { executarJob, listarEscritoriosAtivos } from "./registro";
 
@@ -14,6 +14,7 @@ import { executarJob, listarEscritoriosAtivos } from "./registro";
 export async function enriquecerDatajud(admin: SupabaseClient, opcoes: { lote?: number; escritorioId?: string; processoIds?: string[]; datajud?: ClienteDatajud } = {}) {
   const escritorios = (await listarEscritoriosAtivos(admin)).filter((e) => !opcoes.escritorioId || e.id === opcoes.escritorioId);
   const resumo: Record<string, unknown>[] = [];
+  const clientesPorChave = new Map<string, ClienteDatajud>();
 
   for (const escritorio of escritorios) {
     const r = await executarJob(
@@ -22,13 +23,13 @@ export async function enriquecerDatajud(admin: SupabaseClient, opcoes: { lote?: 
       async () => {
         let datajud = opcoes.datajud;
         if (!datajud) {
-          const resolvido = await clienteDatajudDoEscritorio(admin, escritorio.id);
+          const resolvido = await clienteDatajudDoEscritorio(admin, escritorio.id, clientesPorChave);
           if (!resolvido.cliente) throw new Error(resolvido.motivo);
           datajud = resolvido.cliente;
         }
         let consulta = admin
           .from("processos")
-          .select("id, numero_cnj, tribunal_id, comarca_id, competencia, datajud_ultima_atualizacao")
+          .select("id, numero_cnj, tribunal_id, comarca_id, competencia, competencia_manual, datajud_ultima_atualizacao")
           .eq("escritorio_id", escritorio.id)
           .in("status", ["ativo", "suspenso"])
           .eq("datajud_indisponivel", false)
@@ -70,8 +71,8 @@ export async function enriquecerDatajud(admin: SupabaseClient, opcoes: { lote?: 
                 data_ajuizamento: principal.data_ajuizamento ?? undefined,
                 nivel_sigilo: principal.nivel_sigilo ?? undefined,
                 comarca_id: comarcaId,
-                // Deduzida do grau, órgão e classe (decisão 1.4.10); não apaga ajuste manual da equipe.
-                competencia: competenciaAposDatajud(p.competencia as string | null, principal.competencia),
+                // Deduzida do grau, órgão e classe (decisão 1.4.10); não apaga ajuste manual da equipe (competencia_manual).
+                competencia: competenciaAposDatajud(Boolean(p.competencia_manual), principal.competencia),
                 datajud_ultima_sincronizacao: agora,
                 datajud_ultima_atualizacao: principal.ultima_atualizacao ?? undefined,
                 datajud_indisponivel: false,
@@ -98,6 +99,8 @@ export async function enriquecerDatajud(admin: SupabaseClient, opcoes: { lote?: 
             erros.push(`${p.numero_cnj}: ${e instanceof Error ? e.message : String(e)}`);
           }
         }
+        // A chave funcionou nesta execução: se a integração estava em 'erro', volta a 'ativa'
+        if (atualizados > 0 || indisponiveis > 0) await registrarSucessoIntegracao(admin, escritorio.id, "datajud");
         return { itens: atualizados, detalhes: { consultados: processos?.length ?? 0, atualizados, indisponiveis, movimentosUpsert: movimentosNovos, erros } };
       },
       escritorio.id,

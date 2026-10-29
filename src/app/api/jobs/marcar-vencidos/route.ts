@@ -11,8 +11,8 @@ type PrazoVencido = { id: string; processo_id: string | null; responsavel_id: st
 
 /**
  * 0h05 de Cuiabá: prazos confirmados ou prorrogados com data final anterior a hoje viram `vencido`
- * (RPC marcar_prazos_vencidos_detalhado, só service role) e cada um gera o evento `prazo_vencido`
- * para o responsável e os sócios (painel, WhatsApp e e-mail, na hora).
+ * (RPC marcar_prazos_vencidos_detalhado(p_hoje, p_escritorio), só service role, um escritório por vez) e cada um
+ * gera o evento `prazo_vencido` para o responsável e os sócios (painel, WhatsApp e e-mail, na hora).
  */
 export async function GET(request: Request) {
   const negado = autorizarCron(request);
@@ -20,32 +20,28 @@ export async function GET(request: Request) {
   const env = envServidor();
   const admin = criarClienteAdmin();
   const resultado = [];
-  // A RPC varre todos os escritórios de uma vez (como antes): os ids marcados ficam neste conjunto até o
-  // escritório dono passar pelo laço e enfileirar as notificações dele.
-  const marcados = new Set<string>();
   for (const escritorio of await listarEscritoriosAtivos(admin)) {
     const r = await executarJob(
       admin,
       "marcar-vencidos",
       async () => {
         const hoje = hojeNoFuso(escritorio.timezone);
-        const { data, error } = await admin.rpc("marcar_prazos_vencidos_detalhado", { p_hoje: hoje });
+        const { data, error } = await admin.rpc("marcar_prazos_vencidos_detalhado", { p_hoje: hoje, p_escritorio: escritorio.id });
         if (error) throw new Error(error.message);
-        for (const v of (data ?? []) as PrazoVencido[]) marcados.add(v.id);
-        if (marcados.size === 0) return { itens: 0, detalhes: { hoje, notificacoes: 0 } };
+        const marcados = ((data ?? []) as PrazoVencido[]).map((v) => v.id);
+        if (marcados.length === 0) return { itens: 0, detalhes: { hoje, notificacoes: 0 } };
 
         const { data: detalhes, error: erroDetalhes } = await admin
           .from("prazos")
           .select("id, ato_descricao, data_final, responsavel_id, processos(numero_cnj_mascara)")
           .eq("escritorio_id", escritorio.id)
-          .in("id", [...marcados]);
+          .in("id", marcados);
         if (erroDetalhes) throw new Error(erroDetalhes.message);
         if (!detalhes || detalhes.length === 0) return { itens: 0, detalhes: { hoje, notificacoes: 0 } };
 
         const ctx = await carregarContexto(admin, escritorio.id);
         let notificacoes = 0;
         for (const p of detalhes) {
-          marcados.delete(p.id as string);
           const mascara = (p.processos as unknown as { numero_cnj_mascara: string | null } | null)?.numero_cnj_mascara ?? "sem processo";
           const dataFinal = String(p.data_final);
           const diasAtraso = Math.max(1, diferencaEmDias(dataFinal, hoje));
