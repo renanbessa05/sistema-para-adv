@@ -64,6 +64,11 @@ export default async function LayoutPainel({ children }: { children: React.React
                 Métricas
               </Link>
             ) : null}
+            {socio || sessao.papel === "advogado" ? (
+              <Link href="/relatorios" className="rounded-md px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                Relatórios
+              </Link>
+            ) : null}
             {socio ? (
               <Link href="/admin/ia" className="rounded-md px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800">
                 Custo IA

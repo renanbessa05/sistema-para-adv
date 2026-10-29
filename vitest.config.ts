@@ -23,6 +23,8 @@ export default defineConfig({
         "src/lib/honorarios/calculo.ts": { lines: 100, functions: 100, branches: 100, statements: 100 },
         // Cálculos de atualização: índice errado ou faltando vira valor errado em petição; nada entra sem cobertura total.
         "src/lib/calculos/**/*.ts": { lines: 100, functions: 100, branches: 100, statements: 100 },
+        // Relatórios: taxa de cumprimento, médias e CSV (com proteção contra fórmula); módulo pequeno e totalmente coberto.
+        "src/lib/relatorios/**/*.ts": { lines: 100, functions: 100, branches: 100, statements: 100 },
       },
     },
   },
