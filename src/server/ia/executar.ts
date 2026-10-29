@@ -24,6 +24,8 @@ export interface ContextoExecucao {
   conversaId?: string | null;
   /** Cliente a usar (testes); por padrão o cliente real com a chave do ambiente. */
   cliente?: ClienteIa | null;
+  /** Modelo que substitui o do registro (ex.: redação final no modelo forte). */
+  modelo?: string;
 }
 
 export interface ResultadoExecucao<T> {
@@ -62,7 +64,7 @@ function usoDe(r: Saida): UsoTokens {
 export async function executarAgente<T extends Saida>(ctx: ContextoExecucao, fn: (cliente: ClienteIa, modelo: string) => Promise<T>): Promise<ResultadoExecucao<T>> {
   const def = AGENTES[ctx.agente];
   const versao = ctx.agenteVersao ?? def.versao;
-  const modelo = modeloDoAgente(ctx.agente);
+  const modelo = ctx.modelo ?? modeloDoAgente(ctx.agente);
   const cliente = ctx.cliente === undefined ? clienteIaDoAmbiente() : ctx.cliente;
   if (!cliente) throw new ErroIa("erro", "ANTHROPIC_API_KEY ausente: a assistente está sem modelo de IA configurado");
 

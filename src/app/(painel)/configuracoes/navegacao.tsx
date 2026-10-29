@@ -10,6 +10,7 @@ export const AREAS: { href: string; rotulo: string; descricao: string; papeis: P
   { href: "/configuracoes/ausencias", rotulo: "Ausências", descricao: "Férias e licenças, com substituto para as notificações.", papeis: ["socio", "advogado", "estagiario", "administrativo"] },
   { href: "/configuracoes/notificacoes", rotulo: "Notificações", descricao: "Canais ativos por evento (painel, WhatsApp, e-mail).", papeis: ["socio"] },
   { href: "/configuracoes/honorarios", rotulo: "Honorários", descricao: "Tabela OAB/MT vigente (URH) e fatores de complexidade.", papeis: ["socio"] },
+  { href: "/configuracoes/modelos", rotulo: "Modelos de peça", descricao: "Modelos .docx do escritório por tipo de peça e área, usados como referência de estrutura.", papeis: ["socio", "advogado"] },
   { href: "/configuracoes/documentos", rotulo: "Documentos", descricao: "Timbre dos documentos gerados: endereço, contatos e advogada responsável.", papeis: ["socio"] },
   { href: "/configuracoes/integracoes", rotulo: "Integrações", descricao: "Segredos do WhatsApp e do DataJud guardados no Vault.", papeis: ["socio"] },
   { href: "/configuracoes/seguranca", rotulo: "Segurança", descricao: "Segundo fator (aplicativo autenticador), obrigatório para sócio e advogado.", papeis: ["socio", "advogado", "estagiario", "administrativo"] },

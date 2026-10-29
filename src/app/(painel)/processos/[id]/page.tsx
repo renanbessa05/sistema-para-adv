@@ -119,6 +119,12 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
           <Link href={`/assistente?processo=${id}`} className="inline-flex h-9 items-center rounded-md border border-zinc-300 px-4 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
             Perguntar à assistente
           </Link>
+          <Link href={`/minutas/nova?processo=${id}`} className="inline-flex h-9 items-center rounded-md border border-zinc-300 px-4 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
+            Nova minuta
+          </Link>
+          <Link href={`/varreduras/nova?processo=${id}`} className="inline-flex h-9 items-center rounded-md border border-zinc-300 px-4 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
+            Varredura dos autos
+          </Link>
           <form action={atualizarPeloDatajud.bind(null, id)}>
             <Button type="submit" variante="secundaria">
               Atualizar pelo DataJud
