@@ -21,6 +21,8 @@ export default defineConfig({
         "src/lib/prazos/**/*.ts": { lines: 100, functions: 100, branches: 100, statements: 100 },
         // Honorários: piso, teto do art. 50 e bloqueio por tabela vencida protegem a advogada; nada entra sem cobertura total.
         "src/lib/honorarios/calculo.ts": { lines: 100, functions: 100, branches: 100, statements: 100 },
+        // Cálculos de atualização: índice errado ou faltando vira valor errado em petição; nada entra sem cobertura total.
+        "src/lib/calculos/**/*.ts": { lines: 100, functions: 100, branches: 100, statements: 100 },
       },
     },
   },
