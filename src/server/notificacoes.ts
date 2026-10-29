@@ -1,9 +1,10 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { planejarNotificacoes, type Ausencia, type EventoNotificacao, type Membro } from "@/lib/notificacoes";
-import { criarClienteWhatsapp, dentroDaJanela24h, montarEnvioTemplate, type NomeTemplate } from "@/lib/whatsapp";
-import { envServidor } from "@/lib/config/env";
+import { dentroDaJanela24h, montarEnvioTemplate, type ClienteWhatsapp, type NomeTemplate } from "@/lib/whatsapp";
+import { mensagemSemSegredo } from "@/lib/integracoes";
 import { enviarEmail } from "./email";
+import { clienteWhatsappDoEscritorio } from "./integracoes";
 
 export interface ContextoEscritorio {
   id: string;
@@ -86,14 +87,21 @@ function posicionais(variaveis: Record<string, string>): string[] {
     .map((k) => variaveis[k]);
 }
 
-/** Envia as notificações pendentes já vencidas, por canal. */
-export async function drenarNotificacoes(admin: SupabaseClient, opcoes: { limite?: number; agora?: Date } = {}): Promise<{ enviadas: number; falhas: number; painel: number }> {
-  const env = envServidor();
+/**
+ * Envia as notificações pendentes já vencidas, por canal.
+ * O cliente do WhatsApp é por escritório (token no Vault ou variável de ambiente); `opcoes.whatsapp` o substitui em testes.
+ */
+export async function drenarNotificacoes(admin: SupabaseClient, opcoes: { limite?: number; agora?: Date; whatsapp?: ClienteWhatsapp | null } = {}): Promise<{ enviadas: number; falhas: number; painel: number }> {
   const agora = opcoes.agora ?? new Date();
   const { data: pendentes, error } = await admin.from("notificacoes").select("id, escritorio_id, evento, destinatario_id, canal, template, variaveis, tentativas").eq("status", "pendente").lte("agendada_para", agora.toISOString()).order("agendada_para").limit(opcoes.limite ?? 100);
   if (error) throw new Error(error.message);
 
-  const whatsapp = env.WHATSAPP_ACCESS_TOKEN && env.WHATSAPP_PHONE_NUMBER_ID ? criarClienteWhatsapp({ accessToken: env.WHATSAPP_ACCESS_TOKEN, phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID }) : null;
+  const clientesWhatsapp = new Map<string, ClienteWhatsapp | null>();
+  const whatsappDe = async (escritorioId: string): Promise<ClienteWhatsapp | null> => {
+    if (opcoes.whatsapp !== undefined) return opcoes.whatsapp;
+    if (!clientesWhatsapp.has(escritorioId)) clientesWhatsapp.set(escritorioId, await clienteWhatsappDoEscritorio(admin, escritorioId));
+    return clientesWhatsapp.get(escritorioId) ?? null;
+  };
   const contextos = new Map<string, ContextoEscritorio>();
   let enviadas = 0;
   let falhas = 0;
@@ -125,7 +133,8 @@ export async function drenarNotificacoes(admin: SupabaseClient, opcoes: { limite
         continue;
       }
       if (n.canal === "whatsapp") {
-        if (!whatsapp) throw new Error("WhatsApp não configurado");
+        const whatsapp = await whatsappDe(escritorioId);
+        if (!whatsapp) throw new Error(mensagemSemSegredo("whatsapp"));
         const telefone = ctx.telefones.get(destinatario);
         if (!telefone) throw new Error("destinatário sem telefone verificado");
         const { data: conversa } = await admin.from("conversas").select("id, ultima_mensagem_recebida_em").eq("escritorio_id", escritorioId).eq("canal", "whatsapp").eq("telefone_e164", telefone).maybeSingle();

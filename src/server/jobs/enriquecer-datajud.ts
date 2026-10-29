@@ -1,17 +1,16 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { criarClienteDatajud, ErroDatajud } from "@/lib/datajud";
-import { envServidor } from "@/lib/config/env";
+import { ErroDatajud, type ClienteDatajud } from "@/lib/datajud";
+import { clienteDatajudDoEscritorio, registrarErroIntegracao } from "../integracoes";
 import { executarJob, listarEscritoriosAtivos } from "./registro";
 
 /**
  * Enriquece processos pelo DataJud (classe, órgão, comarca por IBGE, sigilo, movimentos novos).
  * Lotes pequenos, os mais desatualizados primeiro; respeita 120 req/min do CNJ.
+ * A chave vem do Vault de cada escritório (Configurações → Integrações) ou de DATAJUD_API_KEY como fallback;
+ * sem chave, a execução daquele escritório fica registrada com erro legível e os demais seguem.
  */
-export async function enriquecerDatajud(admin: SupabaseClient, opcoes: { lote?: number; escritorioId?: string; processoIds?: string[] } = {}) {
-  const env = envServidor();
-  if (!env.DATAJUD_API_KEY) return [{ ok: false, erro: "DATAJUD_API_KEY ausente", itens: 0 }];
-  const datajud = criarClienteDatajud({ baseUrl: env.DATAJUD_BASE_URL, apiKey: env.DATAJUD_API_KEY });
+export async function enriquecerDatajud(admin: SupabaseClient, opcoes: { lote?: number; escritorioId?: string; processoIds?: string[]; datajud?: ClienteDatajud } = {}) {
   const escritorios = (await listarEscritoriosAtivos(admin)).filter((e) => !opcoes.escritorioId || e.id === opcoes.escritorioId);
   const resumo: Record<string, unknown>[] = [];
 
@@ -20,6 +19,12 @@ export async function enriquecerDatajud(admin: SupabaseClient, opcoes: { lote?: 
       admin,
       "enriquecer-datajud",
       async () => {
+        let datajud = opcoes.datajud;
+        if (!datajud) {
+          const resolvido = await clienteDatajudDoEscritorio(admin, escritorio.id);
+          if (!resolvido.cliente) throw new Error(resolvido.motivo);
+          datajud = resolvido.cliente;
+        }
         let consulta = admin
           .from("processos")
           .select("id, numero_cnj, tribunal_id, comarca_id, datajud_ultima_atualizacao")
@@ -83,7 +88,11 @@ export async function enriquecerDatajud(admin: SupabaseClient, opcoes: { lote?: 
             }
             atualizados += 1;
           } catch (e) {
-            if (e instanceof ErroDatajud && e.chaveInvalida) throw new Error("Chave pública do DataJud inválida ou trocada pelo CNJ: atualize DATAJUD_API_KEY");
+            if (e instanceof ErroDatajud && e.chaveInvalida) {
+              const mensagem = "Chave pública do DataJud inválida ou trocada pelo CNJ: atualize em Configurações → Integrações (ou DATAJUD_API_KEY)";
+              await registrarErroIntegracao(admin, escritorio.id, "datajud", mensagem);
+              throw new Error(mensagem);
+            }
             erros.push(`${p.numero_cnj}: ${e instanceof Error ? e.message : String(e)}`);
           }
         }

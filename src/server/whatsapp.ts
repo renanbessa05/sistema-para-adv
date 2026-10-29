@@ -1,10 +1,11 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { criarClienteIa, rotearMensagem, type ClienteIa, type RoteamentoIntent } from "@/lib/ia";
-import { criarClienteWhatsapp, extrairEventos, type ClienteWhatsapp, type MensagemRecebida } from "@/lib/whatsapp";
+import { extrairEventos, type ClienteWhatsapp, type MensagemRecebida } from "@/lib/whatsapp";
 import { calcularPeriodos, formatarBr } from "@/lib/prazos";
 import { envServidor } from "@/lib/config/env";
 import { carregarCalendario } from "./calendario";
+import { clienteWhatsappDoAmbiente, clienteWhatsappDoEscritorio } from "./integracoes";
 
 /**
  * Atendimento da equipe pelo WhatsApp: lista fechada de intents.
@@ -23,9 +24,19 @@ interface Identidade {
 const LIMITE_MENSAGENS_HORA = 20;
 const EXPIRACAO_CONFIRMACAO_MS = 10 * 60_000;
 
+/** Resolve o cliente do WhatsApp do escritório da pessoa (token no Vault ou no ambiente). `deps.whatsapp` substitui tudo em testes. */
+type ResolverWhatsapp = (escritorioId: string | null) => Promise<ClienteWhatsapp | null>;
+
 export async function processarWebhook(admin: SupabaseClient, payload: unknown, deps: { whatsapp?: ClienteWhatsapp | null; ia?: ClienteIa | null; agora?: Date } = {}) {
   const env = envServidor();
-  const whatsapp = deps.whatsapp === undefined ? (env.WHATSAPP_ACCESS_TOKEN && env.WHATSAPP_PHONE_NUMBER_ID ? criarClienteWhatsapp({ accessToken: env.WHATSAPP_ACCESS_TOKEN, phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID }) : null) : deps.whatsapp;
+  const cache = new Map<string, ClienteWhatsapp | null>();
+  const whatsappDe: ResolverWhatsapp = async (escritorioId) => {
+    if (deps.whatsapp !== undefined) return deps.whatsapp;
+    // Número desconhecido não tem escritório: responde com o cliente do ambiente, se houver.
+    if (!escritorioId) return clienteWhatsappDoAmbiente();
+    if (!cache.has(escritorioId)) cache.set(escritorioId, await clienteWhatsappDoEscritorio(admin, escritorioId));
+    return cache.get(escritorioId) ?? null;
+  };
   const ia = deps.ia === undefined ? (env.ANTHROPIC_API_KEY ? criarClienteIa({ apiKey: env.ANTHROPIC_API_KEY }) : null) : deps.ia;
   const { mensagens, statuses } = extrairEventos(payload, () => deps.agora ?? new Date());
 
@@ -39,19 +50,21 @@ export async function processarWebhook(admin: SupabaseClient, payload: unknown, 
     // Idempotência: a Meta reenvia por até 7 dias.
     const { error: erroInbox } = await admin.from("webhooks_inbox").insert({ fonte: "whatsapp", id_externo: m.wamid, payload: m.payload_bruto, recebido_em: new Date().toISOString() });
     if (erroInbox) continue;
-    const resposta = await tratarMensagem(admin, m, { whatsapp, ia, agora: deps.agora ?? new Date() });
+    const resposta = await tratarMensagem(admin, m, { whatsappDe, ia, agora: deps.agora ?? new Date() });
     await admin.from("webhooks_inbox").update({ processado_em: new Date().toISOString() }).eq("fonte", "whatsapp").eq("id_externo", m.wamid);
     respostas.push({ wamid: m.wamid, resposta });
   }
   return respostas;
 }
 
-async function tratarMensagem(admin: SupabaseClient, m: MensagemRecebida, deps: { whatsapp: ClienteWhatsapp | null; ia: ClienteIa | null; agora: Date }): Promise<string | null> {
+async function tratarMensagem(admin: SupabaseClient, m: MensagemRecebida, deps: { whatsappDe: ResolverWhatsapp; ia: ClienteIa | null; agora: Date }): Promise<string | null> {
   const telefone = m.telefone_e164;
   const { data: tel } = await admin.from("usuario_telefones").select("escritorio_id, usuario_id, verificado_em, opt_in_em").eq("telefone_e164", telefone).eq("ativo", true).maybeSingle();
+  // O webhook resolve o escritório pelo telefone; o token usado para responder é o desse escritório.
+  const whatsapp = await deps.whatsappDe((tel?.escritorio_id as string | undefined) ?? null);
 
   const responder = async (texto: string) => {
-    if (deps.whatsapp) await deps.whatsapp.enviarTexto(telefone, texto);
+    if (whatsapp) await whatsapp.enviarTexto(telefone, texto);
     return texto;
   };
 
@@ -81,13 +94,13 @@ async function tratarMensagem(admin: SupabaseClient, m: MensagemRecebida, deps: 
   }
   await admin.from("conversas").update({ ultima_mensagem_recebida_em: m.timestamp, usuario_id: id.usuarioId }).eq("id", conversaId);
   await admin.from("mensagens").insert({ escritorio_id: id.escritorioId, conversa_id: conversaId, direcao: "entrada", id_externo: m.wamid, tipo: m.tipo, texto: m.texto, payload: m.payload_bruto, status_entrega: "entregue" });
-  if (deps.whatsapp) await deps.whatsapp.marcarComoLida(m.wamid);
+  if (whatsapp) await whatsapp.marcarComoLida(m.wamid);
 
   const { count } = await admin.from("mensagens").select("id", { count: "exact", head: true }).eq("conversa_id", conversaId).eq("direcao", "entrada").gte("criado_em", new Date(deps.agora.getTime() - 3_600_000).toISOString());
   if ((count ?? 0) > LIMITE_MENSAGENS_HORA) return responder("Muitas mensagens na última hora. Tente de novo mais tarde ou use o painel.");
 
   const registrarSaida = async (texto: string, intent?: string) => {
-    const enviado = deps.whatsapp ? await deps.whatsapp.enviarTexto(telefone, texto) : null;
+    const enviado = whatsapp ? await whatsapp.enviarTexto(telefone, texto) : null;
     await admin.from("mensagens").insert({ escritorio_id: id.escritorioId, conversa_id: conversaId, direcao: "saida", id_externo: enviado && enviado.ok ? enviado.wamid : null, tipo: "text", texto, status_entrega: enviado && enviado.ok ? "enviada" : enviado ? "falhou" : "enfileirada", intent: intent ?? null });
     return texto;
   };

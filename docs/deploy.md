@@ -32,7 +32,7 @@ Depois, em Authentication → Users → **Invite user** com o mesmo e-mail. Ao a
 ## 3. Vercel
 
 1. Importar o repositório; framework Next.js; plano **Pro** (uso comercial e crons por minuto).
-2. Variáveis de ambiente (Production = prod; Preview = dev), copiando de `.env.example`: Supabase, `CRON_SECRET` (string aleatória longa), `ANTHROPIC_API_KEY`, `DATAJUD_API_KEY` (chave pública da wiki do CNJ), `RESEND_API_KEY`, `EMAIL_REMETENTE`, `APP_URL`, e as do WhatsApp quando existirem.
+2. Variáveis de ambiente (Production = prod; Preview = dev), copiando de `.env.example`: Supabase, `CRON_SECRET` (string aleatória longa), `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, `EMAIL_REMETENTE`, `APP_URL`, e as do WhatsApp quando existirem. A chave do DataJud (`DATAJUD_API_KEY`) e o token do WhatsApp (`WHATSAPP_ACCESS_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID`) **podem ficar fora da Vercel**: o sócio grava pelo painel em Configurações → Integrações, que guarda no Supabase Vault por escritório. Se definidas na Vercel, essas variáveis seguem valendo como fallback enquanto não houver segredo no Vault (ver `docs/runbooks/rotacao-de-segredos.md`).
 3. Settings → Functions → região `gru1` (São Paulo) já vem de `vercel.json`.
 4. Os crons de `vercel.json` passam a rodar após o primeiro deploy de produção. A Vercel envia `Authorization: Bearer <CRON_SECRET>` em cada chamada.
 5. Conferir: `https://<app>.vercel.app/api/health` responde `{"status":"ok","db":"ok"}`.
@@ -46,7 +46,7 @@ Criar conta, verificar o domínio do escritório (registros DNS), criar API key.
 1. https://developers.facebook.com → criar app do tipo Business → adicionar o produto WhatsApp.
 2. Business Manager: **verificar a empresa** (CNPJ, documentos). Sem isso o limite é de 250 destinatários por dia (suficiente para a equipe, mas a verificação destrava o resto).
 3. Número: um número novo, que nunca esteve no WhatsApp comum. Registrar com PIN de duas etapas.
-4. Token permanente: criar um **System User** no Business Manager com as permissões `whatsapp_business_messaging` e `whatsapp_business_management` e gerar o token → `WHATSAPP_ACCESS_TOKEN`. `WHATSAPP_PHONE_NUMBER_ID` está na página do número. `WHATSAPP_APP_SECRET` em App settings → Basic.
+4. Token permanente: criar um **System User** no Business Manager com as permissões `whatsapp_business_messaging` e `whatsapp_business_management` e gerar o token. O *phone number ID* está na página do número. Os dois vão para o painel: **Configurações → Integrações → WhatsApp** (o token fica no Vault; só sócio acessa). Alternativa de transição: `WHATSAPP_ACCESS_TOKEN` e `WHATSAPP_PHONE_NUMBER_ID` na Vercel, usados só enquanto não houver segredo no Vault. `WHATSAPP_APP_SECRET` (App settings → Basic) e `WHATSAPP_VERIFY_TOKEN` continuam na Vercel: são do app, não do escritório.
 5. Webhook: URL `https://<app>.vercel.app/api/whatsapp/webhook`, verify token = `WHATSAPP_VERIFY_TOKEN` (string que você inventa). Assinar o campo `messages`.
 6. Templates: criar em WhatsApp Manager → Message templates os cinco de `src/lib/whatsapp/templates.ts` (categoria Utility, idioma pt_BR) com o texto sugerido em `DEFINICOES_TEMPLATES`; depois de aprovados, copiar o texto final de volta para o código se a Meta pedir alterações. Até a aprovação, só respostas dentro da janela de 24 h funcionam.
 7. Cada pessoa da equipe cadastra o próprio telefone em Configurações → Equipe, gera o código e o digita no WhatsApp do escritório. Isso é o opt-in.
