@@ -73,7 +73,7 @@ export const DEFINICOES_TEMPLATES: Record<NomeTemplate, DefinicaoTemplate> = {
       "Confira a tarefa no painel. Se já foi protocolado, marque o prazo como cumprido.",
     quantidadeVariaveis: 4,
     exemplo: ["Contestação", "0001234-56.2026.8.11.0041", "em 3 dias", "02/11/2026"],
-    descricao: "Enviado em D-3 e D-1 ao responsável e em D0 ao responsável e aos sócios.",
+    descricao: "Enviado em D-3 e D-1 ao responsável, em D0 e ao vencer (prazo_vencido) ao responsável e aos sócios.",
   },
   nova_publicacao: {
     nome: "nova_publicacao",
@@ -171,10 +171,15 @@ export interface DadosAlertaPrazo {
   diasRestantes: number;
 }
 
+/**
+ * Variáveis do template `alerta_prazo`, cujo corpo diz "... vence {{3}} ({{4}})". Para D-3, D-1 e D0 a
+ * variável 3 é "em 3 dias", "amanhã" ou "hoje". Para prazo já vencido (evento prazo_vencido, diasRestantes < 0)
+ * o mesmo template é reaproveitado: a variável 3 vira "— já vencido há N dia(s)", que lê bem depois de "vence"
+ * sem exigir outro template aprovado pela Meta.
+ */
 export function variaveisAlertaPrazo(d: DadosAlertaPrazo): string[] {
-  return [d.ato, d.processoMascara, descreverDiasRestantes(d.diasRestantes), formatarDataBR(d.dataFinal)].map(
-    sanitizarVariavel,
-  );
+  const quando = d.diasRestantes < 0 ? `— já ${descreverDiasRestantes(d.diasRestantes)}` : descreverDiasRestantes(d.diasRestantes);
+  return [d.ato, d.processoMascara, quando, formatarDataBR(d.dataFinal)].map(sanitizarVariavel);
 }
 
 export interface DadosNovaPublicacao {

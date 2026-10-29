@@ -5,11 +5,13 @@
 
 export type EventoNotificacao =
   | "nova_publicacao"
+  | "publicacao_sem_processo"
   | "publicacao_sem_tratamento_24h"
   | "publicacao_sem_tratamento_48h"
   | "prazo_d3"
   | "prazo_d1"
   | "prazo_d0"
+  | "prazo_vencido"
   | "tarefa_atrasada"
   | "tarefa_reatribuida"
   | "resumo_do_dia"

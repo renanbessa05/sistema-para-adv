@@ -48,9 +48,11 @@ const resumir = (lista: ReturnType<typeof planejar>) => lista.map((n) => `${n.de
 describe("tabela REGRAS", () => {
   it("cobre todos os eventos com canais não vazios", () => {
     const eventos: EventoNotificacao[] = [
-      "nova_publicacao", "publicacao_sem_tratamento_24h", "publicacao_sem_tratamento_48h", "prazo_d3", "prazo_d1", "prazo_d0",
+      "nova_publicacao", "publicacao_sem_processo", "publicacao_sem_tratamento_24h", "publicacao_sem_tratamento_48h", "prazo_d3", "prazo_d1", "prazo_d0", "prazo_vencido",
       "tarefa_atrasada", "tarefa_reatribuida", "resumo_do_dia", "captacao_falhou", "calendario_incompleto", "convite",
     ];
+    // Mesmo conjunto do enum public.evento_notificacao (migration 0010): nada a mais, nada a menos
+    expect(Object.keys(REGRAS).sort()).toEqual([...eventos].sort());
     for (const e of eventos) {
       expect(REGRAS[e], e).toBeDefined();
       expect(REGRAS[e].canais.length, e).toBeGreaterThan(0);
@@ -61,7 +63,10 @@ describe("tabela REGRAS", () => {
     expect(REGRAS.publicacao_sem_tratamento_48h.destinatarios).toBe("socios");
     expect(REGRAS.captacao_falhou.canais).toEqual(expect.arrayContaining(["email", "whatsapp"]));
     expect(REGRAS.convite.canais).toEqual(["email"]);
-    expect([...EVENTOS_SEMPRE_IMEDIATOS].sort()).toEqual(["captacao_falhou", "prazo_d0"]);
+    expect(REGRAS.publicacao_sem_processo).toMatchObject({ destinatarios: "socios_e_administrativo", canais: ["painel", "email"], horarioLocal: "imediato", somenteDiasUteis: true });
+    expect(REGRAS.publicacao_sem_processo.template).toBeUndefined();
+    expect(REGRAS.prazo_vencido).toMatchObject({ destinatarios: "responsavel_e_socios", canais: ["painel", "whatsapp", "email"], horarioLocal: "imediato", somenteDiasUteis: false, template: "alerta_prazo" });
+    expect([...EVENTOS_SEMPRE_IMEDIATOS].sort()).toEqual(["captacao_falhou", "prazo_d0", "prazo_vencido"]);
   });
 });
 
@@ -87,6 +92,31 @@ describe("planejarNotificacoes — destinatários e canais", () => {
     expect(resumir(planejar("prazo_d1"))).toEqual(["adv/painel", "adv/whatsapp"]);
     expect(resumir(planejar("prazo_d0"))).toEqual(["adv/painel", "adv/whatsapp", "socia/painel", "socia/whatsapp", "socio2/painel"]);
     expect(resumir(planejar("prazo_d0", { responsavelId: "socia" }))).toEqual(["socia/painel", "socia/whatsapp", "socio2/painel"]);
+  });
+
+  it("publicacao_sem_processo → sócios e administrativo por painel e e-mail, sem whatsapp nem template", () => {
+    const lista = planejar("publicacao_sem_processo", { responsavelId: undefined });
+    expect(resumir(lista)).toEqual(["adm/email", "adm/painel", "socia/email", "socia/painel", "socio2/email", "socio2/painel"]);
+    expect(lista.every((n) => n.template === undefined)).toBe(true);
+    // em dia útil no expediente sai na hora
+    expect(lista.every((n) => n.agendadaPara === AGORA_UTIL.toISOString())).toBe(true);
+    // no sábado, o e-mail espera a abertura do próximo dia útil; o painel não
+    const sabado = new Date("2026-10-31T14:00:00Z");
+    const fds = planejar("publicacao_sem_processo", { agora: sabado });
+    expect(fds.find((n) => n.canal === "painel")!.agendadaPara).toBe(sabado.toISOString());
+    expect(fds.find((n) => n.canal === "email")!.agendadaPara).toBe("2026-11-02T11:00:00.000Z");
+  });
+
+  it("prazo_vencido → responsável e sócios por painel, whatsapp e e-mail, com template alerta_prazo e sempre na hora", () => {
+    const madrugada = new Date("2026-10-31T04:05:00Z"); // sábado 00:05 local, horário do job de vencidos
+    const lista = planejar("prazo_vencido", { agora: madrugada, objeto: { tipo: "prazo", id: "pz-1" } });
+    expect(resumir(lista)).toEqual(["adv/email", "adv/painel", "adv/whatsapp", "socia/email", "socia/painel", "socia/whatsapp", "socio2/email", "socio2/painel"]);
+    expect(lista.every((n) => n.agendadaPara === madrugada.toISOString())).toBe(true);
+    expect(lista.filter((n) => n.canal === "whatsapp").every((n) => n.template === "alerta_prazo")).toBe(true);
+    expect(lista.filter((n) => n.canal !== "whatsapp").every((n) => n.template === undefined)).toBe(true);
+    expect(lista[0].chaveDedup.startsWith("prazo_vencido:prazo:pz-1:")).toBe(true);
+    // responsável que é sócio não recebe em dobro
+    expect(resumir(planejar("prazo_vencido", { responsavelId: "socia" }))).toEqual(["socia/email", "socia/painel", "socia/whatsapp", "socio2/email", "socio2/painel"]);
   });
 
   it("responsável ausente sem id definido → sócios assumem", () => {

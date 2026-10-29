@@ -53,6 +53,12 @@ describe("montagem de variáveis", () => {
     expect(descreverDiasRestantes(-4)).toBe("vencido há 4 dias");
   });
 
+  it("alerta_prazo reaproveitado para prazo vencido lê bem depois de 'vence'", () => {
+    const vars = variaveisAlertaPrazo({ ato: "Contestação", processoMascara: "0001234-56.2026.8.11.0041", dataFinal: "2026-10-27", diasRestantes: -2 });
+    expect(vars).toEqual(["Contestação", "0001234-56.2026.8.11.0041", "— já vencido há 2 dias", "27/10/2026"]);
+    expect(renderizarTemplate("alerta_prazo", vars)).toContain("Contestação no processo 0001234-56.2026.8.11.0041 vence — já vencido há 2 dias (27/10/2026)");
+  });
+
   it("nova_publicacao nunca envia resumo de processo sigiloso", () => {
     const vars = variaveisNovaPublicacao({
       processoMascara: "0001234-56.2026.8.11.0041",
