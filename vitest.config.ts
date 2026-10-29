@@ -25,6 +25,8 @@ export default defineConfig({
         "src/lib/calculos/**/*.ts": { lines: 100, functions: 100, branches: 100, statements: 100 },
         // Relatórios: taxa de cumprimento, médias e CSV (com proteção contra fórmula); módulo pequeno e totalmente coberto.
         "src/lib/relatorios/**/*.ts": { lines: 100, functions: 100, branches: 100, statements: 100 },
+        // LGPD: validações de retenção/anonimização e pacote do titular; descarte errado apaga dado, então cobertura total.
+        "src/lib/lgpd/**/*.ts": { lines: 100, functions: 100, branches: 100, statements: 100 },
       },
     },
   },

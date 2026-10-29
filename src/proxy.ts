@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * Proxy (antigo middleware) do Next 16: renova a sessão do Supabase a cada requisição
  * e manda quem não está logado para /login nas rotas do painel.
  */
-const ROTAS_PUBLICAS = [/^\/login/, /^\/convite\//, /^\/auth\//, /^\/api\/health/, /^\/api\/jobs\//, /^\/api\/whatsapp\//, /^\/_next\//, /^\/favicon/];
+const ROTAS_PUBLICAS = [/^\/login/, /^\/privacidade/, /^\/convite\//, /^\/auth\//, /^\/api\/health/, /^\/api\/jobs\//, /^\/api\/whatsapp\//, /^\/_next\//, /^\/favicon/];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
