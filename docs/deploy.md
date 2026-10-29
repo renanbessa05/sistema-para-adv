@@ -5,7 +5,10 @@ Passo a passo para a primeira implantação (projeto `prod`) e para o ambiente `
 ## 1. Supabase (banco, auth, storage)
 
 1. Criar dois projetos (dev e prod) em https://supabase.com/dashboard, região **South America (São Paulo)**, plano Pro no prod (backup diário; o Free pausa após 7 dias).
-2. Aplicar as migrations: `supabase login`, `supabase link --project-ref <ref>`, `supabase db push`. Alternativa sem CLI: `DATABASE_URL=<connection string> pnpm db:migrar`.
+2. Aplicar as migrations. Três caminhos, do mais simples ao mais técnico:
+   - **SQL Editor** (sem instalar nada): rode `pnpm db:consolidar` (ou peça o arquivo ao Claude Code), abra SQL Editor → New query no painel do projeto, cole o conteúdo inteiro de `supabase/consolidado.sql` e execute. Deve terminar sem erro; conferir com `select count(*) from ref.feriados;`.
+   - CLI: `supabase login`, `supabase link --project-ref <ref>`, `supabase db push`.
+   - Node: `DATABASE_URL=<connection string de Settings → Database> pnpm db:migrar`.
 3. **Authentication → Hooks → Customize Access Token (JWT) Claims**: ativar e apontar para `public.custom_access_token_hook`. Sem isso o JWT não traz `escritorio_id` e todo mundo cai em "sem escritório".
 4. **Authentication → Providers → Email**: deixar "Confirm email" desligado para convites; **Sign-ups desabilitados** (`enable_signup = false`): só entra quem for convidado.
 5. **Authentication → SMTP**: configurar a Resend (host `smtp.resend.com`, porta 465, usuário `resend`, senha = API key, remetente = `EMAIL_REMETENTE`). O SMTP padrão do Supabase limita a poucos e-mails por hora.

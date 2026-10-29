@@ -15,7 +15,8 @@
     "db:migrar": "tsx scripts/db/aplicar-migrations.ts",
     "db:tipos": "supabase gen types typescript --local > src/lib/supabase/database.types.ts",
     "djen": "tsx scripts/djen-consulta.ts",
-    "datajud": "tsx scripts/datajud-consulta.ts"
+    "datajud": "tsx scripts/datajud-consulta.ts",
+    "db:consolidar": "tsx scripts/db/consolidar-migrations.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",

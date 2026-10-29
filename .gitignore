@@ -45,3 +45,9 @@ coverage/
 .pgdata/
 playwright-report/
 test-results/
+
+# SQL consolidado para o SQL Editor (gerado por pnpm db:consolidar)
+supabase/consolidado.sql
+
+# worktrees dos agentes
+.claude/worktrees/
