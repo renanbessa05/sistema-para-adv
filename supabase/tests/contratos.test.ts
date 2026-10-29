@@ -81,8 +81,8 @@ describe("contratos e honorários", () => {
     await expect(db.comoUsuario(comoAdvogadoA, (c) => c.query("select public.contrato_enviar_aprovacao($1)", [contrato]))).rejects.toThrow(/Gere o contrato/);
     const docs = await db.client.query(
       `insert into public.documentos (escritorio_id, cliente_id, tipo, nome, caminho, mime, tamanho, hash_sha256, origem)
-       values ($1, $2, 'contrato', 'c.docx', $1 || '/x/1.docx', 'application/x', 10, 'h1', 'gerado'), ($1, $2, 'procuracao', 'p.docx', $1 || '/x/2.docx', 'application/x', 10, 'h2', 'gerado') returning id`,
-      [escA, clienteA],
+       values ($1, $2, 'contrato', 'c.docx', $3, 'application/x', 10, 'h1', 'gerado'), ($1, $2, 'procuracao', 'p.docx', $4, 'application/x', 10, 'h2', 'gerado') returning id`,
+      [escA, clienteA, `${escA}/x/1.docx`, `${escA}/x/2.docx`],
     );
     await db.client.query("update public.contratos set documento_contrato_id = $2, documento_procuracao_id = $3 where id = $1", [contrato, docs.rows[0].id, docs.rows[1].id]);
     const aprovacao = await db.comoUsuario(comoAdvogadoA, async (c) => (await c.query("select public.contrato_enviar_aprovacao($1) as id", [contrato])).rows[0].id as string);
