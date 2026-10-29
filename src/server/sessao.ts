@@ -2,7 +2,15 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { criarClienteServidor } from "@/lib/supabase/server";
 
-export type Papel = "socio" | "advogado" | "estagiario" | "administrativo";
+export type Papel = "socio" | "advogado" | "estagiario" | "administrativo" | "suporte";
+
+/** Escritório ao qual o usuário pode trocar: vínculo de membro ou acesso de suporte vigente (docs/adr/0014). */
+export interface Vinculo {
+  escritorioId: string;
+  nome: string;
+  papel: Papel;
+  origem: "membro" | "acesso_suporte";
+}
 
 export interface Sessao {
   usuarioId: string;
@@ -11,6 +19,7 @@ export interface Sessao {
   papel: Papel;
   nome: string;
   accessToken: string;
+  vinculos: Vinculo[];
 }
 
 function decodificarClaims(token: string): Record<string, unknown> {
@@ -20,6 +29,19 @@ function decodificarClaims(token: string): Record<string, unknown> {
   } catch {
     return {};
   }
+}
+
+/** Lista os escritórios disponíveis para o seletor. Falha de leitura vira lista vazia (o escritório atual segue válido). */
+export async function listarVinculos(): Promise<Vinculo[]> {
+  const supabase = await criarClienteServidor();
+  const { data, error } = await supabase.rpc("listar_vinculos");
+  if (error || !data) return [];
+  return (data as { escritorio_id: string; nome: string; papel: Papel; origem: Vinculo["origem"] }[]).map((v) => ({
+    escritorioId: v.escritorio_id,
+    nome: v.nome,
+    papel: v.papel,
+    origem: v.origem,
+  }));
 }
 
 /**
@@ -42,7 +64,8 @@ export async function obterSessao(): Promise<Sessao | null> {
   const papel = (claims.papel ?? app.papel) as Papel | undefined;
   if (!escritorioId || !papel) return null;
   const nome = (user.user_metadata?.nome as string | undefined) ?? user.email?.split("@")[0] ?? "Usuário";
-  return { usuarioId: user.id, email: user.email ?? null, escritorioId, papel, nome, accessToken: session.access_token };
+  const vinculos = await listarVinculos();
+  return { usuarioId: user.id, email: user.email ?? null, escritorioId, papel, nome, accessToken: session.access_token, vinculos };
 }
 
 export async function exigirSessao(): Promise<Sessao> {
@@ -57,4 +80,9 @@ export function podeConfirmarPrazo(papel: Papel): boolean {
 
 export function ehSocio(papel: Papel): boolean {
   return papel === "socio";
+}
+
+/** Suporte entra só para ver e nunca escreve: as policies e as RPCs de decisão já recusam; a UI também esconde ações. */
+export function ehSuporte(papel: Papel): boolean {
+  return papel === "suporte";
 }

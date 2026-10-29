@@ -37,6 +37,8 @@ const servidorSchema = z.object({
   WHATSAPP_ACCESS_TOKEN: z.string().optional(),
   VOYAGE_API_KEY: z.string().optional(),
   VOYAGE_MODELO: z.string().optional(),
+  /** "true" liga o onboarding (/onboarding) e o cadastro de escritório; o banco também exige app.cadastro_aberto = on. */
+  ONBOARDING_ATIVO: z.string().optional(),
 });
 
 function ler<T extends z.ZodTypeAny>(schema: T, origem: Record<string, string | undefined>): z.infer<T> {

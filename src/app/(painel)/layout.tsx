@@ -5,6 +5,7 @@ import { sair } from "@/app/(auth)/login/actions";
 import { Badge } from "@/components/ui/badge";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { exigirMfaSeNecessario } from "@/server/mfa";
+import { SeletorEscritorio } from "./seletor-escritorio";
 
 const ITENS = [
   { href: "/hoje", rotulo: "Hoje" },
@@ -23,7 +24,7 @@ const ITENS = [
   { href: "/aprovacoes", rotulo: "Aprovações" },
 ];
 
-const PAPEIS: Record<string, string> = { socio: "Sócio(a)", advogado: "Advogado(a)", estagiario: "Estagiário(a)", administrativo: "Administrativo" };
+const PAPEIS: Record<string, string> = { socio: "Sócio(a)", advogado: "Advogado(a)", estagiario: "Estagiário(a)", administrativo: "Administrativo", suporte: "Suporte (leitura)" };
 
 export default async function LayoutPainel({ children }: { children: React.ReactNode }) {
   const sessao = await obterSessao();
@@ -74,8 +75,19 @@ export default async function LayoutPainel({ children }: { children: React.React
                 Custo IA
               </Link>
             ) : null}
+            {socio ? (
+              <Link href="/configuracoes/plano" className="rounded-md px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                Plano
+              </Link>
+            ) : null}
+            {sessao.papel === "suporte" ? (
+              <Link href="/admin/suporte" className="rounded-md px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                Suporte
+              </Link>
+            ) : null}
           </nav>
           <div className="ml-auto flex items-center gap-2 text-sm">
+            <SeletorEscritorio vinculos={sessao.vinculos} atual={sessao.escritorioId} />
             <Link href="/notificacoes" className="relative rounded-md px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800" aria-label="Notificações">
               🔔{naoLidas ? <span className="ml-1 rounded-full bg-red-600 px-1.5 text-xs text-white">{naoLidas}</span> : null}
             </Link>

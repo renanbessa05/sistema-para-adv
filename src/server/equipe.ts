@@ -19,7 +19,7 @@ export interface Membro {
   aceito_em: string | null;
 }
 
-export const ROTULO_PAPEL: Record<Papel, string> = { socio: "Sócio(a)", advogado: "Advogado(a)", estagiario: "Estagiário(a)", administrativo: "Administrativo" };
+export const ROTULO_PAPEL: Record<Papel, string> = { socio: "Sócio(a)", advogado: "Advogado(a)", estagiario: "Estagiário(a)", administrativo: "Administrativo", suporte: "Suporte (leitura)" };
 
 /** Membros do escritório da sessão (a RLS já filtra pelo escritório; o filtro explícito é só defesa em profundidade). */
 export async function listarMembros(supabase: SupabaseClient, escritorioId: string, opcoes: { somenteAtivos?: boolean } = {}): Promise<Membro[]> {

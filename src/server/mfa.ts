@@ -7,7 +7,7 @@ import type { Papel, Sessao } from "./sessao";
 
 /** Papéis que só entram no painel com segundo fator (docs/regras/permissoes.md, "Segundo fator"). */
 export function exigeMfa(papel: Papel): boolean {
-  return papel === "socio" || papel === "advogado";
+  return papel === "socio" || papel === "advogado" || papel === "suporte";
 }
 
 export type FatorMfa = {
@@ -36,7 +36,7 @@ async function caminhoAtual(): Promise<string> {
  * MFA (TOTP) obrigatório para sócio e advogado: quem não tem fator verificado vai cadastrar; quem tem,
  * mas entrou só com senha ou link (aal1), vai validar o código. O banco aplica a mesma regra por policy
  * restritiva (app.mfa_satisfeita) e nas RPCs; este redirecionamento é a conveniência da interface.
- * Outros papéis não são exigidos.
+ * Suporte também exige (sem carência no banco: app.mfa_satisfeita). Estagiário e administrativo não são exigidos.
  */
 export async function exigirMfaSeNecessario(sessao: Sessao): Promise<void> {
   if (!exigeMfa(sessao.papel)) return;

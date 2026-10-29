@@ -2,8 +2,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { sair } from "@/app/(auth)/login/actions";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { envServidor } from "@/lib/config/env";
 
 export default function SemEscritorio() {
+  if (envServidor().ONBOARDING_ATIVO === "true") redirect("/onboarding");
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
       <Card className="max-w-md">

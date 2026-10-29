@@ -66,3 +66,12 @@ No app: o layout do painel (`src/server/mfa.ts`) manda sócio/advogado sem fator
 | Remover documento | sim | sim | não | não |
 
 Regras: a linha em `documentos` segue o sigilo do processo (`app.pode_ver_sigiloso`); o arquivo fica no bucket privado `documentos` sob o prefixo do escritório, e a leitura direta pelo Storage só é permitida nesse prefixo (policy em `storage.objects`). Escrita no Storage só pela service role, depois de a sessão ser validada no servidor. MFA obrigatório para sócio e advogado vale também aqui (policy restritiva).
+
+## Suporte (lote 13, ADR 0014)
+
+- Papel `suporte` existe só no claim, e só com `acessos_suporte` vigente para o escritório escolhido (`trocar_escritorio`, `escritorio_ativo`).
+- Leitura: permitida somente com acesso vigente (checado ao vivo em `app.acesso_suporte_vigente`) e com aal2.
+- Escrita: nunca. Policies restritivas `suporte_sem_escrita_insert/update/delete` em todas as tabelas de `public` com RLS (migration 0049).
+- Concessão e revogação: só sócio, com MFA (`conceder_acesso_suporte`, `revogar_acesso_suporte`).
+- Tabela nova em `public` com `escritorio_id`: copiar o bloco da 0049 (quatro policies restritivas) e a checagem `app.mfa_satisfeita()` quando for sensível. A 0049 não se aplica sozinha a tabelas criadas depois.
+- Estagiário e administrativo continuam sem acesso a planos e suporte.
