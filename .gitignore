@@ -55,3 +55,6 @@ supabase/consolidado.sql
 
 # estado local da CLI do Supabase (link)
 supabase/.temp/
+
+.vercel
+.env*
