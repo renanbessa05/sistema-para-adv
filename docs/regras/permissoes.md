@@ -55,3 +55,14 @@ Sócio e advogado só usam o sistema com segundo fator (TOTP, aplicativo autenti
 - WhatsApp: as ações confirmadas pelo WhatsApp passam por `whatsapp_executar`, que roda como service role com um telefone verificado e vinculado ao usuário; esse canal não exige `aal2` (o telefone verificado é a posse do dispositivo). Sócio ou advogado sem fator cadastrado segue podendo confirmar pelo WhatsApp (a confirmar se o escritório quer bloquear também esse canal).
 
 No app: o layout do painel (`src/server/mfa.ts`) manda sócio/advogado sem fator verificado para `/mfa/cadastro` e, com fator mas sessão `aal1`, para `/mfa`. Essas duas telas ficam fora do painel. Os próprios fatores ficam em Configurações → Segurança (`/configuracoes/seguranca`); remover um fator exige `aal2` no Auth. O redirecionamento é conveniência; a barreira é a policy.
+
+
+## Documentos (Fase 2, lote 1)
+
+| Ação | Sócio | Advogado | Estagiário | Administrativo |
+|---|---|---|---|---|
+| Ver e baixar documento (URL assinada, auditada em `auditoria_acessos`) | sim | sim | sim, exceto de processo sigiloso em que não atua | sim, exceto sigiloso |
+| Enviar documento (autos, anexo, peça) | sim | sim | não | sim |
+| Remover documento | sim | sim | não | não |
+
+Regras: a linha em `documentos` segue o sigilo do processo (`app.pode_ver_sigiloso`); o arquivo fica no bucket privado `documentos` sob o prefixo do escritório, e a leitura direta pelo Storage só é permitida nesse prefixo (policy em `storage.objects`). Escrita no Storage só pela service role, depois de a sessão ser validada no servidor. MFA obrigatório para sócio e advogado vale também aqui (policy restritiva).

@@ -1,24 +1,22 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { classificarPublicacao, criarClienteIa, ErroIa, calcularCustoUsd, type ClienteIa, type PrecoModelo } from "@/lib/ia";
+import { classificarPublicacao, ErroIa, type ClienteIa } from "@/lib/ia";
 import { envServidor } from "@/lib/config/env";
 import { sugerirPrazo } from "../prazos";
 import { carregarContexto, enfileirarEvento, type ContextoEscritorio } from "../notificacoes";
+import { clienteIaDoAmbiente, executarAgente } from "../ia/executar";
+import { verificarTeto } from "../ia/teto";
 import { executarJob, listarEscritoriosAtivos } from "./registro";
 
 /**
- * Classifica publicações em `nova` (lotes pequenos), grava ia_execucoes com custo, transiciona a publicação
- * e, quando gera prazo, cria o prazo sugerido. Respeita o teto mensal de IA do escritório.
+ * Classifica publicações em `nova` (lotes pequenos), transiciona a publicação e, quando gera prazo, cria o prazo
+ * sugerido. Toda chamada passa por executarAgente (teto mensal + registro em ia_execucoes).
  */
 export async function classificarPendentes(admin: SupabaseClient, opcoes: { lote?: number; cliente?: ClienteIa; escritorioId?: string } = {}) {
   const env = envServidor();
-  const cliente = opcoes.cliente ?? (env.ANTHROPIC_API_KEY ? criarClienteIa({ apiKey: env.ANTHROPIC_API_KEY }) : null);
-  const modelo = env.IA_MODELO_TRIAGEM;
+  const cliente = opcoes.cliente ?? clienteIaDoAmbiente();
   const escritorios = (await listarEscritoriosAtivos(admin)).filter((e) => !opcoes.escritorioId || e.id === opcoes.escritorioId);
   const resumo: Record<string, unknown>[] = [];
-
-  const { data: precos } = await admin.schema("ref").from("ia_precos").select("modelo, input_por_mtok, output_por_mtok, cache_write_por_mtok, cache_read_por_mtok, vigencia_inicio").eq("modelo", modelo).order("vigencia_inicio", { ascending: false }).limit(1);
-  const preco = (precos?.[0] as PrecoModelo | undefined) ?? null;
 
   for (const escritorio of escritorios) {
     const r = await executarJob(
@@ -27,8 +25,8 @@ export async function classificarPendentes(admin: SupabaseClient, opcoes: { lote
       async () => {
         if (!cliente) return { itens: 0, detalhes: { aviso: "ANTHROPIC_API_KEY ausente; nada classificado" } };
 
-        const teto = await tetoAtingido(admin, escritorio.id, env.IA_TETO_MENSAL_USD);
-        if (teto.atingido) return { itens: 0, detalhes: { aviso: `teto mensal de IA atingido (US$ ${teto.gasto.toFixed(2)} de ${env.IA_TETO_MENSAL_USD})` } };
+        const teto = await verificarTeto(admin, escritorio.id);
+        if (teto.atingido) return { itens: 0, detalhes: { aviso: `teto mensal de IA atingido (US$ ${teto.gastoUsd.toFixed(2)} de ${teto.tetoUsd.toFixed(2)})` } };
 
         const { data: pendentes, error } = await admin
           .from("publicacoes")
@@ -52,14 +50,10 @@ export async function classificarPendentes(admin: SupabaseClient, opcoes: { lote
 
         for (const pub of pendentes ?? []) {
           try {
-            const r = await classificarPublicacao({ texto: String(pub.texto ?? ""), tipoOrigem: pub.tipo_origem, orgao: pub.orgao, classe: pub.classe, dataDisponibilizacao: pub.data_disponibilizacao, advogadosDoEscritorio }, { cliente, modelo });
-            const custo = preco ? calcularCustoUsd(r.uso, preco) : 0;
-            const { data: exec } = await admin
-              .from("ia_execucoes")
-              .insert({ escritorio_id: escritorio.id, agente: r.agente, agente_versao: r.agenteVersao, modelo: r.modelo, input_tokens: r.uso.input, output_tokens: r.uso.output, cache_creation_input_tokens: r.uso.cacheWrite, cache_read_input_tokens: r.uso.cacheRead, custo_estimado: custo, latencia_ms: r.latenciaMs, status: "ok", request_id: r.requestId, objeto_tipo: "publicacao", objeto_id: pub.id })
-              .select("id")
-              .single();
-            const execId = (exec?.id as string | undefined) ?? null;
+            const { resultado: r, execucaoId: execId } = await executarAgente(
+              { admin, escritorioId: escritorio.id, agente: "classificador_publicacao", objeto: { tipo: "publicacao", id: pub.id as string }, cliente },
+              (ia, modelo) => classificarPublicacao({ texto: String(pub.texto ?? ""), tipoOrigem: pub.tipo_origem, orgao: pub.orgao, classe: pub.classe, dataDisponibilizacao: pub.data_disponibilizacao, advogadosDoEscritorio }, { cliente: ia, modelo }),
+            );
 
             // Vincula pelo número CNJ validado, se a captação não vinculou
             let processoId = pub.processo_id as string | null;
@@ -112,9 +106,9 @@ export async function classificarPendentes(admin: SupabaseClient, opcoes: { lote
             }
             classificadas += 1;
           } catch (e) {
-            const tipo = e instanceof ErroIa ? e.tipo : "erro";
             erros.push(`${pub.id}: ${e instanceof Error ? e.message : String(e)}`);
-            await admin.from("ia_execucoes").insert({ escritorio_id: escritorio.id, agente: "classificador_publicacao", agente_versao: "classificador-publicacao.v0", modelo, input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0, custo_estimado: 0, status: tipo, erro: e instanceof Error ? e.message : String(e), objeto_tipo: "publicacao", objeto_id: pub.id });
+            // Teto atingido no meio do lote: para aqui; o restante fica em `nova` para a próxima rodada.
+            if (e instanceof ErroIa && e.tipo === "cancelado_teto") break;
           }
         }
         return { itens: classificadas, detalhes: { pendentes: pendentes?.length ?? 0, classificadas, prazosSugeridos: prazos, semProcesso, erros } };
@@ -124,13 +118,4 @@ export async function classificarPendentes(admin: SupabaseClient, opcoes: { lote
     resumo.push({ escritorio: escritorio.nome, ...r });
   }
   return resumo;
-}
-
-async function tetoAtingido(admin: SupabaseClient, escritorioId: string, tetoUsd: number): Promise<{ atingido: boolean; gasto: number }> {
-  const inicioMes = new Date();
-  inicioMes.setUTCDate(1);
-  inicioMes.setUTCHours(0, 0, 0, 0);
-  const { data } = await admin.from("ia_execucoes").select("custo_estimado").eq("escritorio_id", escritorioId).gte("criado_em", inicioMes.toISOString());
-  const gasto = (data ?? []).reduce((s, r) => s + Number(r.custo_estimado ?? 0), 0);
-  return { atingido: gasto >= tetoUsd, gasto };
 }

@@ -47,6 +47,18 @@ Resumo de onde o sistema está, o que só o escritório pode fazer e o que ainda
 - Rotinas agendadas pelo Postgres (`pg_cron` + `pg_net`, migration 0023) porque o plano Hobby da Vercel recusa crons frequentes; ADR 0003 tem o adendo. Pendente: decidir sobre o plano Pro (uso comercial pelos termos da Vercel).
 - Região do Supabase é `us-west-2`, não São Paulo como o plano previa: decidir antes de carregar dados de clientes.
 
+## 3b. Fases 2 e 3 em construção (plano aprovado em 29/10/2026)
+
+O Renan decidiu construir as Fases 2 e 3 inteiras agora e testar depois com a Bruna. Plano em 15 lotes (L1 a L15); cada lote fecha com lint, tipos, testes, migration aplicada e deploy. Referência funcional: `docs/referencias/poly-ai-video.md`. Regras dos agentes: `docs/regras/agentes.md`.
+
+| Lote | Entrega | Estado |
+|---|---|---|
+| L1 | Fundação de IA (cliente com ferramentas, multi-turno, PDF, cliente falso com roteiro), teto mensal em toda chamada (`executarAgente`), `decidir_aprovacao` com efeitos por objeto, `documentos` + Storage + extração de texto (rotina `extrair-texto`), bloco Documentos em processo e cliente | Feito (migrations 0024 a 0026; ADRs 0006 e 0010) |
+| L2 | Chat `/assistente` com ferramentas de leitura e streaming | Próximo |
+| L3 a L15 | Contratos, peças, revisor, cálculos, jurisprudência, Google, julgador, avaliação, relatórios, LGPD, multi-escritório, atendimento ao cliente, operação | Pendentes |
+
+Pendências do L1 que só se verificam com chave/dados: Files API da Anthropic com PDF real (`anexarParaApi`), rotina `extrair-texto` em produção com um PDF enviado pela tela, policies de `storage.objects` (só existem no Supabase, não no CI).
+
 ## 4. O que ainda falta da Fase 1 (próximas sessões)
 
 - Contratos e honorários (T1.37, condicional) com gerador de `.docx`.

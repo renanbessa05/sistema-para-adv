@@ -56,3 +56,6 @@ supabase/consolidado.sql
 # estado local da CLI do Supabase (link)
 supabase/.temp/
 
+
+# gerado pelo next build (agentRules)
+AGENTS.md

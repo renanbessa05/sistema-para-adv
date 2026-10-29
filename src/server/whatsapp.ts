@@ -1,11 +1,12 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { criarClienteIa, rotearMensagem, type ClienteIa, type RoteamentoIntent } from "@/lib/ia";
+import { AGENTE_ROTEADOR, ErroIa, roteamentoRapido, rotearMensagem, type ClienteIa, type ResultadoRoteamento, type RoteamentoIntent } from "@/lib/ia";
 import { extrairEventos, type ClienteWhatsapp, type MensagemRecebida } from "@/lib/whatsapp";
 import { calcularPeriodos, formatarBr } from "@/lib/prazos";
 import { envServidor } from "@/lib/config/env";
 import { carregarCalendario } from "./calendario";
 import { clienteWhatsappDoAmbiente, clienteWhatsappDoEscritorio } from "./integracoes";
+import { clienteIaDoAmbiente, executarAgente } from "./ia/executar";
 
 /**
  * Atendimento da equipe pelo WhatsApp: lista fechada de intents.
@@ -28,7 +29,6 @@ const EXPIRACAO_CONFIRMACAO_MS = 10 * 60_000;
 type ResolverWhatsapp = (escritorioId: string | null) => Promise<ClienteWhatsapp | null>;
 
 export async function processarWebhook(admin: SupabaseClient, payload: unknown, deps: { whatsapp?: ClienteWhatsapp | null; ia?: ClienteIa | null; agora?: Date } = {}) {
-  const env = envServidor();
   const cache = new Map<string, ClienteWhatsapp | null>();
   const whatsappDe: ResolverWhatsapp = async (escritorioId) => {
     if (deps.whatsapp !== undefined) return deps.whatsapp;
@@ -37,7 +37,7 @@ export async function processarWebhook(admin: SupabaseClient, payload: unknown, 
     if (!cache.has(escritorioId)) cache.set(escritorioId, await clienteWhatsappDoEscritorio(admin, escritorioId));
     return cache.get(escritorioId) ?? null;
   };
-  const ia = deps.ia === undefined ? (env.ANTHROPIC_API_KEY ? criarClienteIa({ apiKey: env.ANTHROPIC_API_KEY }) : null) : deps.ia;
+  const ia = deps.ia === undefined ? clienteIaDoAmbiente() : deps.ia;
   const { mensagens, statuses } = extrairEventos(payload, () => deps.agora ?? new Date());
 
   for (const s of statuses) {
@@ -123,9 +123,23 @@ async function tratarMensagem(admin: SupabaseClient, m: MensagemRecebida, deps: 
 
   if (!deps.ia) return registrarSaida("A assistente está sem o modelo de IA configurado. Use o painel por enquanto.");
   const { data: equipe } = await admin.from("escritorio_membros").select("nome_completo").eq("escritorio_id", id.escritorioId).eq("ativo", true);
-  const roteamento = await rotearMensagem(texto, { cliente: deps.ia, modelo: envServidor().IA_MODELO_TRIAGEM, nomesDaEquipe: (equipe ?? []).map((e) => e.nome_completo as string) });
-  if (roteamento.modelo !== "regra") {
-    await admin.from("ia_execucoes").insert({ escritorio_id: id.escritorioId, agente: roteamento.agente, agente_versao: roteamento.agenteVersao, modelo: roteamento.modelo, input_tokens: roteamento.uso.input, output_tokens: roteamento.uso.output, cache_creation_input_tokens: roteamento.uso.cacheWrite, cache_read_input_tokens: roteamento.uso.cacheRead, latencia_ms: roteamento.latenciaMs, status: "ok", request_id: roteamento.requestId, objeto_tipo: "mensagem", objeto_id: null });
+  const nomesDaEquipe = (equipe ?? []).map((e) => e.nome_completo as string);
+  // Regras (saudação, "resumo") não chamam o modelo nem contam no teto; o resto passa por executarAgente.
+  let roteamento: ResultadoRoteamento;
+  const rapido = roteamentoRapido(texto);
+  if (rapido) {
+    roteamento = { dados: rapido, uso: { input: 0, output: 0, cacheWrite: 0, cacheRead: 0 }, modelo: "regra", latenciaMs: 0, requestId: null, stopReason: null, agente: AGENTE_ROTEADOR, agenteVersao: "regra", ehEscrita: false };
+  } else {
+    try {
+      const { resultado } = await executarAgente(
+        { admin, escritorioId: id.escritorioId, agente: "roteador_intents", objeto: { tipo: "mensagem", id: null }, conversaId, cliente: deps.ia },
+        (ia, modelo) => rotearMensagem(texto, { cliente: ia, modelo, nomesDaEquipe }),
+      );
+      roteamento = resultado;
+    } catch (e) {
+      if (e instanceof ErroIa && e.tipo === "cancelado_teto") return registrarSaida("O escritório atingiu o teto mensal de IA. Use o painel por enquanto; um sócio pode ajustar o teto.");
+      throw e;
+    }
   }
   const r = roteamento.dados;
   if (roteamento.ehEscrita && !["socio", "advogado"].includes(id.papel)) return registrarSaida("Pelo WhatsApp, só advogados e sócios podem reatribuir, concluir ou confirmar. Abra no painel.", r.intent);

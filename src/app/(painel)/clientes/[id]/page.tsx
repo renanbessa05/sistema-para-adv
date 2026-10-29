@@ -11,6 +11,8 @@ import { Alert } from "@/components/ui/alert";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { CamposCliente, type ClienteFormulario } from "../formulario-cliente";
 import { atualizarCliente } from "../actions";
+import { CartaoDocumentos } from "@/components/dominio/CartaoDocumentos";
+import { listarDocumentos } from "@/server/documentos";
 
 export const metadata = { title: "Cliente" };
 export const dynamic = "force-dynamic";
@@ -24,10 +26,13 @@ export default async function PaginaCliente({ params, searchParams }: { params: 
   const { data: cliente } = await supabase.from("clientes").select("id, tipo_pessoa, nome, cpf_cnpj, email, telefone_e164, endereco, observacoes, ativo, criado_em").eq("id", id).eq("escritorio_id", sessao.escritorioId).maybeSingle();
   if (!cliente) notFound();
 
-  const [{ data: partes }, membros] = await Promise.all([
+  const [{ data: partes }, membros, documentos, { data: escritorio }] = await Promise.all([
     supabase.from("processo_partes").select("processo_id, polo, processos(id, numero_cnj_mascara, status, segredo_justica, responsavel_id)").eq("cliente_id", id).eq("eh_cliente", true),
     listarMembros(supabase, sessao.escritorioId, { somenteAtivos: false }),
+    listarDocumentos(supabase, { clienteId: id }).catch(() => []),
+    supabase.from("escritorios").select("timezone").eq("id", sessao.escritorioId).maybeSingle(),
   ]);
+  const timeZone = (escritorio?.timezone as string | undefined) ?? "America/Cuiaba";
   const nomes = mapaNomes(membros);
   type ParteProcesso = { processo_id: string; polo: string; processos: { id: string; numero_cnj_mascara: string | null; status: string; segredo_justica: boolean; responsavel_id: string | null } | null };
   const processos = ((partes ?? []) as unknown as ParteProcesso[]).filter((p) => p.processos);
@@ -133,6 +138,8 @@ export default async function PaginaCliente({ params, searchParams }: { params: 
           )}
         </CardContent>
       </Card>
+
+      <CartaoDocumentos documentos={documentos} voltar={`/clientes/${id}`} clienteId={id} papel={sessao.papel} timeZone={timeZone} />
     </div>
   );
 }

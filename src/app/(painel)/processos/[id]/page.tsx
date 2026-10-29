@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Campo, Input, Select, Textarea } from "@/components/ui/input";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { adicionarColaborador, adicionarParte, alterarResponsavel, alterarSigilo, atualizarPeloDatajud, atualizarProcesso, moverFase, removerColaborador, removerParte } from "../actions";
+import { CartaoDocumentos } from "@/components/dominio/CartaoDocumentos";
+import { listarDocumentos } from "@/server/documentos";
 
 export const metadata = { title: "Processo" };
 export const dynamic = "force-dynamic";
@@ -62,7 +64,7 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
   if (!bruto) notFound();
   const processo = bruto as unknown as Processo;
 
-  const [{ data: escritorio }, membros, fases, { comarcas }, { data: partes }, { data: colaboradores }, { data: movimentacoes }, { data: publicacoes }, { data: prazos }, { data: tarefas }, { data: clientes }] = await Promise.all([
+  const [{ data: escritorio }, membros, fases, { comarcas }, { data: partes }, { data: colaboradores }, { data: movimentacoes }, { data: publicacoes }, { data: prazos }, { data: tarefas }, { data: clientes }, documentos] = await Promise.all([
     supabase.from("escritorios").select("timezone").eq("id", sessao.escritorioId).maybeSingle(),
     listarMembros(supabase, sessao.escritorioId, { somenteAtivos: false }),
     listarFases(supabase, sessao.escritorioId),
@@ -74,6 +76,7 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
     supabase.from("prazos").select("id, ato_descricao, data_final, data_interna, status, responsavel_id").eq("processo_id", id).order("data_final", { ascending: false }).limit(100),
     supabase.from("tarefas").select("id, titulo, status, vencimento, executor_id, prioridade").eq("processo_id", id).order("vencimento", { ascending: true, nullsFirst: false }).limit(100),
     supabase.from("clientes").select("id, nome").eq("escritorio_id", sessao.escritorioId).eq("ativo", true).order("nome").limit(1000),
+    listarDocumentos(supabase, { processoId: id }).catch(() => []),
   ]);
 
   const timeZone = (escritorio?.timezone as string | undefined) ?? "America/Cuiaba";
@@ -518,6 +521,8 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
           )}
         </CardContent>
       </Card>
+
+      <CartaoDocumentos documentos={documentos} voltar={`/processos/${id}`} processoId={id} papel={sessao.papel} timeZone={timeZone} />
 
       <Card>
         <CardHeader>
