@@ -7,6 +7,19 @@ export const POLOS: Record<string, string> = { ativo: "Polo ativo", passivo: "Po
 export const COMPETENCIAS: Record<string, string> = { vara_comum: "Vara comum", juizado_especial: "Juizado Especial", segundo_grau: "Segundo grau", outra: "Outra" };
 export const SISTEMAS: Record<string, string> = { pje: "PJe", projudi: "Projudi", eproc: "eproc", esaj: "e-SAJ", outro: "Outro" };
 
+/** Competência padrão do cadastro: só ela é sobrescrita pela dedução do DataJud. */
+export const COMPETENCIA_PADRAO = "vara_comum";
+
+/**
+ * Competência a gravar após consultar o DataJud: a dedução só substitui o padrão ('vara_comum'), para não apagar
+ * ajuste manual da equipe (juizado, segundo grau ou outra escolhidos na tela). Devolve undefined quando não há o que gravar.
+ */
+export function competenciaAposDatajud(atual: string | null | undefined, deduzida: string | null | undefined): string | undefined {
+  if (!deduzida || deduzida === COMPETENCIA_PADRAO) return undefined;
+  if (atual && atual !== COMPETENCIA_PADRAO) return undefined;
+  return deduzida;
+}
+
 /** Fases padrão do kanban (ordem e códigos TPU de movimento associados; códigos a confirmar contra a TPU). */
 export const FASES_PADRAO: { nome: string; cor: string; codigos_tpu: number[] }[] = [
   { nome: "Distribuído", cor: "#64748b", codigos_tpu: [26] },

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { comarcaPorIbge, listarComarcasConhecidas, registrarComarca } from "../comarca-por-ibge";
 import processoTjmt from "../mocks/processo-tjmt.json";
-import { normalizarProcessoDatajud, ordenarMovimentos, paraDataIso, paraIso } from "../normalizar";
+import { deduzirCompetencia, normalizarProcessoDatajud, ordenarMovimentos, paraDataIso, paraIso } from "../normalizar";
 import { ProcessoDatajudSourceSchema, RespostaDatajudSchema } from "../tipos";
 
 const source = RespostaDatajudSchema.parse(processoTjmt).hits.hits[0]._source;
@@ -28,6 +28,7 @@ describe("normalizarProcessoDatajud", () => {
     expect(p.orgao_julgador_nome).toBe("4ª Vara Cível de Cuiabá");
     expect(p.codigo_municipio_ibge).toBe(5103403);
     expect(p.comarca).toBe("Cuiabá");
+    expect(p.competencia).toBe("vara_comum");
     expect(p.payload_bruto).toBe(source);
   });
 
@@ -59,6 +60,42 @@ describe("normalizarProcessoDatajud", () => {
   it("aceita hits.total numérico (versões antigas do Elasticsearch)", () => {
     const r = RespostaDatajudSchema.parse({ hits: { total: 3, hits: [] } });
     expect(r.hits.total).toEqual({ value: 3, relation: "eq" });
+  });
+});
+
+describe("deduzirCompetencia", () => {
+  it("juizado especial pelo órgão julgador ou pela classe, sem acento e sem caixa", () => {
+    expect(deduzirCompetencia({ grau: "G1", orgaoJulgadorNome: "1º JUIZADO ESPECIAL CÍVEL DE CUIABÁ", classeNome: "Procedimento do Juizado Especial Cível" })).toBe("juizado_especial");
+    expect(deduzirCompetencia({ grau: "JE", orgaoJulgadorNome: "Juízado Especial da Fazenda Pública", classeNome: null })).toBe("juizado_especial");
+    expect(deduzirCompetencia({ grau: "G1", orgaoJulgadorNome: "Vara Única de Nobres", classeNome: "Procedimento do Juizado Especial Cível" })).toBe("juizado_especial");
+  });
+
+  it("recurso inominado é juizado mesmo em turma recursal ou câmara", () => {
+    expect(deduzirCompetencia({ grau: "TR", orgaoJulgadorNome: "Turma Recursal Única", classeNome: "Recurso Inominado Cível" })).toBe("juizado_especial");
+    expect(deduzirCompetencia({ grau: "G2", orgaoJulgadorNome: "2ª Câmara Cível", classeNome: "RECURSO INOMINADO" })).toBe("juizado_especial");
+  });
+
+  it("segundo grau pelo grau ou pelo órgão (turma, câmara)", () => {
+    expect(deduzirCompetencia({ grau: "G2", orgaoJulgadorNome: "Gabinete do Des. X", classeNome: "Apelação Cível" })).toBe("segundo_grau");
+    expect(deduzirCompetencia({ grau: "2", orgaoJulgadorNome: null, classeNome: null })).toBe("segundo_grau");
+    expect(deduzirCompetencia({ grau: "Segundo Grau", orgaoJulgadorNome: null, classeNome: null })).toBe("segundo_grau");
+    expect(deduzirCompetencia({ grau: null, orgaoJulgadorNome: "Primeira Câmara de Direito Privado", classeNome: "Apelação Cível" })).toBe("segundo_grau");
+    expect(deduzirCompetencia({ grau: "G1", orgaoJulgadorNome: "Turma de Câmaras Cíveis Reunidas", classeNome: null })).toBe("segundo_grau");
+  });
+
+  it("vara comum no restante, inclusive sem dados", () => {
+    expect(deduzirCompetencia({ grau: "G1", orgaoJulgadorNome: "4ª Vara Cível de Cuiabá", classeNome: "Procedimento Comum Cível" })).toBe("vara_comum");
+    expect(deduzirCompetencia({ grau: "G1", orgaoJulgadorNome: "Vara Especializada de Família", classeNome: "Divórcio Litigioso" })).toBe("vara_comum");
+    expect(deduzirCompetencia({})).toBe("vara_comum");
+    // "turma" só conta como palavra inteira
+    expect(deduzirCompetencia({ grau: "G1", orgaoJulgadorNome: "Vara da Turmalina", classeNome: null })).toBe("vara_comum");
+  });
+
+  it("entra no processo normalizado", () => {
+    const juizado = ProcessoDatajudSourceSchema.parse({ numeroProcesso: "10045218820258110041", grau: "G1", orgaoJulgador: { nome: "Juizado Especial Cível de Sinop" } });
+    expect(normalizarProcessoDatajud(juizado).competencia).toBe("juizado_especial");
+    const segundo = ProcessoDatajudSourceSchema.parse({ numeroProcesso: "10045218820258110041", grau: "g2" });
+    expect(normalizarProcessoDatajud(segundo).competencia).toBe("segundo_grau");
   });
 });
 

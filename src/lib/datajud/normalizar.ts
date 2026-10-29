@@ -1,5 +1,5 @@
 import { comarcaPorIbge } from "./comarca-por-ibge";
-import type { MovimentoDatajud, MovimentoNormalizado, ProcessoDatajud, ProcessoDatajudSource } from "./tipos";
+import type { CompetenciaDeduzida, MovimentoDatajud, MovimentoNormalizado, ProcessoDatajud, ProcessoDatajudSource } from "./tipos";
 
 /**
  * Converte o `_source` do DataJud em `ProcessoDatajud`.
@@ -38,6 +38,33 @@ function numero(valor: number | null | undefined): number | null {
   return typeof valor === "number" && Number.isFinite(valor) ? valor : null;
 }
 
+/** Minúsculas, sem acento e sem espaços nas pontas, para comparar nomes de órgão e classe. */
+function semAcento(valor: string | null | undefined): string {
+  return (valor ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+/**
+ * Deduz `processos.competencia` a partir do DataJud (decisão 1.4.10 do escopo): para Juizado Especial o motor
+ * não valida a contagem automaticamente. Regras, nesta ordem:
+ * - 'juizado_especial' quando o órgão julgador ou a classe contém "juizado", ou a classe contém "recurso inominado"
+ *   (turma recursal julga recurso de juizado; a contagem segue a Lei 9.099/95);
+ * - 'segundo_grau' quando o grau indica 2º grau ("G2", "2", "segundo") ou o órgão é turma ou câmara;
+ * - senão 'vara_comum'.
+ * Nunca devolve 'outra': essa é escolha manual da equipe.
+ */
+export function deduzirCompetencia(dados: { grau?: string | null; orgaoJulgadorNome?: string | null; classeNome?: string | null }): CompetenciaDeduzida {
+  const orgao = semAcento(dados.orgaoJulgadorNome);
+  const classe = semAcento(dados.classeNome);
+  const grau = semAcento(dados.grau);
+  if (orgao.includes("juizado") || classe.includes("juizado") || classe.includes("recurso inominado")) return "juizado_especial";
+  if (grau === "g2" || grau === "2" || grau.includes("segundo") || /\bturma\b/.test(orgao) || /\bcamara\b/.test(orgao)) return "segundo_grau";
+  return "vara_comum";
+}
+
 export function normalizarMovimento(m: MovimentoDatajud): MovimentoNormalizado {
   return {
     codigo: numero(m.codigo),
@@ -66,13 +93,16 @@ export function normalizarProcessoDatajud(source: ProcessoDatajudSource): Proces
   const movimentos = ordenarMovimentos((source.movimentos ?? []).map(normalizarMovimento));
   const nivelSigilo = numero(source.nivelSigilo) ?? 0;
   const codigoIbge = numero(source.orgaoJulgador?.codigoMunicipioIBGE);
+  const grau = texto(source.grau)?.toUpperCase() ?? null;
+  const classeNome = texto(source.classe?.nome);
+  const orgaoJulgadorNome = texto(source.orgaoJulgador?.nome);
 
   return {
     numero_cnj: source.numeroProcesso.replace(/\D/g, ""),
     tribunal: texto(source.tribunal)?.toUpperCase() ?? null,
-    grau: texto(source.grau)?.toUpperCase() ?? null,
+    grau,
     classe_codigo: numero(source.classe?.codigo),
-    classe_nome: texto(source.classe?.nome),
+    classe_nome: classeNome,
     assuntos: (source.assuntos ?? []).map((a) => ({ codigo: numero(a.codigo), nome: texto(a.nome) })),
     sistema: texto(source.sistema?.nome),
     formato: texto(source.formato?.nome),
@@ -81,9 +111,10 @@ export function normalizarProcessoDatajud(source: ProcessoDatajudSource): Proces
     nivel_sigilo: nivelSigilo,
     sigiloso: nivelSigilo > 0,
     orgao_julgador_codigo: numero(source.orgaoJulgador?.codigo),
-    orgao_julgador_nome: texto(source.orgaoJulgador?.nome),
+    orgao_julgador_nome: orgaoJulgadorNome,
     codigo_municipio_ibge: codigoIbge,
     comarca: comarcaPorIbge(codigoIbge),
+    competencia: deduzirCompetencia({ grau, orgaoJulgadorNome, classeNome }),
     movimentos,
     ultimo_movimento: movimentos[0] ?? null,
     payload_bruto: source,

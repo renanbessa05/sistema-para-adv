@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { criarClienteAdmin } from "@/lib/supabase/admin";
 import { envServidor } from "@/lib/config/env";
 import type { Papel } from "./sessao";
+import { enviarEmail, type Email } from "./email";
 
 export interface Membro {
   id: string;
@@ -79,20 +80,64 @@ function normalizar(texto: string): string {
     .trim();
 }
 
+export type ResultadoConvite = { ok: true; aviso?: string } | { ok: false; erro: string };
+
 /**
  * Convida um membro: a linha em escritorio_membros é gravada antes, pelo cliente do sócio (RLS),
  * com usuario_id nulo; o convite do Auth cria o usuário e a trigger vincular_membro_por_email o liga à linha.
  * Service role só para o convite em si.
+ *
+ * Se o e-mail já tem usuário no Auth, a trigger não dispara: a RPC vincular_membro_existente (service role) faz o
+ * vínculo e a pessoa recebe um link de acesso por e-mail (Resend). Os claims do JWT (escritorio_id, papel) só
+ * mudam no próximo login/refresh, por isso o link de acesso: ao entrar por ele a sessão já nasce com o escritório.
  */
-export async function enviarConvite(email: string): Promise<{ ok: true } | { ok: false; erro: string }> {
+export async function enviarConvite(email: string): Promise<ResultadoConvite> {
   const admin = criarClienteAdmin();
-  const { error } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo: `${envServidor().APP_URL}/auth/callback` });
-  if (error) {
-    // Usuário já existente no Auth: a trigger não dispara, mas o vínculo pode ser feito manualmente pela equipe.
-    if (/already|registered|exists/i.test(error.message)) return { ok: false, erro: "Este e-mail já tem usuário no sistema. Peça que entre com o e-mail: o vínculo ao escritório será conferido pelo suporte." };
-    return { ok: false, erro: `Não foi possível enviar o convite: ${error.message}` };
+  const redirectTo = `${envServidor().APP_URL}/auth/callback`;
+  const { error } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo });
+  if (!error) return { ok: true };
+  if (!/already|registered|exists/i.test(error.message)) return { ok: false, erro: `Não foi possível enviar o convite: ${error.message}` };
+  return vincularUsuarioExistente(admin, email, redirectTo);
+}
+
+async function vincularUsuarioExistente(admin: SupabaseClient, email: string, redirectTo: string): Promise<ResultadoConvite> {
+  const { data: usuarioId, error: erroVinculo } = await admin.rpc("vincular_membro_existente", { p_email: email });
+  if (erroVinculo) return { ok: false, erro: `Este e-mail já tem usuário no sistema e o vínculo automático falhou: ${erroVinculo.message}` };
+  if (!usuarioId) return { ok: false, erro: "Este e-mail já tem usuário no sistema, mas não havia convite pendente para vincular." };
+
+  const env = envServidor();
+  if (!env.RESEND_API_KEY || !env.EMAIL_REMETENTE) {
+    return { ok: true, aviso: "Usuário já existia: vínculo feito. Sem e-mail configurado, peça que a pessoa entre com o próprio e-mail (o escritório aparece no próximo login)." };
   }
-  return { ok: true };
+
+  const { data: link, error: erroLink } = await admin.auth.admin.generateLink({ type: "magiclink", email, options: { redirectTo } });
+  const url = link?.properties?.action_link;
+  if (erroLink || !url) {
+    return { ok: true, aviso: `Usuário já existia: vínculo feito, mas o link de acesso não pôde ser gerado (${erroLink?.message ?? "sem link"}). A pessoa pode entrar com o próprio e-mail.` };
+  }
+  const envio = await enviarEmail(emailDeVinculo(email, url));
+  if (!envio.ok) {
+    return { ok: true, aviso: `Usuário já existia: vínculo feito, mas o e-mail não foi enviado (${envio.erro ?? "erro"}). A pessoa pode entrar com o próprio e-mail.` };
+  }
+  return { ok: true, aviso: "Usuário já existia: vínculo feito e link de acesso enviado" };
+}
+
+function escaparHtml(texto: string): string {
+  return texto.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function emailDeVinculo(email: string, url: string): Email {
+  const urlSegura = escaparHtml(url);
+  return {
+    para: email,
+    assunto: "Você foi adicionado(a) a um escritório na Assistente Jurídica",
+    html: `<p>Olá,</p>
+<p>Sua conta (${escaparHtml(email)}) foi adicionada à equipe de um escritório na Assistente Jurídica.</p>
+<p>Use o link abaixo para entrar; ele já abre a sua sessão com o novo escritório:</p>
+<p><a href="${urlSegura}">${urlSegura}</a></p>
+<p>Se você já estava com a sessão aberta, saia e entre de novo para que o acesso ao escritório apareça.</p>`,
+    texto: `Sua conta (${email}) foi adicionada à equipe de um escritório na Assistente Jurídica.\nEntre pelo link: ${url}\nSe já estava com a sessão aberta, saia e entre de novo.`,
+  };
 }
 
 export interface Telefone {

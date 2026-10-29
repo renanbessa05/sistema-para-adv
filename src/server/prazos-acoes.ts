@@ -85,7 +85,7 @@ export async function rejeitarPrazo(fd: FormData) {
   await chamar(id, "rejeitar_prazo", { p_id: id, p_motivo: motivo }, "Prazo rejeitado.");
 }
 
-/** confirmado → suspenso | prorrogado, com fundamento e (na prorrogação) nova data. */
+/** confirmado | suspenso | prorrogado → suspenso | prorrogado, com fundamento e (na prorrogação) nova data. */
 export async function suspenderOuProrrogarPrazo(fd: FormData) {
   const id = lerId(fd);
   const novoStatus = texto(fd, "novo_status");
@@ -101,6 +101,16 @@ export async function suspenderOuProrrogarPrazo(fd: FormData) {
     { p_id: id, p_novo_status: novoStatus, p_nova_data: novaData || null, p_fundamento: fundamento },
     novoStatus === "suspenso" ? "Prazo suspenso." : "Prazo prorrogado.",
   );
+}
+
+/** suspenso → confirmado (retomar), com fundamento e nova data final opcional (≥ atual). */
+export async function retomarPrazo(fd: FormData) {
+  const id = lerId(fd);
+  const novaData = texto(fd, "nova_data");
+  const fundamento = texto(fd, "fundamento");
+  if (!fundamento) voltar(id, { erro: "Informe o fundamento da retomada (ato normativo ou decisão)." });
+  if (novaData && !DataISO.safeParse(novaData).success) voltar(id, { erro: "Nova data inválida." });
+  await chamar(id, "retomar_prazo", { p_id: id, p_nova_data: novaData || null, p_fundamento: fundamento }, "Prazo retomado: volta a contar como confirmado.");
 }
 
 const EVIDENCIAS = ["tarefa", "manual", "datajud", "pje"] as const;

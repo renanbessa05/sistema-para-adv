@@ -97,6 +97,7 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
             {processo.numero_cnj_mascara}
             <Badge tom={processo.status === "ativo" ? "sucesso" : processo.status === "suspenso" ? "alerta" : "neutro"}>{STATUS_PROCESSO[processo.status] ?? processo.status}</Badge>
             {processo.segredo_justica ? <Badge tom="perigo">sigiloso{processo.nivel_sigilo ? ` (nível ${processo.nivel_sigilo})` : ""}</Badge> : null}
+            <Badge tom={processo.competencia === "juizado_especial" ? "alerta" : "contorno"}>{COMPETENCIAS[processo.competencia] ?? processo.competencia}</Badge>
           </h1>
           <p className="text-sm text-zinc-500">
             {(partes ?? [])
@@ -123,6 +124,11 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       {ok ? <Alert tom="sucesso">{ok}</Alert> : null}
       {aviso ? <Alert tom="alerta">{aviso}</Alert> : null}
+      {processo.competencia === "juizado_especial" ? (
+        <Alert tom="alerta" titulo="Juizado Especial: contagem de prazo exige conferência manual">
+          A contagem em dias úteis nos Juizados não está validada (Lei 9.099/95; Enunciado 165 do FONAJE, a confirmar a prática do TJ-MT). Os prazos deste processo nascem com o aviso de calendário incompleto e só são confirmados após conferência da data. Se a competência estiver errada, corrija em &ldquo;Editar dados&rdquo;.
+        </Alert>
+      ) : null}
       {processo.datajud_indisponivel ? <Alert tom="alerta">O DataJud não devolveu este processo na última consulta (processo sigiloso, muito recente ou de outro tribunal). Os dados cadastrais ficam por conta da equipe.</Alert> : null}
 
       <div className="grid gap-4 lg:grid-cols-3">
