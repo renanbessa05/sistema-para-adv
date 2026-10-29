@@ -112,6 +112,14 @@ export const REGRAS: Record<EventoNotificacao, RegraNotificacao> = {
     somenteDiasUteis: true,
     template: "alerta_prazo",
   },
+  audiencia_d1: {
+    // Véspera de audiência (job alertas-audiencia, 11h UTC em dias úteis): quem vai à audiência recebe no painel e no WhatsApp.
+    destinatarios: "responsavel_e_socios",
+    canais: ["painel", "whatsapp"],
+    horarioLocal: "07:00",
+    somenteDiasUteis: true,
+    template: "alerta_prazo",
+  },
   tarefa_atrasada: {
     // Não gera WhatsApp próprio: aparece no painel e como linha do resumo do dia.
     destinatarios: "responsavel",
