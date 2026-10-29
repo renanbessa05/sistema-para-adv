@@ -1,0 +1,26 @@
+{
+  "descricao": "Frases sintéticas do chat do painel com o intent esperado do roteador v1. Em modo falso o teste só valida o schema; com IA_TESTE_REAL=1 confere a meta de acerto.",
+  "meta_acerto": 0.85,
+  "casos": [
+    { "id": "p01", "texto": "quais meus prazos da semana?", "esperado": "pergunta_livre", "alternativas": ["prazos_semana"] },
+    { "id": "p02", "texto": "bom dia", "esperado": "resumo_do_dia" },
+    { "id": "p03", "texto": "o que saiu no processo da Marina?", "esperado": "pergunta_livre", "alternativas": ["movimentos_processo"] },
+    { "id": "p04", "texto": "passa a réplica do 1002345 para o Bruno", "esperado": "reatribuir_tarefa" },
+    { "id": "p05", "texto": "protocolei a contestação do 1002345, pode concluir", "esperado": "concluir_tarefa" },
+    { "id": "p06", "texto": "confirma o prazo sugerido do processo 1002345", "esperado": "confirmar_prazo" },
+    { "id": "p07", "texto": "monta o contrato de honorários para a Marina", "esperado": "abrir_agente", "agente": "honorarios" },
+    { "id": "p08", "texto": "faz a inicial de danos morais da Marina contra a loja", "esperado": "abrir_agente", "agente": "peticao" },
+    { "id": "p09", "texto": "o que dá para alegar nesses autos?", "esperado": "abrir_agente", "agente": "varredura" },
+    { "id": "p10", "texto": "revisa essa petição antes de protocolar", "esperado": "abrir_agente", "agente": "revisor" },
+    { "id": "p11", "texto": "como o juiz vai decidir esse caso?", "esperado": "abrir_agente", "agente": "julgador" },
+    { "id": "p12", "texto": "esse processo é de São Paulo, como funciona lá?", "esperado": "abrir_agente", "agente": "outros_tribunais" },
+    { "id": "p13", "texto": "atualiza R$ 10.000 desde março de 2024 com INPC e juros de 1%", "esperado": "calcular", "alternativas": ["abrir_agente"] },
+    { "id": "p14", "texto": "acha jurisprudência do STJ sobre inscrição indevida", "esperado": "buscar_jurisprudencia", "alternativas": ["abrir_agente"] },
+    { "id": "p15", "texto": "quantos dias úteis tenho para contestar uma publicação de 05/11?", "esperado": "pergunta_livre" },
+    { "id": "p16", "texto": "quem é o responsável pelo processo 1002345?", "esperado": "pergunta_livre" },
+    { "id": "p17", "texto": "resume os autos que subi ontem", "esperado": "pergunta_livre" },
+    { "id": "p18", "texto": "obrigada!", "esperado": "saudacao" },
+    { "id": "p19", "texto": "me indica um restaurante em Cuiabá", "esperado": "fora_do_escopo" },
+    { "id": "p20", "texto": "quais tarefas o Bruno tem abertas?", "esperado": "pergunta_livre", "alternativas": ["tarefas_pessoa"] }
+  ]
+}

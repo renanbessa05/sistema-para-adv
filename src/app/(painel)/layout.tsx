@@ -8,6 +8,7 @@ import { exigirMfaSeNecessario } from "@/server/mfa";
 
 const ITENS = [
   { href: "/hoje", rotulo: "Hoje" },
+  { href: "/assistente", rotulo: "Assistente" },
   { href: "/publicacoes", rotulo: "Publicações" },
   { href: "/prazos", rotulo: "Prazos" },
   { href: "/tarefas", rotulo: "Tarefas" },

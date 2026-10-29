@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { AGENTE_ROTEADOR, ErroIa, roteamentoRapido, rotearMensagem, type ClienteIa, type ResultadoRoteamento, type RoteamentoIntent } from "@/lib/ia";
+import { AGENTE_ROTEADOR, ErroIa, INTENTS_WHATSAPP, roteamentoRapido, rotearMensagem, type ClienteIa, type ResultadoRoteamento, type RoteamentoIntent } from "@/lib/ia";
 import { extrairEventos, type ClienteWhatsapp, type MensagemRecebida } from "@/lib/whatsapp";
 import { calcularPeriodos, formatarBr } from "@/lib/prazos";
 import { envServidor } from "@/lib/config/env";
@@ -141,7 +141,8 @@ async function tratarMensagem(admin: SupabaseClient, m: MensagemRecebida, deps: 
       throw e;
     }
   }
-  const r = roteamento.dados;
+  // O roteador v1 do painel conhece intents que o WhatsApp não atende (pergunta livre, agentes): viram fora_do_escopo aqui.
+  const r: RoteamentoIntent = INTENTS_WHATSAPP.includes(roteamento.dados.intent) ? roteamento.dados : { ...roteamento.dados, intent: "fora_do_escopo", resposta_curta: roteamento.dados.resposta_curta ?? "Isso eu faço pelo painel: abra a Assistente lá." };
   if (roteamento.ehEscrita && !["socio", "advogado"].includes(id.papel)) return registrarSaida("Pelo WhatsApp, só advogados e sócios podem reatribuir, concluir ou confirmar. Abra no painel.", r.intent);
   if (roteamento.ehEscrita && r.confianca < 0.6) return registrarSaida("Não tenho certeza do que você quer alterar. Pode repetir com o número do processo e o nome da pessoa?", r.intent);
 

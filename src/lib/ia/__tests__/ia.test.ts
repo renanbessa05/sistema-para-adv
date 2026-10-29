@@ -84,7 +84,7 @@ describe("roteador de intents", () => {
 
   it("marca intents de escrita", async () => {
     const cliente = criarClienteIaFalso({
-      roteador_intents: { intent: "reatribuir_tarefa", confianca: 0.8, entidades: { processo: "1002345", pessoa: "Bruno", tarefa: "réplica", periodo: null, data: null }, resposta_curta: null },
+      roteador_intents: { intent: "reatribuir_tarefa", confianca: 0.8, entidades: { processo: "1002345", pessoa: "Bruno", tarefa: "réplica", periodo: null, data: null, agente: null }, resposta_curta: null },
     });
     const r = await rotearMensagem("passa a réplica do 1002345 pro Bruno", { cliente, modelo: "m", nomesDaEquipe: ["Bruna", "Bruno"] });
     expect(r.ehEscrita).toBe(true);

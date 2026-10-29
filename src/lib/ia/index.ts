@@ -6,3 +6,4 @@ export * from "./schemas/classificacao";
 export * from "./schemas/intents";
 export * from "./lacunas";
 export * from "./agentes/registro";
+export * from "./historico";

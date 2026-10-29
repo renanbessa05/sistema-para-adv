@@ -23,3 +23,15 @@ PDF de até `IA_PDF_MAX_MB` e `IA_PDF_MAX_PAGINAS` vai inteiro como bloco `docum
 
 - Unitários com `criarClienteIaFalso(respostas, conversas)`: respostas estruturadas por agente e roteiros de conversa que executam as ferramentas reais.
 - Regressão do classificador (`tests/fixtures/publicacoes-rotuladas.json`) e avaliação por agente (`tests/avaliacao/<agente>/casos.json`, lote 10) rodam em modo falso no CI e contra a API com `IA_TESTE_REAL=1`.
+
+## Chat do painel (/assistente): intent → ação
+
+| Intent (roteador v1) | O que acontece |
+|---|---|
+| pergunta_livre, movimentos_processo, prazos_*, tarefas_pessoa | Assistente com ferramentas de leitura (consultar_processo, listar_publicacoes, ler_publicacao, listar_prazos, calcular_prazo, listar_tarefas, listar_documentos, ler_documento, listar_equipe), sob o RLS da pessoa |
+| resumo_do_dia | Regra rápida (sem modelo) → assistente com ferramentas |
+| reatribuir_tarefa, concluir_tarefa, confirmar_prazo | Eco + "Confirma? (sim/não)"; só advogado e sócio; executa pelas RPCs com o papel da pessoa |
+| abrir_agente, calcular, buscar_jurisprudencia | Link para a tela do agente (contratos, minutas, varreduras, revisor, análises, cálculos, jurisprudência) |
+| saudacao, fora_do_escopo | Resposta curta do roteador |
+
+O WhatsApp continua com o roteador v0 (lista fechada); intents só do painel viram fora_do_escopo lá.

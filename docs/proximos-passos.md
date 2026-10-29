@@ -54,8 +54,9 @@ O Renan decidiu construir as Fases 2 e 3 inteiras agora e testar depois com a Br
 | Lote | Entrega | Estado |
 |---|---|---|
 | L1 | Fundação de IA (cliente com ferramentas, multi-turno, PDF, cliente falso com roteiro), teto mensal em toda chamada (`executarAgente`), `decidir_aprovacao` com efeitos por objeto, `documentos` + Storage + extração de texto (rotina `extrair-texto`), bloco Documentos em processo e cliente | Feito (migrations 0024 a 0026; ADRs 0006 e 0010) |
-| L2 | Chat `/assistente` com ferramentas de leitura e streaming | Próximo |
-| L3 a L15 | Contratos, peças, revisor, cálculos, jurisprudência, Google, julgador, avaliação, relatórios, LGPD, multi-escritório, atendimento ao cliente, operação | Pendentes |
+| L2 | Chat `/assistente`: conversas no painel (migration 0027), roteador v1, assistente com 9 ferramentas de leitura sob RLS, escrita com eco e confirmação, streaming por SSE, Markdown no painel, atalho na tela do processo | Feito (ADR 0012) |
+| L3 | Contratos e honorários (.docx, Tabela OAB, aprovação, parcelas) | Próximo |
+| L4 a L15 | Peças, revisor, cálculos, jurisprudência, Google, julgador, avaliação, relatórios, LGPD, multi-escritório, atendimento ao cliente, operação | Pendentes |
 
 Pendências do L1 que só se verificam com chave/dados: Files API da Anthropic com PDF real (`anexarParaApi`), rotina `extrair-texto` em produção com um PDF enviado pela tela, policies de `storage.objects` (só existem no Supabase, não no CI).
 
