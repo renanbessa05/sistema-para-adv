@@ -15,9 +15,9 @@ import { FormularioTelefone } from "./telefone";
 export const metadata = { title: "Equipe" };
 export const dynamic = "force-dynamic";
 
-export default async function PaginaEquipe({ searchParams }: { searchParams: Promise<{ erro?: string; ok?: string; editar?: string }> }) {
+export default async function PaginaEquipe({ searchParams }: { searchParams: Promise<{ erro?: string; ok?: string; aviso?: string; editar?: string }> }) {
   const sessao = await exigirSessao();
-  const { erro, ok, editar } = await searchParams;
+  const { erro, ok, aviso, editar } = await searchParams;
   const supabase = await criarClienteServidor();
   const socio = sessao.papel === "socio";
   const [membros, telefones, { data: escritorio }] = await Promise.all([listarMembros(supabase, sessao.escritorioId, { somenteAtivos: false }), listarTelefones(supabase, sessao.escritorioId), supabase.from("escritorios").select("timezone").eq("id", sessao.escritorioId).maybeSingle()]);
@@ -33,6 +33,7 @@ export default async function PaginaEquipe({ searchParams }: { searchParams: Pro
       <NavegacaoConfiguracoes papel={sessao.papel} atual="/configuracoes/equipe" />
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       {ok ? <Alert tom="sucesso">{ok}</Alert> : null}
+      {aviso ? <Alert tom="alerta">{aviso}</Alert> : null}
 
       <Card>
         <CardHeader>

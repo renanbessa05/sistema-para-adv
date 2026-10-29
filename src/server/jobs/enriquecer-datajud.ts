@@ -2,10 +2,11 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { criarClienteDatajud, ErroDatajud } from "@/lib/datajud";
 import { envServidor } from "@/lib/config/env";
+import { competenciaAposDatajud } from "@/server/processos";
 import { executarJob, listarEscritoriosAtivos } from "./registro";
 
 /**
- * Enriquece processos pelo DataJud (classe, órgão, comarca por IBGE, sigilo, movimentos novos).
+ * Enriquece processos pelo DataJud (classe, órgão, comarca por IBGE, competência deduzida, sigilo, movimentos novos).
  * Lotes pequenos, os mais desatualizados primeiro; respeita 120 req/min do CNJ.
  */
 export async function enriquecerDatajud(admin: SupabaseClient, opcoes: { lote?: number; escritorioId?: string; processoIds?: string[] } = {}) {
@@ -22,7 +23,7 @@ export async function enriquecerDatajud(admin: SupabaseClient, opcoes: { lote?: 
       async () => {
         let consulta = admin
           .from("processos")
-          .select("id, numero_cnj, tribunal_id, comarca_id, datajud_ultima_atualizacao")
+          .select("id, numero_cnj, tribunal_id, comarca_id, competencia, datajud_ultima_atualizacao")
           .eq("escritorio_id", escritorio.id)
           .in("status", ["ativo", "suspenso"])
           .eq("datajud_indisponivel", false)
@@ -64,7 +65,8 @@ export async function enriquecerDatajud(admin: SupabaseClient, opcoes: { lote?: 
                 data_ajuizamento: principal.data_ajuizamento ?? undefined,
                 nivel_sigilo: principal.nivel_sigilo ?? undefined,
                 comarca_id: comarcaId,
-                competencia: principal.orgao_julgador_nome && /juizado/i.test(principal.orgao_julgador_nome) ? "juizado_especial" : undefined,
+                // Deduzida do grau, órgão e classe (decisão 1.4.10); não apaga ajuste manual da equipe.
+                competencia: competenciaAposDatajud(p.competencia as string | null, principal.competencia),
                 datajud_ultima_sincronizacao: agora,
                 datajud_ultima_atualizacao: principal.ultima_atualizacao ?? undefined,
                 datajud_indisponivel: false,

@@ -102,6 +102,9 @@ export interface MovimentoNormalizado {
   complementos: Array<{ codigo: number | null; nome: string | null; valor: number | null; descricao: string | null }>;
 }
 
+/** Competência deduzida do DataJud (subconjunto de public.competencia; 'outra' é só escolha manual). */
+export type CompetenciaDeduzida = "vara_comum" | "juizado_especial" | "segundo_grau";
+
 /** Processo do DataJud no formato interno (um registro por grau). */
 export interface ProcessoDatajud {
   numero_cnj: string;
@@ -124,6 +127,8 @@ export interface ProcessoDatajud {
   codigo_municipio_ibge: number | null;
   /** Nome da comarca/município-sede, quando o código IBGE é conhecido. */
   comarca: string | null;
+  /** Deduzida do grau, do órgão julgador e da classe (`deduzirCompetencia`). */
+  competencia: CompetenciaDeduzida;
   /** Ordenados por data decrescente (mais recente primeiro). */
   movimentos: MovimentoNormalizado[];
   ultimo_movimento: MovimentoNormalizado | null;

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { exigirSessao, podeConfirmarPrazo } from "@/server/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { listarMembros, mapaNomes, obterTimezone } from "@/server/publicacoes";
-import { cancelarPrazo, confirmarPrazo, cumprirPrazo, rejeitarPrazo, suspenderOuProrrogarPrazo } from "@/server/prazos-acoes";
+import { cancelarPrazo, confirmarPrazo, cumprirPrazo, rejeitarPrazo, retomarPrazo, suspenderOuProrrogarPrazo } from "@/server/prazos-acoes";
 import { hojeNoFuso } from "@/lib/prazos/datas";
 import { formatarData, formatarDataHora } from "@/lib/utils";
 import { MemoriaContagem } from "@/components/dominio/MemoriaContagem";
@@ -122,9 +122,9 @@ export default async function PaginaPrazo({ params, searchParams }: { params: Pr
   const st = prazo.status;
   const mostrar = {
     confirmar: pode && st === "sugerido",
-    retomar: pode && (st === "suspenso" || st === "prorrogado"),
+    retomar: pode && st === "suspenso",
     rejeitar: pode && st === "sugerido",
-    suspenderProrrogar: pode && st === "confirmado",
+    suspenderProrrogar: pode && ["confirmado", "suspenso", "prorrogado"].includes(st),
     cumprir: pode && ["confirmado", "prorrogado", "vencido"].includes(st),
     cancelar: pode && ["confirmado", "prorrogado", "vencido"].includes(st),
   };
@@ -241,10 +241,33 @@ export default async function PaginaPrazo({ params, searchParams }: { params: Pr
         </CardContent>
       </Card>
 
-      {mostrar.confirmar || mostrar.retomar ? (
+      {mostrar.retomar ? (
         <Card>
           <CardHeader>
-            <CardTitle>{mostrar.retomar ? "Retomar prazo (confirmar com nova data)" : "Confirmar prazo"}</CardTitle>
+            <CardTitle>Retomar prazo</CardTitle>
+            <CardDescription>O prazo suspenso volta a contar como confirmado. Exige fundamento (ato normativo ou decisão); a nova data final é opcional e não pode ser anterior à atual.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form action={retomarPrazo} className="grid gap-2 sm:grid-cols-2">
+              <input type="hidden" name="id" value={prazo.id} />
+              <Campo label="Nova data final (opcional)">
+                <Input name="nova_data" type="date" min={prazo.data_final} />
+              </Campo>
+              <Campo label="Fundamento">
+                <Input name="fundamento" placeholder="Ex.: fim da suspensão (Portaria TJMT nº ...), decisão de ..." required />
+              </Campo>
+              <div className="sm:col-span-2">
+                <Button type="submit">Retomar prazo</Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {mostrar.confirmar ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Confirmar prazo</CardTitle>
             <CardDescription>Pode trocar o ato, o multiplicador e a data final antes. Ao confirmar, a tarefa é criada para o responsável.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -279,7 +302,7 @@ export default async function PaginaPrazo({ params, searchParams }: { params: Pr
                 </label>
               ) : null}
               <div className="sm:col-span-2 lg:col-span-4">
-                <Button type="submit">{mostrar.retomar ? "Retomar e confirmar" : "Confirmar prazo"}</Button>
+                <Button type="submit">Confirmar prazo</Button>
               </div>
             </form>
           </CardContent>
@@ -311,8 +334,8 @@ export default async function PaginaPrazo({ params, searchParams }: { params: Pr
           {mostrar.suspenderProrrogar ? (
             <Card>
               <CardHeader>
-                <CardTitle>Suspender ou prorrogar</CardTitle>
-                <CardDescription>Exige fundamento (ato normativo ou decisão). Prorrogar exige a nova data final.</CardDescription>
+                <CardTitle>{st === "suspenso" ? "Prorrogar (ou manter suspenso com nova data)" : st === "prorrogado" ? "Prorrogar de novo ou suspender" : "Suspender ou prorrogar"}</CardTitle>
+                <CardDescription>Exige fundamento (ato normativo ou decisão). Prorrogar exige a nova data final, nunca anterior à atual.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form action={suspenderOuProrrogarPrazo} className="grid gap-2 sm:grid-cols-2">
@@ -320,7 +343,7 @@ export default async function PaginaPrazo({ params, searchParams }: { params: Pr
                   <Campo label="Novo status">
                     <Select name="novo_status" defaultValue="prorrogado">
                       <option value="prorrogado">Prorrogado</option>
-                      <option value="suspenso">Suspenso</option>
+                      <option value="suspenso">{st === "suspenso" ? "Suspenso (manter, com nova data)" : "Suspenso"}</option>
                     </Select>
                   </Campo>
                   <Campo label="Nova data final">

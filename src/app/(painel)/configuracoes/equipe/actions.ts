@@ -70,6 +70,7 @@ export async function convidarMembro(fd: FormData) {
   const convite = await enviarConvite(lido.data.email);
   revalidatePath(DESTINO);
   if (!convite.ok) redirect(`${DESTINO}?ok=${encodeURIComponent("Membro gravado.")}&erro=${encodeURIComponent(convite.erro)}`);
+  if (convite.aviso) redirect(`${DESTINO}?ok=${encodeURIComponent("Membro gravado.")}&aviso=${encodeURIComponent(convite.aviso)}`);
   concluir(`Convite enviado para ${lido.data.email}.`);
 }
 
@@ -82,6 +83,8 @@ export async function reenviarConvite(membroId: string) {
   if (membro.usuario_id) falhar("Este membro já aceitou o convite.");
   const convite = await enviarConvite(membro.email_convite as string);
   if (!convite.ok) falhar(convite.erro);
+  revalidatePath(DESTINO);
+  if (convite.aviso) redirect(`${DESTINO}?aviso=${encodeURIComponent(convite.aviso)}`);
   concluir(`Convite reenviado para ${membro.email_convite}.`);
 }
 

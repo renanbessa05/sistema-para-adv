@@ -30,10 +30,11 @@ Estagiário vê e comenta; não transiciona. Administrativo trata `sem_processo`
 | (criado) | `sugerido` | sistema | motor calculou; guarda `data_sugerida_ia` e `memoria_calculo` |
 | `sugerido` | `confirmado` | advogado responsável, colaborador advogado ou sócio | pode alterar ato, multiplicador e data antes; guarda `data_confirmada`, `confirmado_por`, `confirmado_em`; se `calendario_incompleto`, exige reconhecimento explícito; cria a tarefa |
 | `sugerido` | `rejeitado` | advogado responsável, colaborador advogado ou sócio | com motivo (não gera prazo, intimação de terceiro, erro de classificação) |
-| `confirmado` | `suspenso` ou `prorrogado` | advogado, sócio | nova data final + ato normativo ou decisão; mantém histórico |
-| `suspenso`, `prorrogado` | `confirmado` | advogado, sócio | retomada com nova data |
+| `confirmado`, `suspenso`, `prorrogado` | `suspenso` ou `prorrogado` | advogado responsável, colaborador advogado ou sócio | `suspender_ou_prorrogar_prazo`: fundamento (ato normativo ou decisão) obrigatório; prorrogar exige nova data final ≥ atual; suspenso pode ser prorrogado, prorrogado pode ser prorrogado de novo ou suspenso; recalcula `data_interna` quando a data muda; mantém histórico |
+| `suspenso` | `confirmado` | advogado responsável, colaborador advogado ou sócio | `retomar_prazo`: fundamento obrigatório; nova data final opcional (≥ atual), recalculando `data_interna`; evento `retomado` |
+| `suspenso`, `prorrogado` | `confirmado` | advogado responsável, colaborador advogado ou sócio | `confirmar_prazo` (revisão de ato, multiplicador e data, como na confirmação inicial); a tela expõe só `retomar_prazo` para suspenso |
 | `confirmado`, `prorrogado` | `cumprido` | advogado, sócio, ou sistema pela tarefa | `cumprido_em`, `cumprimento_evidencia` (tarefa, manual, datajud, pje) |
-| `confirmado`, `prorrogado` | `vencido` | sistema (job diário 0h05) | data final passou sem cumprimento; aparece em vermelho até alguém marcar cumprido ou cancelar com motivo |
+| `confirmado`, `prorrogado` | `vencido` | sistema (job diário 0h05) | data final passou sem cumprimento; aparece em vermelho até alguém marcar cumprido ou cancelar com motivo. Prazo `suspenso` não vence: precisa ser retomado antes |
 | `confirmado`, `prorrogado`, `vencido` | `cancelado` | advogado, sócio | com motivo (prazo não existia, processo encerrado) |
 
 Estagiário e administrativo nunca confirmam, rejeitam ou cumprem prazo (Lei 8.906/94, art. 3º, §2º).
