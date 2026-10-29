@@ -43,7 +43,7 @@ export interface RegraNotificacao {
 export const EXPEDIENTE_WHATSAPP = { inicio: 7, fim: 20 } as const;
 
 /** Eventos que ignoram a janela do WhatsApp e saem sempre na hora. */
-export const EVENTOS_SEMPRE_IMEDIATOS: ReadonlySet<EventoNotificacao> = new Set(["prazo_d0", "captacao_falhou"]);
+export const EVENTOS_SEMPRE_IMEDIATOS: ReadonlySet<EventoNotificacao> = new Set(["prazo_d0", "prazo_vencido", "captacao_falhou"]);
 
 export const REGRAS: Record<EventoNotificacao, RegraNotificacao> = {
   nova_publicacao: {
@@ -52,6 +52,14 @@ export const REGRAS: Record<EventoNotificacao, RegraNotificacao> = {
     horarioLocal: "imediato",
     somenteDiasUteis: false,
     template: "nova_publicacao",
+  },
+  publicacao_sem_processo: {
+    // Publicação captada pela OAB de alguém da equipe sem processo correspondente na carteira: quem cadastra
+    // processo (administrativo) e os sócios decidem se é caso novo, homônimo ou cadastro faltando.
+    destinatarios: "socios_e_administrativo",
+    canais: ["painel", "email"],
+    horarioLocal: "imediato",
+    somenteDiasUteis: true,
   },
   publicacao_sem_tratamento_24h: {
     destinatarios: "responsavel",
@@ -84,6 +92,14 @@ export const REGRAS: Record<EventoNotificacao, RegraNotificacao> = {
   prazo_d0: {
     destinatarios: "responsavel_e_socios",
     canais: ["painel", "whatsapp"],
+    horarioLocal: "imediato",
+    somenteDiasUteis: false,
+    template: "alerta_prazo",
+  },
+  prazo_vencido: {
+    // Emitido pelo job que marca vencidos (0h05 local): sai na hora, por todos os canais, sem esperar expediente.
+    destinatarios: "responsavel_e_socios",
+    canais: ["painel", "whatsapp", "email"],
     horarioLocal: "imediato",
     somenteDiasUteis: false,
     template: "alerta_prazo",

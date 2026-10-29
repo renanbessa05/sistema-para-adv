@@ -154,7 +154,14 @@ export default async function PaginaPrazo({ params, searchParams }: { params: Pr
             {prazo.responsavel_id ? ` · responsável: ${nomes.get(prazo.responsavel_id) ?? "—"}` : " · sem responsável"}
           </p>
         </div>
-        <BadgeDataFinal dataFinal={prazo.data_final} hoje={hoje} status={st} />
+        <div className="flex flex-col items-end gap-1">
+          <BadgeDataFinal dataFinal={prazo.data_final} hoje={hoje} status={st} />
+          {sessao.papel !== "estagiario" ? (
+            <Link href={`/admin/divergencias?prazo=${prazo.id}`} className="text-xs text-zinc-500 hover:underline">
+              Registrar divergência
+            </Link>
+          ) : null}
+        </div>
       </div>
 
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}

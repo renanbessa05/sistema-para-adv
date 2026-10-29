@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { classificarPublicacao, criarClienteIa, ErroIa, calcularCustoUsd, type ClienteIa, type PrecoModelo } from "@/lib/ia";
 import { envServidor } from "@/lib/config/env";
 import { sugerirPrazo } from "../prazos";
+import { carregarContexto, enfileirarEvento, type ContextoEscritorio } from "../notificacoes";
 import { executarJob, listarEscritoriosAtivos } from "./registro";
 
 /**
@@ -44,7 +45,10 @@ export async function classificarPendentes(admin: SupabaseClient, opcoes: { lote
 
         let classificadas = 0;
         let prazos = 0;
+        let semProcesso = 0;
         const erros: string[] = [];
+        // Contexto de notificação carregado só se alguma publicação ficar sem processo
+        let ctx: ContextoEscritorio | null = null;
 
         for (const pub of pendentes ?? []) {
           try {
@@ -89,6 +93,23 @@ export async function classificarPendentes(admin: SupabaseClient, opcoes: { lote
               const sugerido = await sugerirPrazo(admin, { id: pub.id, escritorio_id: escritorio.id, processo_id: processoId, data_disponibilizacao: pub.data_disponibilizacao, ia_execucao_id: execId }, r.dados);
               if (sugerido) prazos += 1;
             }
+            if (proximoStatus === "sem_processo") {
+              // Sócios e administrativo decidem: cadastrar o processo, vincular manualmente ou ignorar (homônimo). Nunca o texto da publicação.
+              semProcesso += 1;
+              try {
+                ctx ??= await carregarContexto(admin, escritorio.id);
+                const numero = (pub.numero_cnj as string | null) ?? r.numeroCnjValidado ?? "sem número";
+                const texto = `📭 Publicação sem processo na carteira: ${numero} (${r.dados.tipo}). Cadastre o processo ou trate a publicação: ${env.APP_URL}/publicacoes/${pub.id}`;
+                await enfileirarEvento(admin, ctx, {
+                  evento: "publicacao_sem_processo",
+                  objeto: { tipo: "publicacao", id: pub.id as string },
+                  variaveis: { numero_processo: numero, tipo: String(r.dados.tipo), gera_prazo: r.dados.gera_prazo ? "sim" : "não", link: `${env.APP_URL}/publicacoes/${pub.id}`, texto, assunto: `Publicação sem processo na carteira: ${numero}`, html: `<p>${texto}</p>` },
+                });
+              } catch (e) {
+                // A publicação já foi classificada; falha só na notificação não vira erro de IA.
+                erros.push(`${pub.id}: notificação publicacao_sem_processo: ${e instanceof Error ? e.message : String(e)}`);
+              }
+            }
             classificadas += 1;
           } catch (e) {
             const tipo = e instanceof ErroIa ? e.tipo : "erro";
@@ -96,7 +117,7 @@ export async function classificarPendentes(admin: SupabaseClient, opcoes: { lote
             await admin.from("ia_execucoes").insert({ escritorio_id: escritorio.id, agente: "classificador_publicacao", agente_versao: "classificador-publicacao.v0", modelo, input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0, custo_estimado: 0, status: tipo, erro: e instanceof Error ? e.message : String(e), objeto_tipo: "publicacao", objeto_id: pub.id });
           }
         }
-        return { itens: classificadas, detalhes: { pendentes: pendentes?.length ?? 0, classificadas, prazosSugeridos: prazos, erros } };
+        return { itens: classificadas, detalhes: { pendentes: pendentes?.length ?? 0, classificadas, prazosSugeridos: prazos, semProcesso, erros } };
       },
       escritorio.id,
     );
