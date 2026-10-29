@@ -29,7 +29,9 @@ enable_signup = false
 enable_anonymous_sign_ins = false
 
 [auth.email]
-enable_signup = false
+# Atenção: aqui enable_signup é o liga/desliga do PROVEDOR de e-mail (link mágico, convite, senha), não só do cadastro.
+# Cadastro aberto fica bloqueado por auth.enable_signup = false acima.
+enable_signup = true
 enable_confirmations = false
 double_confirm_changes = false
 max_frequency = "60s"
