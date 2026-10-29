@@ -50,7 +50,7 @@ try {
   writeFileSync(arquivo, sql, { mode: 0o600 });
   const saida = execFileSync("supabase", ["db", "query", "--linked", "-o", "json", "-f", arquivo], { encoding: "utf8", shell: true, stdio: ["ignore", "pipe", "pipe"] });
   // JSON (-o json) ou, se a CLI insistir na tabela, as linhas "│ app:... │"
-  const nomes = [...saida.matchAll(/"name":s*"(app:[a-z_]+)"|│s*(app:[a-z_]+)s*│/g)].map((m) => m[1] ?? m[2]);
+  const nomes = [...saida.matchAll(/"name":\s*"(app:[a-z_]+)"|│\s*(app:[a-z_]+)\s*│/g)].map((m) => m[1] ?? m[2]);
   console.log(nomes.length === 2 ? `Credenciais gravadas no Vault: ${nomes.join(", ")}` : `Resposta inesperada da CLI:\n${saida.slice(0, 500)}`);
 } finally {
   rmSync(dir, { recursive: true, force: true });
