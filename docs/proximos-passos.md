@@ -46,7 +46,20 @@ Resumo de onde o sistema está, o que só o escritório pode fazer e o que ainda
 - Playwright além da fumaça: tratar publicação, confirmar prazo, concluir tarefa, com Supabase local no CI.
 - Template próprio `prazo_vencido` na Meta (hoje reaproveita `alerta_prazo`); erros da Graph API ainda não registram em Integrações.
 
-## 5. Como rodar localmente
+## 5. Retomar no computador local (sessão de 29/10/2026)
+
+Estado ao sair da nuvem: branch `claude/confident-darwin-5z65s7` (única, padrão) com 22 migrations, CI verde no commit `db6edd5`. O SQL consolidado (todas as migrations) já foi executado no projeto Supabase `qcikrqyzrtgfhtlfbabi`. Para continuar:
+
+```bash
+git clone https://github.com/renanbessa05/sistema-para-adv.git && cd sistema-para-adv
+pnpm install
+cp .env.example .env.local   # URL do Supabase, chave publishable, chave secret, ANTHROPIC_API_KEY, DATAJUD_API_KEY, RESEND...
+pnpm dev
+```
+
+Próximos passos, nesta ordem: (1) no painel do Supabase, ativar o hook de claims, desligar sign-ups e habilitar TOTP (`docs/deploy.md`, seção 1, passos 3 e 3a); (2) inserir o escritório e a sócia (`docs/deploy.md`, seção 2) e convidar o e-mail; (3) importar o repositório na Vercel com as variáveis de ambiente; (4) entrar, cadastrar o autenticador em `/mfa/cadastro`, convidar a equipe; (5) carregar a carteira e rodar a primeira captação. Trocar a chave da API do Claude que circulou no chat.
+
+## 6. Como rodar localmente
 
 ```bash
 pnpm install
