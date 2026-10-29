@@ -35,6 +35,8 @@ const servidorSchema = z.object({
   WHATSAPP_APP_SECRET: z.string().optional(),
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
   WHATSAPP_ACCESS_TOKEN: z.string().optional(),
+  VOYAGE_API_KEY: z.string().optional(),
+  VOYAGE_MODELO: z.string().optional(),
 });
 
 function ler<T extends z.ZodTypeAny>(schema: T, origem: Record<string, string | undefined>): z.infer<T> {

@@ -7,7 +7,7 @@
  * Código puro: não lê `process.env` nem o banco; recebe os valores e devolve a decisão.
  */
 
-export const TIPOS_INTEGRACAO_COM_SEGREDO = ["whatsapp", "datajud"] as const;
+export const TIPOS_INTEGRACAO_COM_SEGREDO = ["whatsapp", "datajud", "embeddings"] as const;
 export type TipoIntegracaoComSegredo = (typeof TIPOS_INTEGRACAO_COM_SEGREDO)[number];
 
 export type OrigemSegredo = "vault" | "ambiente" | null;
@@ -36,6 +36,13 @@ export const DEFINICOES_INTEGRACAO: Record<TipoIntegracaoComSegredo, DefinicaoIn
     variaveisConfig: {},
     rotuloSegredo: "Chave pública da API (wiki do CNJ)",
     rotulosConfig: {},
+  },
+  embeddings: {
+    rotulo: "Voyage AI (embeddings da jurisprudência)",
+    variavelSegredo: "VOYAGE_API_KEY",
+    variaveisConfig: { modelo: "VOYAGE_MODELO" },
+    rotuloSegredo: "Chave da API Voyage",
+    rotulosConfig: { modelo: "Modelo (vazio = voyage-law-2)" },
   },
 };
 

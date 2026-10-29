@@ -1,5 +1,6 @@
 import { extrairTodosCnj, validarDigitosCnj } from "../cnj/numero-cnj";
 import { listarLacunas } from "../ia/lacunas";
+import { conferirCitacoes } from "../jurisprudencia/citacoes";
 
 /**
  * Validação determinística da peça (regra 6 de docs/regras/agentes.md): o que dá para conferir por código não é
@@ -39,8 +40,6 @@ export interface ResultadoValidacao {
 }
 
 const RE_DOC = /Doc\.?\s*(\d{1,3})/gi;
-// Referências numeradas a precedentes que precisam estar confirmadas na base
-const RE_CITACAO = /\b(?:Súmula(?:\s+Vinculante)?\s*n?º?\s*\d+|REsp\s*\d[\d.]*|AgInt\s*(?:no\s*)?(?:REsp|AREsp)\s*\d[\d.]*|AREsp\s*\d[\d.]*|RE\s*\d[\d.]{3,}|Tema\s*(?:Repetitivo\s*)?n?º?\s*\d+|Apelação\s+Cível\s*n?º?\s*[\d.-]+|Agravo\s+de\s+Instrumento\s*n?º?\s*[\d.-]+)/gi;
 
 export function validarPeca(md: string, ctx: ContextoValidacao): ResultadoValidacao {
   const itens: ItemValidacao[] = [];
@@ -101,9 +100,8 @@ export function validarPeca(md: string, ctx: ContextoValidacao): ResultadoValida
   add("lacunas", "Lacunas [[VERIFICAR]]", lacunas.length ? "falta" : "ok", lacunas.length ? `${lacunas.length}: ${lacunas.slice(0, 5).map((l) => l.motivo || "sem motivo").join("; ")}${lacunas.length > 5 ? "…" : ""}` : null);
 
   // 7. Citações de jurisprudência sem registro
-  const citacoes = [...new Set([...texto.matchAll(RE_CITACAO)].map((m) => m[0].replace(/\s+/g, " ").trim()))];
-  const semId = citacoes.filter((c) => !ctx.citacoesConfirmadas.some((id) => c.toLowerCase().includes(id.toLowerCase())));
-  add("jurisprudencia", "Jurisprudência só com registro na base", semId.length ? "falta" : "ok", semId.length ? `Sem registro: ${semId.slice(0, 4).join("; ")}` : citacoes.length ? `${citacoes.length} citação(ões) confirmada(s)` : "Nenhuma citação numerada");
+  const cit = conferirCitacoes(texto, ctx.citacoesConfirmadas);
+  add("jurisprudencia", "Jurisprudência só com registro na base", cit.semRegistro.length ? "falta" : "ok", cit.semRegistro.length ? `Sem registro: ${cit.semRegistro.slice(0, 4).join("; ")}` : cit.citadas.length ? `${cit.confirmadas.length} citação(ões) confirmada(s)` : "Nenhuma citação numerada");
 
   // 8. Tempestividade e tamanho
   if (ctx.tempestivo === null) add("tempestividade", "Tempestividade", "nao_aplicavel");
@@ -113,5 +111,5 @@ export function validarPeca(md: string, ctx: ContextoValidacao): ResultadoValida
   add("juros", "Índices de correção/juros deixados para o cálculo", /INPC|IPCA|SELIC|1%\s*ao\s*m[eê]s|juros\s+de\s+mora\s+de\s+\d/i.test(texto) ? "atencao" : "ok", /INPC|IPCA|SELIC|1%\s*ao\s*m[eê]s/i.test(texto) ? "A peça fixa índice ou taxa; confira com o módulo de cálculos" : null);
 
   const pronta = itens.every((i) => i.situacao !== "falta");
-  return { itens, lacunas: lacunas.length, docs_citados: citados, docs_inexistentes: inexistentes, citacoes_sem_id: semId, cnj_encontrado: cnjValido, laudas_estimadas: laudas, pronta };
+  return { itens, lacunas: lacunas.length, docs_citados: citados, docs_inexistentes: inexistentes, citacoes_sem_id: cit.semRegistro, cnj_encontrado: cnjValido, laudas_estimadas: laudas, pronta };
 }

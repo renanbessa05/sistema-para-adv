@@ -5,6 +5,7 @@ import { delimitarDado, type FerramentaIa } from "@/lib/ia";
 import { calcularPrazo, formatarBr, memoriaComoTexto, type Contagem, type OrigemIntimacao } from "@/lib/prazos";
 import { carregarCalendario } from "../calendario";
 import { lerPaginas, listarDocumentos } from "../documentos";
+import { buscarJurisprudencia } from "../jurisprudencia";
 import type { Sessao } from "../sessao";
 
 /**
@@ -228,6 +229,20 @@ export function criarFerramentas(supabase: SupabaseClient, sessao: Sessao, opcoe
     executar: async () => {
       const { data } = await supabase.from("escritorio_membros").select("nome_completo, papel, oab_numero, oab_uf, ativo").eq("escritorio_id", sessao.escritorioId).order("nome_completo");
       return delimitarDado("equipe", (data ?? []).map((m) => `- ${m.nome_completo} · ${m.papel}${m.oab_numero ? ` · OAB ${m.oab_numero}/${m.oab_uf}` : ""}${m.ativo ? "" : " · inativo"}`).join("\n") || "Equipe vazia.");
+    },
+  }));
+
+  ferramentas.push(ferramenta({
+    nome: "buscar_jurisprudencia",
+    descricao: "Busca na base de jurisprudência do escritório (súmulas, temas repetitivos e acórdãos importados). Devolve cada precedente com o id de citação. Só cite na peça um precedente que esta busca devolveu, pelo id exato.",
+    schema: z.object({
+      consulta: z.string().min(3).describe("Tese ou termos da busca, em português"),
+      limite: z.number().int().min(1).max(10).nullable().describe("Quantos resultados (padrão 6)"),
+    }),
+    executar: async ({ consulta, limite }) => {
+      const achados = await buscarJurisprudencia(supabase, sessao, consulta, limite ?? 6);
+      if (achados.length === 0) return delimitarDado("jurisprudencia", "Nenhum precedente da base para esta consulta. Não cite precedente; marque a lacuna.");
+      return delimitarDado("jurisprudencia", achados.map((a) => `- id ${a.referencia}: ${a.trecho}`).join("\n"));
     },
   }));
 
