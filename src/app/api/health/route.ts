@@ -17,7 +17,9 @@ export async function GET() {
     if (error) throw error;
     db = "ok";
   } catch (e) {
-    detalhe = e instanceof Error ? e.message : String(e);
+    // PostgrestError não é instância de Error: lê `message` de qualquer objeto para não virar "[object Object]".
+    const mensagem = (e as { message?: unknown } | null)?.message;
+    detalhe = typeof mensagem === "string" && mensagem ? mensagem : String(e);
   }
   const corpo = { status: db === "ok" ? "ok" : "degradado", db, detalhe, latencia_ms: Date.now() - inicio, versao: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "local" };
   return NextResponse.json(corpo, { status: db === "ok" ? 200 : 503 });
