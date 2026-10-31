@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { classificarPublicacao, ErroIa, type ClienteIa } from "@/lib/ia";
 import { envServidor } from "@/lib/config/env";
+import { formatarDataBR, variaveisNovaPublicacao } from "@/lib/whatsapp";
 import { sugerirPrazo } from "../prazos";
 import { carregarContexto, enfileirarEvento, type ContextoEscritorio } from "../notificacoes";
 import { clienteIaDoAmbiente, executarAgente } from "../ia/executar";
@@ -45,7 +46,8 @@ export async function classificarPendentes(admin: SupabaseClient, opcoes: { lote
         let prazos = 0;
         let semProcesso = 0;
         const erros: string[] = [];
-        // Contexto de notificação carregado só se alguma publicação ficar sem processo
+        let notificadas = 0;
+        // Contexto de notificação carregado só quando alguma publicação gera evento (vinculada ou sem processo)
         let ctx: ContextoEscritorio | null = null;
 
         for (const pub of pendentes ?? []) {
@@ -87,6 +89,17 @@ export async function classificarPendentes(admin: SupabaseClient, opcoes: { lote
               const sugerido = await sugerirPrazo(admin, { id: pub.id, escritorio_id: escritorio.id, processo_id: processoId, data_disponibilizacao: pub.data_disponibilizacao, ia_execucao_id: execId }, r.dados);
               if (sugerido) prazos += 1;
             }
+            if (processoId) {
+              // Publicação vinculada a processo da carteira: avisa o responsável (painel + WhatsApp, regra nova_publicacao).
+              // A chave_dedup (evento + publicação + destinatário + canal + dia) impede repetição se o job rodar de novo.
+              try {
+                ctx ??= await carregarContexto(admin, escritorio.id);
+                notificadas += await notificarNovaPublicacao(admin, ctx, env.APP_URL, { id: pub.id as string, processoId, tipoOrigem: pub.tipo_origem as string | null, dataDisponibilizacao: pub.data_disponibilizacao as string | null, resumo: r.dados.resumo_simples, sugereSigilo: Boolean(r.dados.sugere_sigilo) });
+              } catch (e) {
+                // A publicação já foi classificada; falha só na notificação não vira erro de IA.
+                erros.push(`${pub.id}: notificação nova_publicacao: ${e instanceof Error ? e.message : String(e)}`);
+              }
+            }
             if (proximoStatus === "sem_processo") {
               // Sócios e administrativo decidem: cadastrar o processo, vincular manualmente ou ignorar (homônimo). Nunca o texto da publicação.
               semProcesso += 1;
@@ -111,11 +124,43 @@ export async function classificarPendentes(admin: SupabaseClient, opcoes: { lote
             if (e instanceof ErroIa && e.tipo === "cancelado_teto") break;
           }
         }
-        return { itens: classificadas, detalhes: { pendentes: pendentes?.length ?? 0, classificadas, prazosSugeridos: prazos, semProcesso, erros } };
+        return { itens: classificadas, detalhes: { pendentes: pendentes?.length ?? 0, classificadas, prazosSugeridos: prazos, semProcesso, notificadas, erros } };
       },
       escritorio.id,
     );
     resumo.push({ escritorio: escritorio.nome, ...r });
   }
   return resumo;
+}
+
+interface PublicacaoVinculada {
+  id: string;
+  processoId: string;
+  tipoOrigem: string | null;
+  dataDisponibilizacao: string | null;
+  resumo: string | null | undefined;
+  sugereSigilo: boolean;
+}
+
+/**
+ * Enfileira `nova_publicacao` para o responsável do processo (sem responsável, a regra manda aos sócios).
+ * Processo em segredo de justiça, ou publicação que a IA sugere sigilo, sai só com número e tipo de evento: nunca o resumo.
+ * Devolve quantas notificações entraram na fila.
+ */
+export async function notificarNovaPublicacao(admin: SupabaseClient, ctx: ContextoEscritorio, appUrl: string, pub: PublicacaoVinculada): Promise<number> {
+  const { data: proc, error } = await admin.from("processos").select("responsavel_id, numero_cnj_mascara, segredo_justica").eq("id", pub.processoId).maybeSingle();
+  if (error) throw new Error(error.message);
+  const mascara = (proc?.numero_cnj_mascara as string | null) ?? "sem número";
+  const sigiloso = Boolean(proc?.segredo_justica) || pub.sugereSigilo;
+  const origem = pub.dataDisponibilizacao ? `${pub.tipoOrigem ?? "DJEN"} de ${formatarDataBR(String(pub.dataDisponibilizacao))}` : (pub.tipoOrigem ?? "DJEN");
+  const link = `${appUrl}/publicacoes/${pub.id}`;
+  const vars = variaveisNovaPublicacao({ processoMascara: mascara, origem, resumo: pub.resumo ?? null, sigiloso, linkPainel: link });
+  const resumoCurto = sigiloso ? "" : pub.resumo?.trim() ? ` ${pub.resumo.trim()}` : "";
+  const texto = `📄 Nova publicação no processo ${mascara} (${origem}).${resumoCurto} Trate no painel: ${link}`;
+  return enfileirarEvento(admin, ctx, {
+    evento: "nova_publicacao",
+    objeto: { tipo: "publicacao", id: pub.id },
+    responsavelId: (proc?.responsavel_id as string | null) ?? undefined,
+    variaveis: { ...Object.fromEntries(vars.map((v, i) => [String(i + 1), v])), numero_processo: mascara, link, texto, assunto: `Nova publicação: ${mascara}`, html: `<p>${texto}</p>` },
+  });
 }

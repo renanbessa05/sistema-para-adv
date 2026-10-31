@@ -6,6 +6,8 @@ import { z } from "zod";
 import { exigirSessao } from "@/server/sessao";
 import { aprovarEtapa, arquivarMinuta, criarMinuta, devolverEtapa, enviarMinutaParaAprovacao, ErroMinuta, gerarEtapaComDocumentos, marcarProtocolada, novaVersaoManual, pularEtapas } from "@/server/minutas";
 import { AREAS, TIPOS_PECA } from "@/lib/ia/schemas/minutas";
+import { criarClienteServidor } from "@/lib/supabase/server";
+import { ErroRevisao, revisarTexto } from "@/server/revisoes";
 
 function t(fd: FormData, n: string): string {
   const v = fd.get(n);
@@ -21,8 +23,8 @@ function ok(destino: string, msg: string): never {
 export async function novaMinutaAction(fd: FormData) {
   const sessao = await exigirSessao();
   const campos = z
-    .object({ processo_id: z.uuid().optional().or(z.literal("")), prazo_id: z.uuid().optional().or(z.literal("")), tipo_peca: z.enum(TIPOS_PECA), area: z.enum(AREAS), modo: z.enum(["A", "B", "C"]), titulo: z.string().min(3).max(160), relato: z.string().max(40000), rascunho: z.string().max(60000), grau: z.enum(["primeiro", "segundo"]) })
-    .safeParse({ processo_id: t(fd, "processo_id"), prazo_id: t(fd, "prazo_id"), tipo_peca: t(fd, "tipo_peca"), area: t(fd, "area"), modo: t(fd, "modo"), titulo: t(fd, "titulo"), relato: t(fd, "relato"), rascunho: t(fd, "rascunho"), grau: t(fd, "grau") || "primeiro" });
+    .object({ processo_id: z.uuid().optional().or(z.literal("")), prazo_id: z.uuid().optional().or(z.literal("")), tarefa_id: z.uuid().optional().or(z.literal("")), tipo_peca: z.enum(TIPOS_PECA), area: z.enum(AREAS), modo: z.enum(["A", "B", "C"]), titulo: z.string().min(3).max(160), relato: z.string().max(40000), rascunho: z.string().max(60000), grau: z.enum(["primeiro", "segundo"]) })
+    .safeParse({ processo_id: t(fd, "processo_id"), prazo_id: t(fd, "prazo_id"), tarefa_id: t(fd, "tarefa_id"), tipo_peca: t(fd, "tipo_peca"), area: t(fd, "area"), modo: t(fd, "modo"), titulo: t(fd, "titulo"), relato: t(fd, "relato"), rascunho: t(fd, "rascunho"), grau: t(fd, "grau") || "primeiro" });
   if (!campos.success) redirect(`/minutas/nova?erro=${encodeURIComponent("Preencha título, tipo de peça, área e modo.")}`);
   if (campos.data.modo === "B" && !campos.data.rascunho) redirect(`/minutas/nova?erro=${encodeURIComponent("No Modo B cole o rascunho.")}`);
   if (campos.data.modo !== "B" && campos.data.relato.length < 20) redirect(`/minutas/nova?erro=${encodeURIComponent("Escreva o relato do caso (ao menos 20 caracteres).")}`);
@@ -31,6 +33,7 @@ export async function novaMinutaAction(fd: FormData) {
     id = await criarMinuta(sessao, {
       processoId: campos.data.processo_id || null,
       prazoId: campos.data.prazo_id || null,
+      tarefaId: campos.data.tarefa_id || null,
       tipoPeca: campos.data.tipo_peca,
       area: campos.data.area,
       modo: campos.data.modo,
@@ -132,7 +135,11 @@ export async function marcarProtocoladaAction(minutaId: string, fd: FormData) {
     falhar(`/minutas/${minutaId}`, e);
   }
   revalidatePath(`/minutas/${minutaId}`);
-  ok(`/minutas/${minutaId}`, "Protocolo registrado.");
+  revalidatePath("/tarefas");
+  revalidatePath("/prazos");
+  revalidatePath("/publicacoes");
+  revalidatePath("/hoje");
+  ok(`/minutas/${minutaId}`, "Protocolo registrado. Tarefa e prazo ligados foram fechados.");
 }
 
 export async function arquivarMinutaAction(minutaId: string, fd: FormData) {
@@ -145,4 +152,27 @@ export async function arquivarMinutaAction(minutaId: string, fd: FormData) {
   }
   revalidatePath("/minutas");
   redirect("/minutas");
+}
+
+/** Revisão da versão atual pela IA (mesmo revisor da tela /revisor), gravada ligada à versão. Leva ao relatório. */
+export async function revisarVersaoAction(minutaId: string, versaoId: string) {
+  const sessao = await exigirSessao();
+  const destino = `/minutas/${minutaId}`;
+  let id: string;
+  try {
+    const supabase = await criarClienteServidor();
+    const [{ data: versao }, { data: minuta }] = await Promise.all([
+      supabase.from("minuta_versoes").select("id, conteudo_md").eq("id", versaoId).eq("minuta_id", minutaId).maybeSingle(),
+      supabase.from("minutas").select("tipo_peca, intake, processos(numero_cnj)").eq("id", minutaId).maybeSingle(),
+    ]);
+    if (!versao || !minuta) throw new ErroRevisao("Versão não encontrada.");
+    const intake = (minuta.intake ?? {}) as { grau?: string };
+    const rel = minuta.processos as { numero_cnj?: string } | { numero_cnj?: string }[] | null;
+    const cnj = Array.isArray(rel) ? rel[0]?.numero_cnj : rel?.numero_cnj;
+    id = await revisarTexto(sessao, { texto: String(versao.conteudo_md ?? ""), tipoPeca: String(minuta.tipo_peca), grau: intake.grau === "segundo" ? "segundo" : "primeiro", processoCnj: cnj ?? null, minutaVersaoId: versaoId, origem: "versao" });
+  } catch (e) {
+    falhar(destino, e);
+  }
+  revalidatePath(destino);
+  redirect(`/revisor?rev=${id}`);
 }

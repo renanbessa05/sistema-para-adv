@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { extrairDigitosCnj, validarDigitosCnj } from "@/lib/cnj/numero-cnj";
-import { mensagemErroBanco } from "@/server/publicacoes";
+import { mensagemErroBanco, sugerirPrazoAposVinculo } from "@/server/publicacoes";
 
 const Id = z.uuid();
 
@@ -48,7 +48,23 @@ export async function vincularPublicacao(fd: FormData) {
     processoId = data.id as string;
   }
   if (!Id.safeParse(processoId).success) voltar(id.data, { erro: "Escolha um processo ou informe o número CNJ." });
-  await transicionar(id.data, "vinculada", { processo_id: processoId, vinculo_tipo: "manual" }, "Publicação vinculada ao processo.");
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc("transicionar_publicacao", { p_id: id.data, p_para: "vinculada", p_dados: { processo_id: processoId, vinculo_tipo: "manual" } });
+  if (error) voltar(id.data, { erro: mensagemErroBanco(error) });
+  // Fio: vinculou → se a classificação diz que há prazo, o prazo sugerido nasce agora e a pessoa vai direto confirmá-lo.
+  let prazoId: string | null = null;
+  try {
+    prazoId = await sugerirPrazoAposVinculo(supabase, id.data);
+  } catch {
+    prazoId = null;
+  }
+  revalidatePath("/publicacoes");
+  revalidatePath(`/publicacoes/${id.data}`);
+  revalidatePath("/prazos");
+  revalidatePath("/hoje");
+  revalidatePath(`/processos/${processoId}`);
+  if (prazoId) redirect(`/prazos/${prazoId}?ok=${encodeURIComponent("Publicação vinculada. Este é o prazo sugerido: confira a contagem e confirme.")}`);
+  voltar(id.data, { ok: "Publicação vinculada ao processo. Se ela abre prazo, marque; se não, use «Sem prazo»." });
 }
 
 const MOTIVOS_IGNORAR: Record<string, string> = { homonimo: "Homônimo", processo_de_colega: "Processo de colega", outro: "Outro" };

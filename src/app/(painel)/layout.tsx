@@ -15,18 +15,22 @@ export default async function LayoutPainel({ children }: { children: React.React
   const sessao = await obterSessao();
   if (!sessao) redirect("/sem-escritorio");
   const supabase = await criarClienteServidor();
-  const [, { count }] = await Promise.all([
+  const aprova = sessao.papel === "socio" || sessao.papel === "advogado";
+  const [, { count }, { count: pendentes }] = await Promise.all([
     exigirMfaSeNecessario(sessao),
     supabase.from("notificacoes").select("id", { count: "exact", head: true }).eq("destinatario_id", sessao.usuarioId).eq("canal", "painel").in("status", ["enviada", "entregue"]).is("lida_em", null),
+    aprova ? supabase.from("aprovacoes").select("id", { count: "exact", head: true }).eq("status", "pendente") : Promise.resolve({ count: 0 }),
   ]);
   const naoLidas = count ?? 0;
+  const aprovacoesPendentes = pendentes ?? 0;
   const grupos = gruposDoMenu(sessao.papel);
+  const nomeEscritorio = sessao.vinculos.find((v) => v.escritorioId === sessao.escritorioId)?.nome ?? "Escritório";
 
   return (
     <div className="flex min-h-screen">
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col overflow-y-auto bg-marca-900 px-3 py-5 md:flex">
         <Link href="/hoje" className="mb-6 px-3">
-          <p className="text-sm font-semibold tracking-wide text-white">Costa Abdo Advocacia</p>
+          <p className="text-sm font-semibold tracking-wide text-white">{nomeEscritorio}</p>
           <p className="mt-0.5 text-xs text-ouro-500">Assistente Jurídica</p>
         </Link>
         <MenuLateral grupos={grupos} />
@@ -38,8 +42,25 @@ export default async function LayoutPainel({ children }: { children: React.React
             <Link href="/hoje" className="text-sm font-semibold text-marca-600 md:hidden">
               Assistente Jurídica
             </Link>
-            <div className="ml-auto flex items-center gap-3 text-sm">
+            <div className="ml-auto flex items-center gap-2 text-sm sm:gap-3">
               <SeletorEscritorio vinculos={sessao.vinculos} atual={sessao.escritorioId} />
+              <Link href="/assistente" className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-zinc-600 hover:bg-zinc-100" aria-label="Assistente" title="Perguntar à assistente">
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <path d="M4 5h16v11H9l-5 4z" />
+                  <path d="M8 9h8M8 12h5" />
+                </svg>
+                <span className="hidden lg:inline">Assistente</span>
+              </Link>
+              {aprova ? (
+                <Link href="/aprovacoes" className="relative inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-zinc-600 hover:bg-zinc-100" aria-label={aprovacoesPendentes ? `Aprovações: ${aprovacoesPendentes} pendentes` : "Aprovações"} title="Aprovações pendentes">
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                    <path d="M9 11l3 3 8-8" />
+                    <path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9" />
+                  </svg>
+                  <span className="hidden lg:inline">Aprovações</span>
+                  {aprovacoesPendentes ? <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-ouro-500 px-1 text-[10px] font-semibold leading-4 text-white">{aprovacoesPendentes}</span> : null}
+                </Link>
+              ) : null}
               <Link href="/notificacoes" className="relative inline-flex h-8 w-8 items-center justify-center rounded-md text-zinc-600 hover:bg-zinc-100" aria-label={naoLidas ? `Notificações: ${naoLidas} não lidas` : "Notificações"}>
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                   <path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8" />

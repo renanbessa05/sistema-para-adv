@@ -1,5 +1,8 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { criarClienteAdmin } from "@/lib/supabase/admin";
+import { ClassificacaoPublicacaoSchema } from "@/lib/ia/schemas/classificacao";
+import { sugerirPrazo } from "./prazos";
 
 /**
  * Consultas de publicações para o painel. Sempre com o cliente do usuário (RLS) e lista explícita de colunas:
@@ -242,4 +245,31 @@ export function mensagemErroBanco(erro: { message?: string; code?: string; detai
   if (erro.code === "P0002" && /not found|não encontrad/i.test(msg)) return msg;
   // Erros do PostgREST vêm às vezes com prefixo técnico; mantém só a frase principal.
   return msg.replace(/^(ERROR|FATAL):\s*/i, "").slice(0, 300);
+}
+
+/**
+ * Depois de um vínculo manual: se a classificação da IA diz que a publicação gera prazo e ainda não há prazo sugerido,
+ * calcula e grava o prazo sugerido (mesmo motor do job `classificar`) e move a publicação para `com_prazo_sugerido`.
+ * Devolve o id do prazo sugerido a decidir (novo ou já existente), ou null quando não há prazo a decidir.
+ */
+export async function sugerirPrazoAposVinculo(supabase: SupabaseClient, publicacaoId: string): Promise<string | null> {
+  const { data: pub } = await supabase.from("publicacoes").select("id, escritorio_id, processo_id, data_disponibilizacao, classificacao, ia_execucao_id, status").eq("id", publicacaoId).maybeSingle();
+  if (!pub || !pub.processo_id) return null;
+  const { data: existentes } = await supabase.from("prazos").select("id, status").eq("publicacao_id", publicacaoId).order("criado_em", { ascending: false });
+  const sugerido = (existentes ?? []).find((p) => p.status === "sugerido");
+  if (sugerido) return sugerido.id as string;
+  if ((existentes ?? []).length > 0) return null;
+  const classificacao = ClassificacaoPublicacaoSchema.safeParse(pub.classificacao);
+  if (!classificacao.success || !classificacao.data.gera_prazo) return null;
+  const admin = criarClienteAdmin();
+  const resultado = await sugerirPrazo(
+    admin,
+    { id: pub.id as string, escritorio_id: pub.escritorio_id as string, processo_id: pub.processo_id as string, data_disponibilizacao: (pub.data_disponibilizacao as string | null) ?? null, ia_execucao_id: (pub.ia_execucao_id as string | null) ?? null },
+    classificacao.data,
+  );
+  if (!resultado) return null;
+  if (pub.status === "vinculada") {
+    await supabase.rpc("transicionar_publicacao", { p_id: publicacaoId, p_para: "com_prazo_sugerido", p_dados: { prazo_id: resultado.prazoId, origem: "vinculo_manual" } });
+  }
+  return resultado.prazoId;
 }

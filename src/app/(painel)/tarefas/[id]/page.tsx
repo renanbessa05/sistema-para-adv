@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { Campo, Input, Select, Textarea } from "@/components/ui/input";
 import { alterarStatusTarefa, cancelarTarefa, concluirTarefa, editarTarefa, reatribuirTarefa } from "../actions";
+import { ProximoPasso } from "@/components/dominio/ProximoPasso";
 
 export const metadata = { title: "Tarefa" };
 export const dynamic = "force-dynamic";
@@ -56,10 +57,11 @@ export default async function PaginaTarefa({ params, searchParams }: { params: P
     .maybeSingle();
   if (!bruto) notFound();
 
-  const [{ data: escritorio }, membros, { data: eventos }] = await Promise.all([
+  const [{ data: escritorio }, membros, { data: eventos }, { data: minuta }] = await Promise.all([
     supabase.from("escritorios").select("timezone").eq("id", sessao.escritorioId).maybeSingle(),
     listarMembros(supabase, sessao.escritorioId, { somenteAtivos: false }),
     supabase.from("tarefa_eventos").select("id, tipo, de_usuario_id, para_usuario_id, usuario_id, dados, criado_em").eq("tarefa_id", id).order("criado_em", { ascending: true }),
+    supabase.from("minutas").select("id, titulo, status").eq("tarefa_id", id).order("criado_em", { ascending: false }).limit(1).maybeSingle(),
   ]);
   const timeZone = (escritorio?.timezone as string | undefined) ?? "America/Cuiaba";
   const hoje = hojeNoFuso(timeZone);
@@ -69,6 +71,17 @@ export default async function PaginaTarefa({ params, searchParams }: { params: P
   const pode = permissoesTarefa(sessao, tarefa);
   const modoEdicao = editar === "1" && pode.editar;
   const prazoAberto = tarefa.prazos && ["confirmado", "prorrogado", "vencido"].includes(tarefa.prazos.status);
+
+  // Fio: tarefa de protocolar/redigir/revisar com processo pede uma peça; a peça nasce ligada a processo, prazo e tarefa.
+  const tarefaAberta = !["concluida", "cancelada"].includes(tarefa.status);
+  const pedePeca = ["protocolar", "redigir", "revisar"].includes(tarefa.tipo) && Boolean(tarefa.processo_id);
+  const linkNovaPeca = `/minutas/nova?processo=${tarefa.processo_id}${tarefa.prazo_id ? `&prazo=${tarefa.prazo_id}` : ""}&tarefa=${id}`;
+  const podeRedigir = ["socio", "advogado", "estagiario"].includes(sessao.papel);
+  const extrasFio = [
+    ...(tarefa.processo_id ? [{ href: `/processos/${tarefa.processo_id}?aba=prazos`, rotulo: "processo" }] : []),
+    ...(tarefa.prazo_id ? [{ href: `/prazos/${tarefa.prazo_id}`, rotulo: "prazo" }] : []),
+    ...(tarefa.publicacao_id ? [{ href: `/publicacoes/${tarefa.publicacao_id}`, rotulo: "publicação" }] : []),
+  ];
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-4">
@@ -87,14 +100,35 @@ export default async function PaginaTarefa({ params, searchParams }: { params: P
             {TIPOS_TAREFA[tarefa.tipo] ?? tarefa.tipo} · prioridade {PRIORIDADES[tarefa.prioridade] ?? tarefa.prioridade} · origem {tarefa.origem}
           </p>
         </div>
-        {pode.editar ? (
-          <Link href={modoEdicao ? `/tarefas/${id}` : `/tarefas/${id}?editar=1`} className="inline-flex h-9 items-center rounded-md border border-zinc-300 px-4 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
-            {modoEdicao ? "Fechar edição" : "Editar"}
-          </Link>
-        ) : null}
+        <div className="flex flex-wrap gap-2">
+          {tarefaAberta && podeRedigir && minuta ? (
+            <Link href={`/minutas/${minuta.id as string}`} className="inline-flex h-9 items-center rounded-md bg-marca-600 px-4 text-sm text-white shadow-sm hover:bg-marca-700">
+              Continuar peça
+            </Link>
+          ) : tarefaAberta && podeRedigir && pedePeca ? (
+            <Link href={linkNovaPeca} className="inline-flex h-9 items-center rounded-md bg-marca-600 px-4 text-sm text-white shadow-sm hover:bg-marca-700">
+              Redigir peça
+            </Link>
+          ) : null}
+          {pode.editar ? (
+            <Link href={modoEdicao ? `/tarefas/${id}` : `/tarefas/${id}?editar=1`} className="inline-flex h-9 items-center rounded-md border border-zinc-300 px-4 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
+              {modoEdicao ? "Fechar edição" : "Editar"}
+            </Link>
+          ) : null}
+        </div>
       </div>
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       {ok ? <Alert tom="sucesso">{ok}</Alert> : null}
+
+      {tarefa.status === "concluida" ? (
+        <ProximoPasso concluido titulo="Tarefa concluída" descricao={tarefa.prazos ? `Prazo ligado: ${tarefa.prazos.status}.` : undefined} extras={extrasFio} />
+      ) : tarefa.status === "cancelada" ? null : minuta ? (
+        <ProximoPasso titulo={`Peça em andamento: ${minuta.titulo as string}`} descricao="Ao marcar a peça como protocolada, esta tarefa é concluída e o prazo ligado, cumprido." href={`/minutas/${minuta.id as string}`} rotulo="Continuar peça" extras={extrasFio} />
+      ) : pedePeca && podeRedigir ? (
+        <ProximoPasso tom={tarefa.atrasada ? "perigo" : "info"} titulo="Redigir a peça desta tarefa" descricao={`A minuta nasce ligada ao processo${tarefa.prazo_id ? ", ao prazo" : ""} e a esta tarefa. Protocolada, fecha tudo sozinha.${tarefa.vencimento ? ` Vencimento interno: ${formatarData(tarefa.vencimento)}.` : ""}`} href={linkNovaPeca} rotulo="Redigir peça" extras={extrasFio} />
+      ) : (
+        <ProximoPasso tom={tarefa.atrasada ? "perigo" : "info"} titulo="Faça a tarefa e conclua aqui" descricao={`${prazoAberto ? "Se protocolou, marque «Protocolado» ao concluir para cumprir o prazo." : "Quando terminar, use «Concluir tarefa» ao lado."}${tarefa.vencimento ? ` Vencimento interno: ${formatarData(tarefa.vencimento)}.` : ""}`} extras={extrasFio} />
+      )}
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="md:col-span-2">

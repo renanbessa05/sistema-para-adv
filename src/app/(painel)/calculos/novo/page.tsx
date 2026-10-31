@@ -11,9 +11,9 @@ import { novoCalculoAction } from "../actions";
 export const metadata = { title: "Novo cálculo" };
 export const dynamic = "force-dynamic";
 
-export default async function PaginaNovoCalculo({ searchParams }: { searchParams: Promise<{ erro?: string }> }) {
+export default async function PaginaNovoCalculo({ searchParams }: { searchParams: Promise<{ erro?: string; processo?: string }> }) {
   await exigirSessao();
-  const { erro } = await searchParams;
+  const { erro, processo } = await searchParams;
   const supabase = await criarClienteServidor();
   const [regras, { data: processos }] = await Promise.all([
     listarRegras(supabase),
@@ -41,7 +41,7 @@ export default async function PaginaNovoCalculo({ searchParams }: { searchParams
               <Input name="titulo" required />
             </Campo>
             <Campo label="Processo (opcional)">
-              <Select name="processo_id" defaultValue="">
+              <Select name="processo_id" defaultValue={processo ?? ""}>
                 <option value="">Sem processo</option>
                 {(processos ?? []).map((p) => (
                   <option key={p.id as string} value={p.id as string}>

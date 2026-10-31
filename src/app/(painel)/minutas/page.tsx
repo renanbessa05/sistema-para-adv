@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 
 const TOM: Record<string, "info" | "sucesso" | "alerta" | "perigo" | "neutro"> = { rascunho: "neutro", em_etapas: "info", redigida: "info", em_revisao_ia: "info", aguardando_aprovacao: "alerta", devolvida: "perigo", aprovada: "sucesso", protocolada: "sucesso", arquivada: "neutro", cancelada: "neutro" };
 
+/** Central de peças: as três portas de entrada em cima, a lista de minutas no meio, as ferramentas de apoio embaixo. */
 export default async function PaginaMinutas({ searchParams }: { searchParams: Promise<{ status?: string; erro?: string; ok?: string }> }) {
   await exigirSessao();
   const { status, erro, ok } = await searchParams;
@@ -21,22 +22,19 @@ export default async function PaginaMinutas({ searchParams }: { searchParams: Pr
   const minutas = await listarMinutas(supabase, { status: status || undefined });
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Peças</h1>
-          <p className="text-sm text-zinc-500">Minutas conduzidas em seis etapas com aprovação (caso novo), revisão de rascunho ou redação direta, e varredura dos autos de processo em curso.</p>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/varreduras/nova" className="inline-flex h-9 items-center rounded-md border border-zinc-300 px-4 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
-            Varredura dos autos
-          </Link>
-          <Link href="/minutas/nova" className="inline-flex h-9 items-center rounded-md bg-marca-600 px-4 text-sm text-white shadow-sm hover:bg-marca-700 dark:bg-zinc-100 dark:text-zinc-900">
-            Nova minuta
-          </Link>
-        </div>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Peças</h1>
+        <p className="text-sm text-zinc-500">Tudo que se escreve para o processo começa aqui. Peça ligada a prazo e tarefa fecha os dois ao ser protocolada.</p>
       </div>
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       {ok ? <Alert tom="sucesso">{ok}</Alert> : null}
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Porta href="/minutas/nova" titulo="Nova peça" descricao="Redação direta, a partir de um rascunho seu, ou em seis etapas com aprovação (caso novo)." principal />
+        <Porta href="/revisor" titulo="Revisar peça pronta" descricao="Cole o texto já redigido e receba a conferência de quem vai julgar: OK, atenção ou crítico." />
+        <Porta href="/varreduras/nova" titulo="Varrer os autos" descricao="A IA lê os autos a favor do cliente e lista os pontos exploráveis; os aprovados viram peça." />
+      </div>
+
       <div className="flex flex-wrap gap-1 text-sm">
         {["", "em_etapas", "redigida", "aguardando_aprovacao", "devolvida", "aprovada", "protocolada"].map((s) => (
           <Link key={s || "todos"} href={s ? `/minutas?status=${s}` : "/minutas"} className={`rounded-md px-2 py-1 ${(status ?? "") === s ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900" : "hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}>
@@ -87,6 +85,28 @@ export default async function PaginaMinutas({ searchParams }: { searchParams: Pr
           )}
         </CardContent>
       </Card>
+
+      <div>
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Ferramentas de apoio</h2>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Porta href="/calculos" titulo="Cálculos" descricao="Atualização de dívida e juros com índices do BCB, memória em PDF e aprovação." />
+          <Porta href="/jurisprudencia" titulo="Jurisprudência" descricao="Busca na base importada do escritório, com trechos para citar na peça." />
+          <Porta href="/assistente" titulo="Assistente" descricao="Pergunte sobre a carteira em linguagem natural; ela abre a tela certa para agir." />
+        </div>
+      </div>
     </div>
+  );
+}
+
+function Porta({ href, titulo, descricao, principal }: { href: string; titulo: string; descricao: string; principal?: boolean }) {
+  return (
+    <Link href={href} className="group block focus-visible:outline-none">
+      <Card className={`h-full transition-colors ${principal ? "border-marca-600 bg-marca-600 text-white hover:bg-marca-700" : "hover:bg-zinc-50 dark:hover:bg-zinc-900"}`}>
+        <CardContent className="p-4">
+          <p className="font-medium">{titulo} →</p>
+          <p className={`text-sm ${principal ? "text-white/80" : "text-zinc-500"}`}>{descricao}</p>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }

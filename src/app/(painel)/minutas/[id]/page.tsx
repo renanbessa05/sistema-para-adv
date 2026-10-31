@@ -14,7 +14,8 @@ import { Campo, Input, Select, Textarea } from "@/components/ui/input";
 import { Markdown } from "@/components/dominio/Markdown";
 import { CartaoDocumentos } from "@/components/dominio/CartaoDocumentos";
 import { formatarDataHora } from "@/lib/utils";
-import { aprovarEtapaAction, arquivarMinutaAction, devolverEtapaAction, enviarAprovacaoMinutaAction, gerarEtapaAction, marcarProtocoladaAction, novaVersaoAction, pularEtapasAction } from "../actions";
+import { ProximoPasso } from "@/components/dominio/ProximoPasso";
+import { aprovarEtapaAction, arquivarMinutaAction, devolverEtapaAction, enviarAprovacaoMinutaAction, gerarEtapaAction, marcarProtocoladaAction, novaVersaoAction, pularEtapasAction, revisarVersaoAction } from "../actions";
 
 export const metadata = { title: "Minuta" };
 export const dynamic = "force-dynamic";
@@ -28,19 +29,36 @@ export default async function PaginaMinuta({ params, searchParams }: { params: P
   const supabase = await criarClienteServidor();
   const m = await obterMinuta(supabase, id);
   if (!m) notFound();
-  const [etapas, versoes, documentos, { data: esc }, { data: processo }] = await Promise.all([
+  const [etapas, versoes, documentos, { data: esc }, { data: processo }, { data: tarefaLigada }, { data: prazoLigado }] = await Promise.all([
     listarEtapas(supabase, id),
     listarVersoes(supabase, id),
     listarDocumentos(supabase, { processoId: m.processo_id ?? undefined, limite: 50 }).catch(() => []),
     supabase.from("escritorios").select("timezone").eq("id", sessao.escritorioId).maybeSingle(),
     m.processo_id ? supabase.from("processos").select("numero_cnj_mascara").eq("id", m.processo_id).maybeSingle() : Promise.resolve({ data: null }),
+    m.tarefa_id ? supabase.from("tarefas").select("id, titulo, status").eq("id", m.tarefa_id).maybeSingle() : Promise.resolve({ data: null }),
+    m.prazo_id ? supabase.from("prazos").select("id, ato_descricao, data_final, status").eq("id", m.prazo_id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const timeZone = (esc?.timezone as string | undefined) ?? "America/Cuiaba";
   const podeAprovar = ["socio", "advogado"].includes(sessao.papel);
   const versaoAtual = versoes.find((v) => v.id === m.versao_atual_id) ?? versoes[0] ?? null;
+  const { data: revisoesData } = versaoAtual ? await supabase.from("minuta_revisoes").select("id, veredito, criticos_abertos, criado_em").eq("minuta_versao_id", versaoAtual.id).order("criado_em", { ascending: false }).limit(5) : { data: [] };
+  const revisoes = (revisoesData ?? []) as { id: string; veredito: string | null; criticos_abertos: number; criado_em: string }[];
   const emAndamento = ["rascunho", "em_etapas", "devolvida", "redigida", "em_revisao_ia"].includes(m.status);
   const docsDaMinuta = documentos.filter((d) => versoes.some((v) => v.documento_id === d.id));
   const validacao = (versaoAtual?.validacao ?? {}) as { itens?: ItemValidacao[]; lacunas?: number; pronta?: boolean; laudas_estimadas?: number };
+  const extrasFio = [
+    ...(m.processo_id ? [{ href: `/processos/${m.processo_id}?aba=pecas`, rotulo: "processo" }] : []),
+    ...(prazoLigado ? [{ href: `/prazos/${prazoLigado.id as string}`, rotulo: `prazo (${prazoLigado.status as string})` }] : []),
+    ...(tarefaLigada ? [{ href: `/tarefas/${tarefaLigada.id as string}`, rotulo: `tarefa (${tarefaLigada.status as string})` }] : []),
+  ];
+  const passo = (() => {
+    if (m.status === "protocolada") return { concluido: true, titulo: `Peça protocolada${m.protocolo_numero ? ` · ${m.protocolo_numero}` : ""}`, descricao: [tarefaLigada ? `Tarefa ${tarefaLigada.status as string}.` : null, prazoLigado ? `Prazo ${prazoLigado.status as string}.` : null].filter(Boolean).join(" ") || "Nada mais a fazer aqui." };
+    if (m.status === "aprovada") return { tom: "alerta" as const, titulo: "Protocole no PJe e marque como protocolada aqui", descricao: "Baixe o .docx abaixo, protocole e registre o número. Isso conclui a tarefa e cumpre o prazo ligados." };
+    if (m.status === "aguardando_aprovacao") return { titulo: "Aguardando aprovação", descricao: "Sócio ou advogado decide em Aprovações.", href: "/aprovacoes", rotulo: "Abrir Aprovações" };
+    if (["redigida", "devolvida", "em_revisao_ia"].includes(m.status)) return { titulo: "Revise o texto e envie para aprovação", descricao: m.status === "devolvida" ? "A peça foi devolvida com comentários: ajuste e reenvie." : "Edite se precisar, salve a versão e use «Enviar para aprovação»." };
+    if (m.modo === "C") return { titulo: `Gere e aprove a etapa ${m.etapa_atual} de 6`, descricao: "Cada etapa é gerada pela IA e aprovada por você antes da seguinte. A redação só vem na última." };
+    return { titulo: "Gere a redação com a IA", descricao: m.modo === "B" ? "A IA revisa o rascunho colado e devolve a versão corrigida." : "A IA redige a peça a partir do relato e dos documentos marcados." };
+  })();
 
   return (
     <div className="flex flex-col gap-4">
@@ -79,6 +97,7 @@ export default async function PaginaMinuta({ params, searchParams }: { params: P
       </div>
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       {ok ? <Alert tom="sucesso">{ok}</Alert> : null}
+      {["arquivada", "cancelada"].includes(m.status) ? null : <ProximoPasso {...passo} extras={extrasFio} />}
 
       {/* Stepper */}
       {m.modo === "C" ? (
@@ -206,6 +225,36 @@ export default async function PaginaMinuta({ params, searchParams }: { params: P
               </form>
             ) : null}
             {docsDaMinuta.length ? <CartaoDocumentos documentos={docsDaMinuta} voltar={`/minutas/${id}`} processoId={m.processo_id ?? undefined} papel={sessao.papel} timeZone={timeZone} /> : null}
+            {versaoAtual && (emAndamento || m.status === "aprovada") ? (
+              <div className="flex flex-col gap-2 rounded-md border border-zinc-200 p-3 text-sm dark:border-zinc-800">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="font-medium">Revisão pela IA (como o juiz e a triagem do PJe leriam)</p>
+                    <p className="text-xs text-zinc-500">Crítico aberto segura o envio para aprovação até ser resolvido ou justificado no relatório.</p>
+                  </div>
+                  <form action={revisarVersaoAction.bind(null, id, versaoAtual.id)}>
+                    <Button type="submit" variante="secundaria">
+                      Revisar esta versão com a IA
+                    </Button>
+                  </form>
+                </div>
+                {revisoes.length ? (
+                  <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                    {revisoes.map((r) => (
+                      <li key={r.id} className="flex items-center justify-between gap-2 py-1.5">
+                        <Link href={`/revisor?rev=${r.id}`} className="hover:underline">
+                          {r.veredito ?? "Relatório de revisão"}
+                        </Link>
+                        <span className="flex items-center gap-2 whitespace-nowrap text-xs text-zinc-500">
+                          <Badge tom={r.criticos_abertos > 0 ? "perigo" : "sucesso"}>{r.criticos_abertos > 0 ? `${r.criticos_abertos} crítico(s)` : "sem críticos"}</Badge>
+                          {formatarDataHora(r.criado_em, timeZone)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
             {versaoAtual && ["redigida", "devolvida", "em_revisao_ia"].includes(m.status) && podeAprovar ? (
               <form action={enviarAprovacaoMinutaAction.bind(null, id)} className="flex items-end gap-2">
                 <Campo label={validacao.lacunas ? `Há ${validacao.lacunas} lacuna(s): justifique para enviar mesmo assim` : "Comentário (opcional)"}>

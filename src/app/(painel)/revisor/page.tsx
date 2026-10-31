@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Campo, Input, Select, Textarea } from "@/components/ui/input";
 import { Markdown } from "@/components/dominio/Markdown";
+import Link from "next/link";
 import { resolverItemAction, revisarAction } from "./actions";
 
 export const metadata = { title: "Revisor" };
@@ -19,10 +20,21 @@ export default async function PaginaRevisor({ searchParams }: { searchParams: Pr
   const { rev, erro } = await searchParams;
   const supabase = await criarClienteServidor();
   const revisao = rev ? await obterRevisao(supabase, rev) : null;
+  const { data: versaoDaMinuta } = revisao?.minuta_versao_id ? await supabase.from("minuta_versoes").select("minuta_id").eq("id", revisao.minuta_versao_id).maybeSingle() : { data: null };
+  const minutaId = (versaoDaMinuta?.minuta_id as string | undefined) ?? null;
   const podeResolver = ["socio", "advogado"].includes(sessao.papel);
   return (
     <div className="flex flex-col gap-4">
       <div>
+        {minutaId ? (
+          <Link href={`/minutas/${minutaId}`} className="text-sm text-zinc-500 hover:underline">
+            ← Voltar à peça
+          </Link>
+        ) : (
+          <Link href="/minutas" className="text-sm text-zinc-500 hover:underline">
+            ← Peças
+          </Link>
+        )}
         <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Revisor de peças</h1>
         <p className="text-sm text-zinc-500">Cole a petição para conferir antes do protocolo. A análise lê como o juiz e a triagem do PJe leriam; o que o sistema consegue conferir sozinho (CNJ, Doc. NN, lacunas, prazo) prevalece sobre a leitura da IA.</p>
       </div>
@@ -30,7 +42,7 @@ export default async function PaginaRevisor({ searchParams }: { searchParams: Pr
       <Card>
         <CardHeader>
           <CardTitle>Peça para revisar</CardTitle>
-          <CardDescription>Texto colado. Revisão de versão de minuta e de arquivo .docx ficam para a tela da própria peça.</CardDescription>
+          <CardDescription>Texto colado. Para revisar uma minuta do sistema, use «Revisar esta versão com a IA» na tela da própria peça.</CardDescription>
         </CardHeader>
         <CardContent>
           <form action={revisarAction} className="grid gap-2 sm:grid-cols-3">

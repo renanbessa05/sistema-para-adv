@@ -1,6 +1,9 @@
 /**
- * Menu do painel, agrupado por área de trabalho. Quem vê cada item segue as mesmas regras de papel que o menu
- * anterior: nada novo fica visível para papel que não via antes.
+ * Menu do painel: oito itens, na ordem do dia de trabalho. Tudo o mais (assistente, aprovações, audiências,
+ * contratos, atendimento, revisor, varredura, cálculos, jurisprudência, relatórios e administração) continua
+ * existindo nas rotas antigas, mas é alcançado de dentro das telas-mãe: cabeçalho, Processo, Cliente, Peças,
+ * Prazos e Configurações. Quem vê cada item segue as mesmas regras de papel de antes: nada novo fica visível
+ * para papel que não via.
  */
 export interface ItemMenu {
   href: string;
@@ -15,57 +18,29 @@ export interface GrupoMenu {
 type Papel = "socio" | "advogado" | "estagiario" | "administrativo" | "suporte";
 
 export function gruposDoMenu(papel: Papel | string): GrupoMenu[] {
-  const socio = papel === "socio";
-  const advogado = papel === "advogado";
-  const administrativo = papel === "administrativo";
-  const gestao = socio || advogado || administrativo;
-
   const grupos: GrupoMenu[] = [
     {
-      titulo: "Trabalho",
+      titulo: "Dia a dia",
       itens: [
         { href: "/hoje", rotulo: "Hoje" },
-        { href: "/assistente", rotulo: "Assistente" },
         { href: "/publicacoes", rotulo: "Publicações" },
         { href: "/prazos", rotulo: "Prazos" },
         { href: "/tarefas", rotulo: "Tarefas" },
-        { href: "/audiencias", rotulo: "Audiências" },
-        { href: "/aprovacoes", rotulo: "Aprovações" },
       ],
     },
     {
-      titulo: "Clientes e processos",
+      titulo: "Carteira",
       itens: [
         { href: "/processos", rotulo: "Processos" },
         { href: "/clientes", rotulo: "Clientes" },
-        { href: "/atendimento", rotulo: "Atendimento" },
-        { href: "/contratos", rotulo: "Contratos" },
+        { href: "/minutas", rotulo: "Peças" },
       ],
     },
     {
-      titulo: "Peças e IA",
-      itens: [
-        { href: "/minutas", rotulo: "Peças" },
-        { href: "/revisor", rotulo: "Revisor" },
-        { href: "/calculos", rotulo: "Cálculos" },
-        { href: "/jurisprudencia", rotulo: "Jurisprudência" },
-      ],
+      titulo: "Escritório",
+      itens: [{ href: "/configuracoes", rotulo: "Configurações" }],
     },
   ];
-
-  const administracao: ItemMenu[] = [];
-  if (socio || advogado) administracao.push({ href: "/relatorios", rotulo: "Relatórios" });
-  if (gestao) {
-    administracao.push({ href: "/admin/status", rotulo: "Rotinas" });
-    administracao.push({ href: "/admin/divergencias", rotulo: "Divergências" });
-  }
-  if (socio) {
-    administracao.push({ href: "/admin/metricas", rotulo: "Métricas" });
-    administracao.push({ href: "/admin/ia", rotulo: "Custo IA" });
-    administracao.push({ href: "/configuracoes/plano", rotulo: "Plano" });
-  }
-  administracao.push({ href: "/configuracoes", rotulo: "Configurações" });
-  grupos.push({ titulo: "Administração", itens: administracao });
 
   if (papel === "suporte") grupos.push({ titulo: "Suporte", itens: [{ href: "/admin/suporte", rotulo: "Suporte" }] });
   return grupos;

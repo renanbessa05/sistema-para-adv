@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Campo, Input, Select, Textarea } from "@/components/ui/input";
+import { ProximoPasso } from "@/components/dominio/ProximoPasso";
 
 export const metadata = { title: "Prazo" };
 export const dynamic = "force-dynamic";
@@ -106,11 +107,12 @@ export default async function PaginaPrazo({ params, searchParams }: { params: Pr
   if (!data) notFound();
   const prazo = data as unknown as Prazo;
 
-  const [{ data: eventosBrutos }, { data: atosBrutos }, membros, timeZone] = await Promise.all([
+  const [{ data: eventosBrutos }, { data: atosBrutos }, membros, timeZone, { data: tarefaLigada }] = await Promise.all([
     supabase.from("prazos_eventos").select("id, tipo, de_status, para_status, usuario_id, dados, criado_em").eq("prazo_id", id).order("criado_em"),
     supabase.from("atos_prazo").select("id, nome, dias, contagem").eq("ativo", true).order("nome"),
     listarMembros(supabase),
     obterTimezone(supabase, sessao.escritorioId),
+    supabase.from("tarefas").select("id, titulo, status").eq("prazo_id", id).order("criado_em", { ascending: false }).limit(1).maybeSingle(),
   ]);
   const eventos = (eventosBrutos ?? []) as unknown as Evento[];
   const atos = (atosBrutos ?? []) as Ato[];
@@ -130,6 +132,12 @@ export default async function PaginaPrazo({ params, searchParams }: { params: Pr
   };
   const efetiva = prazo.quantidade ? prazo.quantidade * (prazo.multiplicador || 1) : null;
   const datasDiferem = prazo.data_sugerida_ia && prazo.data_confirmada && prazo.data_sugerida_ia !== prazo.data_confirmada;
+  const extrasFio = [
+    { href: `/processos/${prazo.processo_id}?aba=prazos`, rotulo: "processo" },
+    ...(prazo.publicacao_id ? [{ href: `/publicacoes/${prazo.publicacao_id}`, rotulo: "publicação" }] : []),
+    ...(tarefaLigada ? [{ href: `/tarefas/${tarefaLigada.id as string}`, rotulo: "tarefa" }] : []),
+  ];
+  const tarefaAberta = Boolean(tarefaLigada) && !["concluida", "cancelada"].includes((tarefaLigada?.status as string) ?? "");
 
   return (
     <div className="flex flex-col gap-4">
@@ -166,6 +174,23 @@ export default async function PaginaPrazo({ params, searchParams }: { params: Pr
 
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       {ok ? <Alert tom="sucesso">{ok}</Alert> : null}
+
+      {st === "sugerido" ? (
+        <ProximoPasso tom="alerta" titulo="Confira a contagem e confirme (ou rejeite) este prazo" descricao={pode ? "Ao confirmar, a tarefa nasce para o responsável com vencimento na data interna. As ações estão no fim da página." : "A decisão cabe ao advogado responsável, colaborador advogado ou sócio."} extras={extrasFio} />
+      ) : st === "confirmado" || st === "prorrogado" ? (
+        tarefaLigada && tarefaAberta ? (
+          <ProximoPasso titulo={`Tarefa: ${tarefaLigada.titulo as string}`} descricao="Faça a peça pela tarefa. Ao protocolar, este prazo é marcado como cumprido sozinho." href={`/tarefas/${tarefaLigada.id as string}`} rotulo="Abrir tarefa" extras={extrasFio} />
+        ) : (
+          <ProximoPasso titulo="Prazo confirmado" descricao={tarefaLigada ? "A tarefa ligada já foi encerrada. Marque o prazo como cumprido se o ato foi praticado." : "Nenhuma tarefa aberta ligada a este prazo. Marque como cumprido quando praticar o ato."} extras={extrasFio} />
+        )
+      ) : st === "vencido" ? (
+        <ProximoPasso tom="perigo" titulo="Prazo vencido" descricao="Se o ato foi praticado, marque como cumprido. Se não, cancele com motivo e registre a divergência." href={tarefaLigada && tarefaAberta ? `/tarefas/${tarefaLigada.id as string}` : undefined} rotulo="Abrir tarefa" extras={extrasFio} />
+      ) : st === "suspenso" ? (
+        <ProximoPasso tom="alerta" titulo="Prazo suspenso" descricao="Retome quando o fundamento permitir; a tarefa ligada acompanha a nova data." extras={extrasFio} />
+      ) : st === "cumprido" ? (
+        <ProximoPasso concluido titulo="Prazo cumprido" descricao={`${prazo.cumprimento_evidencia ? `Evidência: ${ROTULO_EVIDENCIA[prazo.cumprimento_evidencia] ?? prazo.cumprimento_evidencia}.` : ""} A publicação de origem foi marcada como tratada.`} extras={extrasFio} />
+      ) : null}
+
       {!pode ? <Alert tom="info">Estagiário e administrativo não confirmam, rejeitam ou cumprem prazo (Lei 8.906/94, art. 3º, §2º). Peça ao advogado responsável.</Alert> : null}
       {prazo.calendario_incompleto && st === "sugerido" ? (
         <Alert tom="alerta" titulo="Calendário forense incompleto">

@@ -14,6 +14,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Campo, Input, Select } from "@/components/ui/input";
 import { ignorarPublicacao, marcarDuplicada, marcarSemPrazo, marcarTratada, vincularPublicacao } from "../actions";
+import { ProximoPasso } from "@/components/dominio/ProximoPasso";
 
 export const metadata = { title: "Publicação" };
 export const dynamic = "force-dynamic";
@@ -69,6 +70,30 @@ export default async function PaginaPublicacao({ params, searchParams }: { param
   };
   const temAcao = Object.values(acoes).some(Boolean);
 
+  // Fio: o que fazer agora com esta publicação, e para onde ir.
+  const prazoSugerido = prazos.find((p) => p.status === "sugerido") ?? null;
+  const geraPrazo = classificacao.success ? classificacao.data.gera_prazo : null;
+  const extrasFio = [
+    ...(pub.processo_id ? [{ href: `/processos/${pub.processo_id}?aba=andamento`, rotulo: "processo" }] : []),
+    ...prazos.map((p) => ({ href: `/prazos/${p.id}`, rotulo: `prazo (${p.status})` })),
+  ];
+  const passo = (() => {
+    if (st === "nova") return { titulo: "Aguardando a classificação automática", descricao: "A IA lê a publicação a cada 5 minutos em dias úteis e sugere tipo, processo e prazo." };
+    if (st === "classificada" || st === "sem_processo") {
+      if (acoes.cadastrar) return { tom: "alerta" as const, titulo: "Processo não está na carteira: cadastre ou vincule", descricao: "Cadastre com o número desta publicação, vincule a um processo existente ou marque «não é nosso» no fim da página.", href: `/processos/novo?cnj=${pub.numero_cnj}&publicacao=${pub.id}`, rotulo: "Cadastrar na carteira" };
+      return { tom: "alerta" as const, titulo: "Vincule a um processo ou marque «não é nosso»", descricao: "As ações estão no fim da página. Vinculada, a publicação segue para o prazo." };
+    }
+    if (st === "vinculada" || st === "com_prazo_sugerido") {
+      if (prazoSugerido) return { tom: "alerta" as const, titulo: `Confirme o prazo sugerido: ${prazoSugerido.ato_descricao ?? "ato a praticar"}`, descricao: `Data final sugerida ${formatarData(prazoSugerido.data_final)}. Confira a memória de cálculo antes de confirmar.`, href: `/prazos/${prazoSugerido.id}`, rotulo: "Confirmar prazo" };
+      if (prazos.length > 0) return { titulo: "Prazos desta publicação já decididos", descricao: "Acompanhe pelo prazo ou pela tarefa ligada." };
+      if (geraPrazo === false) return { titulo: "A IA entendeu que não abre prazo", descricao: "Se concorda, marque «Sem prazo» no fim da página; depois, «Ciente / tratada»." };
+      return { titulo: "Esta publicação abre prazo?", descricao: "Se não abre, marque «Sem prazo» no fim da página. Se abre e nenhum prazo foi sugerido, confira a classificação e lance o prazo pelo processo." };
+    }
+    if (st === "sem_prazo") return { titulo: "Marque como ciente / tratada", descricao: "Última etapa: registra que alguém leu e decidiu. A ação está no fim da página." };
+    if (st === "tratada") return { concluido: true, titulo: "Publicação tratada", descricao: prazos.length ? "Os prazos ligados estão decididos." : "Nada mais a fazer aqui." };
+    return null;
+  })();
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -96,6 +121,7 @@ export default async function PaginaPublicacao({ params, searchParams }: { param
 
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       {ok ? <Alert tom="sucesso">{ok}</Alert> : null}
+      {passo ? <ProximoPasso {...passo} extras={extrasFio} /> : null}
       {pub.cancelada ? (
         <Alert tom="alerta" titulo="Publicação cancelada pelo tribunal">
           {pub.motivo_cancelamento ?? "Sem motivo informado."} {pub.data_cancelamento ? `(${formatarDataHora(pub.data_cancelamento, timeZone)})` : null}

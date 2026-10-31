@@ -53,11 +53,21 @@ export default async function PaginaClientes({ searchParams }: { searchParams: P
           <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Clientes</h1>
           <p className="text-sm text-zinc-500">{total} cliente(s).</p>
         </div>
-        {podeEditarProcesso(sessao.papel) ? (
-          <Link href="/clientes/novo" className="inline-flex h-9 items-center rounded-md bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900">
-            Novo cliente
+        <div className="flex flex-wrap gap-2">
+          <Link href="/contratos" className="inline-flex h-9 items-center rounded-md border border-zinc-300 px-4 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
+            Contratos
           </Link>
-        ) : null}
+          {sessao.papel === "socio" || sessao.papel === "advogado" ? (
+            <Link href="/atendimento" className="inline-flex h-9 items-center rounded-md border border-zinc-300 px-4 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
+              Atendimento (WhatsApp)
+            </Link>
+          ) : null}
+          {podeEditarProcesso(sessao.papel) ? (
+            <Link href="/clientes/novo" className="inline-flex h-9 items-center rounded-md bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900">
+              Novo cliente
+            </Link>
+          ) : null}
+        </div>
       </div>
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       {ok ? <Alert tom="sucesso">{ok}</Alert> : null}

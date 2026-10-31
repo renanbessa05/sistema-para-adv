@@ -1,89 +1,49 @@
 import { redirect } from "next/navigation";
-import { exigirSessao } from "@/server/sessao";
-import { criarClienteServidor } from "@/lib/supabase/server";
-import { formatarDataHora } from "@/lib/utils";
-import { TIPO_AGENDAMENTO_PRODUTIVIDADE, TIPO_EXPORTACAO_PRODUTIVIDADE } from "@/server/relatorios";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { exigirSessao, type Papel } from "@/server/sessao";
 import { Alert } from "@/components/ui/alert";
-import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { Abas, abaAtual, type Aba } from "@/components/dominio/Abas";
 import { NavegacaoConfiguracoes } from "../navegacao";
-import { alternarRelatorioMensal } from "./actions";
+import { ProdutividadeMes } from "./ProdutividadeMes";
+import { MetricasTrintaDias } from "./MetricasTrintaDias";
+import { CustoIa } from "./CustoIa";
+import { RelatorioMensalCsv } from "./RelatorioMensalCsv";
 
-export const metadata = { title: "Relatórios agendados" };
+export const metadata = { title: "Relatórios" };
 export const dynamic = "force-dynamic";
 
-/** Só sócio. Liga o CSV mensal de produtividade (gerado pela rotina relatorio-mensal; nenhum e-mail é enviado). */
-export default async function PaginaRelatoriosAgendados({ searchParams }: { searchParams: Promise<{ erro?: string; ok?: string }> }) {
+const BASE = "/configuracoes/relatorios";
+
+/** Abas de Relatórios e quem as vê. Produtividade: sócio e advogado; as demais, só o sócio. */
+const ABAS: (Aba & { papeis: Papel[] })[] = [
+  { chave: "produtividade", rotulo: "Produtividade", papeis: ["socio", "advogado"] },
+  { chave: "metricas", rotulo: "Métricas (30 dias)", papeis: ["socio"] },
+  { chave: "ia", rotulo: "Custo de IA", papeis: ["socio"] },
+  { chave: "csv", rotulo: "Relatório mensal (CSV)", papeis: ["socio"] },
+];
+
+/**
+ * Relatórios do escritório em uma tela só, por aba (`?aba=produtividade|metricas|ia|csv`). As abas que o papel não
+ * vê ficam escondidas, e pedir uma delas pela query cai na primeira permitida (regra de `abaAtual`).
+ */
+export default async function PaginaRelatorios({ searchParams }: { searchParams: Promise<{ aba?: string; mes?: string; erro?: string; ok?: string }> }) {
   const sessao = await exigirSessao();
-  if (sessao.papel !== "socio") redirect("/configuracoes");
-  const { erro, ok } = await searchParams;
-  const supabase = await criarClienteServidor();
-  const [{ data: agendado }, { data: exportacoes }] = await Promise.all([
-    supabase.from("relatorios_agendados").select("ativo, ultima_competencia, ultima_geracao_em").eq("escritorio_id", sessao.escritorioId).eq("tipo", TIPO_AGENDAMENTO_PRODUTIVIDADE).maybeSingle(),
-    supabase.from("exportacoes").select("id, linhas, gerada_em").eq("tipo", TIPO_EXPORTACAO_PRODUTIVIDADE).order("gerada_em", { ascending: false }).limit(12),
-  ]);
-  const ativo = Boolean(agendado?.ativo);
+  const abas = ABAS.filter((a) => a.papeis.includes(sessao.papel));
+  if (abas.length === 0) redirect("/configuracoes");
+  const { aba, mes, erro, ok } = await searchParams;
+  const atual = abaAtual(abas, aba);
 
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Configurações</h1>
-      <NavegacaoConfiguracoes papel={sessao.papel} atual="/configuracoes/relatorios" />
+      <NavegacaoConfiguracoes papel={sessao.papel} atual={BASE} />
+      <Abas base={BASE} abas={abas} atual={atual} />
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       {ok ? <Alert tom="sucesso">{ok}</Alert> : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Relatório mensal de produtividade</CardTitle>
-          <CardDescription>
-            Todo dia 1, às 07h (Cuiabá), gera o CSV do mês anterior com tarefas, prazos e publicações por pessoa. O arquivo fica no armazenamento privado e só o sócio baixa. Nenhum e-mail é enviado por este recurso.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <p className="text-sm">
-            Situação: <strong>{ativo ? "ativo" : "desativado"}</strong>
-            {agendado?.ultima_competencia ? ` · último mês gerado: ${String(agendado.ultima_competencia).slice(0, 7)}` : ""}
-          </p>
-          <form action={alternarRelatorioMensal}>
-            <input type="hidden" name="ativo" value={ativo ? "0" : "1"} />
-            <Button type="submit">{ativo ? "Desativar" : "Ativar"} relatório mensal</Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Arquivos gerados</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {exportacoes?.length ? (
-            <Table>
-              <THead>
-                <TR>
-                  <TH>Gerado em</TH>
-                  <TH>Linhas</TH>
-                  <TH>Arquivo</TH>
-                </TR>
-              </THead>
-              <TBody>
-                {exportacoes.map((e) => (
-                  <TR key={e.id}>
-                    <TD>{formatarDataHora(e.gerada_em)}</TD>
-                    <TD>{e.linhas}</TD>
-                    <TD>
-                      <a className="text-blue-600 hover:underline" href={`/api/relatorios/arquivo?id=${e.id}`}>
-                        Baixar CSV
-                      </a>
-                    </TD>
-                  </TR>
-                ))}
-              </TBody>
-            </Table>
-          ) : (
-            <p className="text-sm text-zinc-500">Nenhum arquivo gerado ainda.</p>
-          )}
-        </CardContent>
-      </Card>
+      {atual === "produtividade" ? <ProdutividadeMes base={`${BASE}?aba=produtividade`} mes={mes} /> : null}
+      {atual === "metricas" ? <MetricasTrintaDias /> : null}
+      {atual === "ia" ? <CustoIa escritorioId={sessao.escritorioId} /> : null}
+      {atual === "csv" ? <RelatorioMensalCsv escritorioId={sessao.escritorioId} /> : null}
     </div>
   );
 }

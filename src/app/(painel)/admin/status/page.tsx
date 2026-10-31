@@ -11,10 +11,10 @@ import { Alert } from "@/components/ui/alert";
 export const metadata = { title: "Rotinas" };
 export const dynamic = "force-dynamic";
 
-/** Só sócio e suporte veem a operação. Rotina sem execução no limite dela aparece em alerta. */
+/** Sócio, advogado, administrativo e suporte veem a operação (regra do menu antigo). Rotina sem execução no limite dela aparece em alerta. */
 export default async function PaginaStatus() {
   const sessao = await exigirSessao();
-  if (!["socio", "suporte"].includes(sessao.papel)) redirect("/hoje");
+  if (!["socio", "advogado", "administrativo", "suporte"].includes(sessao.papel)) redirect("/hoje");
   // Leitura com service role, filtrada pelo escritório da sessão: jobs_execucoes não tem policy para usuários.
   const admin = criarClienteAdmin();
   const { data: execucoes } = await admin.from("jobs_execucoes").select("job, iniciado_em, finalizado_em, status, itens, erro, detalhes").or(`escritorio_id.eq.${sessao.escritorioId},escritorio_id.is.null`).order("iniciado_em", { ascending: false }).limit(500);

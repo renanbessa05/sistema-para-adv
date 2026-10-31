@@ -116,6 +116,7 @@ export async function listarVersoes(supabase: SupabaseClient, minutaId: string):
 export interface NovaMinuta {
   processoId: string | null;
   prazoId: string | null;
+  tarefaId?: string | null;
   analiseId?: string | null;
   tipoPeca: TipoPeca;
   area: AreaDireito;
@@ -139,7 +140,7 @@ export async function criarMinuta(sessao: Sessao, d: NovaMinuta): Promise<string
   const intake = { relato: d.relato, rascunho: d.rascunho, pedidos: d.pedidos, urgencia: d.urgencia, peculiaridades: d.peculiaridades, parteContraria: d.parteContraria, comarca: d.comarca, vara: d.vara, grau: d.grau, documento_ids: d.documentoIds, pontosVarredura: d.pontosVarredura ?? null };
   const { data, error } = await supabase
     .from("minutas")
-    .insert({ escritorio_id: sessao.escritorioId, processo_id: d.processoId, prazo_id: d.prazoId, analise_id: d.analiseId ?? null, tipo_peca: d.tipoPeca, area: d.area, modo: d.modo, titulo: d.titulo, intake, status: "rascunho", etapa_atual: d.modo === "C" ? 1 : 6, responsavel_id: sessao.usuarioId, criado_por: sessao.usuarioId })
+    .insert({ escritorio_id: sessao.escritorioId, processo_id: d.processoId, prazo_id: d.prazoId, tarefa_id: d.tarefaId ?? null, analise_id: d.analiseId ?? null, tipo_peca: d.tipoPeca, area: d.area, modo: d.modo, titulo: d.titulo, intake, status: "rascunho", etapa_atual: d.modo === "C" ? 1 : 6, responsavel_id: sessao.usuarioId, criado_por: sessao.usuarioId })
     .select("id")
     .single();
   if (error) throw new ErroMinuta(error.message);

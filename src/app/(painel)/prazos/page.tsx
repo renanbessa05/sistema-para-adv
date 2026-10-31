@@ -12,6 +12,9 @@ import { Alert, Vazio } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { Abas, abaAtual } from "@/components/dominio/Abas";
+import { listarAudiencias } from "@/server/audiencias";
+import { horaLocal } from "@/lib/audiencias/datas";
 
 export const metadata = { title: "Prazos" };
 export const dynamic = "force-dynamic";
@@ -56,6 +59,11 @@ export default async function PaginaPrazos({ searchParams }: { searchParams: Pro
   const responsavel = q.responsavel && UUID.test(q.responsavel) ? q.responsavel : "";
   const processo = q.processo?.trim().slice(0, 40) ?? "";
   const supabase = await criarClienteServidor();
+  const ABAS = [
+    { chave: "prazos", rotulo: "Prazos" },
+    { chave: "audiencias", rotulo: "Audiências" },
+  ];
+  const aba = abaAtual(ABAS, q.aba);
 
   const { data: escritorio } = await supabase.from("escritorios").select("timezone, semana_inclui_proxima_segunda").eq("id", sessao.escritorioId).maybeSingle();
   const timeZone = (escritorio?.timezone as string | undefined) ?? "America/Cuiaba";
@@ -75,24 +83,89 @@ export default async function PaginaPrazos({ searchParams }: { searchParams: Pro
   if (processo && UUID.test(processo)) consulta = consulta.eq("processo_id", processo);
   else if (porNumero) consulta = consulta.ilike("processos.numero_cnj", `%${porNumero}%`);
 
-  const [{ data: prazos, error }, membros] = await Promise.all([consulta.order("data_final").order("data_interna", { nullsFirst: false }).limit(300), listarMembros(supabase)]);
+  const inicioDoDia = new Date();
+  inicioDoDia.setHours(0, 0, 0, 0);
+  const [{ data: prazos, error }, membros, audiencias] = await Promise.all([
+    consulta.order("data_final").order("data_interna", { nullsFirst: false }).limit(300),
+    listarMembros(supabase),
+    aba === "audiencias" ? listarAudiencias(supabase, inicioDoDia) : Promise.resolve([]),
+  ]);
+  const podeAgendar = ["socio", "advogado"].includes(sessao.papel);
   const nomes = mapaNomes(membros);
   const responsaveis = membros.filter((m) => m.usuario_id && (m.papel === "socio" || m.papel === "advogado"));
   const linhas = (prazos ?? []) as unknown as Linha[];
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Prazos</h1>
-        <p className="text-sm text-zinc-500">
-          Ordenados pela data final. Hoje: {formatarData(periodos.hoje)} · vencido e hoje em vermelho, até 3 dias em âmbar.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Prazos e agenda</h1>
+          <p className="text-sm text-zinc-500">
+            {aba === "audiencias" ? "Audiências a partir de hoje. Alerta de véspera para o responsável e os sócios." : <>Ordenados pela data final. Hoje: {formatarData(periodos.hoje)} · vencido e hoje em vermelho, até 3 dias em âmbar.</>}
+          </p>
+        </div>
+        {aba === "audiencias" && podeAgendar ? (
+          <Link href="/audiencias/nova" className="inline-flex h-9 items-center rounded-md bg-marca-600 px-4 text-sm text-white shadow-sm hover:bg-marca-700">
+            Nova audiência
+          </Link>
+        ) : null}
       </div>
+
+      <Abas base="/prazos" abas={ABAS} atual={aba} />
 
       {q.erro ? <Alert tom="perigo">{q.erro}</Alert> : null}
       {q.ok ? <Alert tom="sucesso">{q.ok}</Alert> : null}
       {error ? <Alert tom="perigo">Não foi possível listar os prazos: {error.message}</Alert> : null}
 
+      {aba === "audiencias" ? (
+        <Card>
+          <CardContent className="p-0">
+            {audiencias.length === 0 ? (
+              <div className="p-4">
+                <Vazio titulo="Nenhuma audiência a partir de hoje" descricao="Marque audiências pela tela do processo ou pelo botão acima." />
+              </div>
+            ) : (
+              <Table>
+                <THead>
+                  <TR>
+                    <TH>Data</TH>
+                    <TH>Hora</TH>
+                    <TH>Tipo</TH>
+                    <TH>Processo</TH>
+                    <TH>Modalidade</TH>
+                    <TH>Status</TH>
+                  </TR>
+                </THead>
+                <TBody>
+                  {audiencias.map((a) => {
+                    const instante = new Date(String(a.data_hora));
+                    const proc = a.processos as { numero_cnj_mascara?: string } | null;
+                    return (
+                      <TR key={a.id as string}>
+                        <TD className="whitespace-nowrap">{formatarData(new Intl.DateTimeFormat("sv-SE", { timeZone }).format(instante))}</TD>
+                        <TD>{horaLocal(instante, timeZone)}</TD>
+                        <TD>{a.tipo as string}</TD>
+                        <TD className="whitespace-nowrap">
+                          <Link href={`/processos/${a.processo_id as string}?aba=prazos`} className="font-mono text-xs hover:underline">
+                            {proc?.numero_cnj_mascara ?? "sem número"}
+                          </Link>
+                        </TD>
+                        <TD>{a.modalidade as string}</TD>
+                        <TD>
+                          <Badge tom={a.status === "realizada" ? "sucesso" : a.status === "cancelada" ? "perigo" : "info"}>{a.status as string}</Badge>
+                        </TD>
+                      </TR>
+                    );
+                  })}
+                </TBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {aba === "prazos" ? (
+      <>
       <Card>
         <CardContent className="p-4">
           <form method="get" action="/prazos" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -199,6 +272,8 @@ export default async function PaginaPrazos({ searchParams }: { searchParams: Pro
         </CardContent>
       </Card>
       {linhas.length >= 300 ? <p className="text-sm text-zinc-500">Mostrando os 300 primeiros. Refine os filtros para ver o restante.</p> : null}
+      </>
+      ) : null}
     </div>
   );
 }

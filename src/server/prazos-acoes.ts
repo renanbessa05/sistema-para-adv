@@ -62,19 +62,24 @@ export async function confirmarPrazo(fd: FormData) {
   if (atoId && !Id.safeParse(atoId).success) voltar(id, { erro: "Ato inválido." });
   if (multiplicador && !["1", "2"].includes(multiplicador)) voltar(id, { erro: "Multiplicador precisa ser 1 ou 2." });
 
-  await chamar(
-    id,
-    "confirmar_prazo",
-    {
-      p_id: id,
-      p_data_final: dataFinal || null,
-      p_ato_id: atoId || null,
-      p_multiplicador: multiplicador ? Number(multiplicador) : null,
-      p_reconhecer_calendario: reconhecer,
-      p_observacao: observacao || null,
-    },
-    "Prazo confirmado. A tarefa foi criada para o responsável.",
-  );
+  const supabase = await criarClienteServidor();
+  const { error } = await supabase.rpc("confirmar_prazo", {
+    p_id: id,
+    p_data_final: dataFinal || null,
+    p_ato_id: atoId || null,
+    p_multiplicador: multiplicador ? Number(multiplicador) : null,
+    p_reconhecer_calendario: reconhecer,
+    p_observacao: observacao || null,
+  });
+  if (error) voltar(id, { erro: mensagemErroBanco(error) });
+  revalidar(id);
+  // Fio: a confirmação cria a tarefa (trigger); a pessoa segue direto para ela, onde está o botão da peça.
+  const { data: tarefa } = await supabase.from("tarefas").select("id").eq("prazo_id", id).order("criado_em", { ascending: false }).limit(1).maybeSingle();
+  if (tarefa?.id) {
+    revalidatePath(`/tarefas/${tarefa.id as string}`);
+    redirect(`/tarefas/${tarefa.id as string}?ok=${encodeURIComponent("Prazo confirmado. Esta é a tarefa criada para o responsável; o próximo passo é a peça.")}`);
+  }
+  voltar(id, { ok: "Prazo confirmado. A tarefa foi criada para o responsável." });
 }
 
 /** sugerido → rejeitado, com motivo. */

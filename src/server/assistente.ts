@@ -278,13 +278,13 @@ function textoAbrirAgente(r: RoteamentoIntent, processoId: string | null): strin
     varredura: { rotulo: "Varredura dos autos", href: `/varreduras/nova${sufixo}` },
     revisor: { rotulo: "Revisor de peças", href: "/revisor" },
     julgador: { rotulo: "Como o juiz vai decidir", href: processoId ? `/processos/${processoId}/analises` : "/processos" },
-    outros_tribunais: { rotulo: "Análise em outros tribunais", href: processoId ? `/processos/${processoId}/analises` : "/processos" },
+    outros_tribunais: { rotulo: "Análise em outros tribunais", href: processoId ? `/processos/${processoId}/outros-tribunais` : "/processos" },
     calculo: { rotulo: "Cálculos", href: `/calculos/novo${sufixo}` },
     jurisprudencia: { rotulo: "Jurisprudência", href: "/jurisprudencia" },
   };
   const chave = r.intent === "calcular" ? "calculo" : r.intent === "buscar_jurisprudencia" ? "jurisprudencia" : (r.entidades.agente ?? "peticao");
   const alvo = mapa[chave] ?? mapa.peticao;
-  return `Isso é trabalho do agente **${alvo.rotulo}**, que tem tela própria com aprovação por etapa. Abra em [${alvo.href}](${alvo.href}). Se a tela ainda não existir nesta versão, ela faz parte dos próximos lotes da Fase 2.`;
+  return `Isso é trabalho do agente **${alvo.rotulo}**, que tem tela própria com aprovação por etapa. Abra em [${alvo.href}](${alvo.href}).`;
 }
 
 async function executarAcaoConfirmada(supabase: SupabaseClient, acao: string, p: Record<string, unknown>): Promise<string> {

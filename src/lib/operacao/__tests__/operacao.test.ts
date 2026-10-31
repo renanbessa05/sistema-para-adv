@@ -57,6 +57,7 @@ describe("alerta de rotina sem execução", () => {
     expect(limiteHorasRotina("backup-tenant")).toBe(24);
     expect(limiteHorasRotina("verificar-backup")).toBe(192);
     expect(limiteHorasRotina("captar-djen")).toBe(96);
+    expect(limiteHorasRotina("arquivar-publicacoes")).toBe(96);
     const alertas = avaliarRotinas(
       [
         { rotina: "backup-tenant", ultimoInicio: h(23) },
@@ -76,6 +77,7 @@ describe("alerta de rotina sem execução", () => {
   it("a lista monitorada inclui as rotinas de backup", () => {
     expect(ROTINAS_MONITORADAS).toContain("backup-tenant");
     expect(ROTINAS_MONITORADAS).toContain("verificar-backup");
+    expect(ROTINAS_MONITORADAS).toContain("arquivar-publicacoes");
   });
 });
 

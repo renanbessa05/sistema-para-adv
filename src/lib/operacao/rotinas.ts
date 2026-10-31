@@ -19,6 +19,7 @@ const LIMITE_POR_ROTINA: Record<string, number> = {
   "exportar-prazos": 96,
   "captacao-vigilante": 96,
   "cobranca-parcelas": 96,
+  "arquivar-publicacoes": 96,
 };
 
 export const LIMITE_PADRAO_HORAS = 24;
@@ -66,6 +67,7 @@ export const ROTINAS_MONITORADAS = [
   "alertas-prazo",
   "resumo-do-dia",
   "marcar-vencidos",
+  "arquivar-publicacoes",
   "exportar-prazos",
   "atualizar-metricas",
   "captacao-vigilante",

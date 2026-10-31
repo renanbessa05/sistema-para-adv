@@ -23,6 +23,9 @@ const ROTULO_EVENTO: Record<string, string> = {
   prazo_d1: "Prazo amanhã",
   prazo_d0: "Prazo hoje",
   prazo_vencido: "Prazo vencido",
+  parcela_vencida: "Parcela de honorários vencida",
+  audiencia_d1: "Audiência amanhã",
+  ia_teto_proximo: "Gasto de IA perto do teto",
   tarefa_atrasada: "Tarefa atrasada",
   tarefa_reatribuida: "Tarefa reatribuída",
   resumo_do_dia: "Resumo do dia",
@@ -32,6 +35,9 @@ const ROTULO_EVENTO: Record<string, string> = {
   cliente_pediu_contato: "Cliente pediu contato pelo WhatsApp",
 };
 const ROTULO_DESTINATARIOS: Record<string, string> = { responsavel: "responsável", responsavel_e_socios: "responsável e sócios", socios: "sócios", socios_e_administrativo: "sócios e administrativo", todos_ativos: "todos os ativos", usuario_alvo: "pessoa envolvida" };
+// Eventos que constam no enum e nas regras, mas que nenhum job ou ação enfileira ainda (não há `enfileirarEvento` para eles).
+// Ficam fora da tela para o sócio não ligar um canal que nunca dispara; voltam quando existir código que os emita.
+const EVENTOS_SEM_EMISSOR: ReadonlySet<EventoNotificacao> = new Set(["tarefa_reatribuida", "calendario_incompleto", "convite"]);
 const CANAIS: Canal[] = ["painel", "whatsapp", "email"];
 const ROTULO_CANAL: Record<Canal, string> = { painel: "Painel", whatsapp: "WhatsApp", email: "E-mail" };
 
@@ -42,7 +48,7 @@ export default async function PaginaNotificacoes({ searchParams }: { searchParam
   const supabase = await criarClienteServidor();
   const { data: overrides } = await supabase.from("regras_notificacao").select("evento, canal, ativo").eq("escritorio_id", sessao.escritorioId);
   const override = new Map<string, boolean>((overrides ?? []).map((r) => [`${r.evento}:${r.canal}`, Boolean(r.ativo)]));
-  const eventos = Object.keys(REGRAS) as EventoNotificacao[];
+  const eventos = (Object.keys(REGRAS) as EventoNotificacao[]).filter((e) => !EVENTOS_SEM_EMISSOR.has(e));
 
   return (
     <div className="flex flex-col gap-4">

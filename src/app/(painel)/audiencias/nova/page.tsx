@@ -11,9 +11,9 @@ import { novaAudienciaAction } from "../actions";
 export const metadata = { title: "Nova audiência" };
 export const dynamic = "force-dynamic";
 
-export default async function PaginaNovaAudiencia({ searchParams }: { searchParams: Promise<{ erro?: string }> }) {
+export default async function PaginaNovaAudiencia({ searchParams }: { searchParams: Promise<{ erro?: string; processo?: string }> }) {
   const sessao = await exigirSessao();
-  const { erro } = await searchParams;
+  const { erro, processo } = await searchParams;
   if (!["socio", "advogado"].includes(sessao.papel)) return <Alert tom="perigo">Apenas advogado ou sócio agenda audiência.</Alert>;
   const supabase = await criarClienteServidor();
   const [{ data: processos }, { data: membros }] = await Promise.all([
@@ -37,7 +37,7 @@ export default async function PaginaNovaAudiencia({ searchParams }: { searchPara
         <CardContent>
           <form action={novaAudienciaAction} className="grid gap-3 sm:grid-cols-2">
             <Campo label="Processo">
-              <Select name="processo_id" required defaultValue="">
+              <Select name="processo_id" required defaultValue={processo ?? ""}>
                 <option value="" disabled>
                   Escolha o processo
                 </option>

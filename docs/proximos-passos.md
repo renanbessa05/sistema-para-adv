@@ -1,4 +1,4 @@
-# Próximos passos (estado em 29/10/2026)
+# Próximos passos (estado em 31/10/2026)
 
 Resumo de onde o sistema está, o que só o escritório pode fazer e o que ainda falta da Fase 1. O plano completo está em `docs/escopo-revisado.md`; a implantação, em `docs/deploy.md`.
 
@@ -6,9 +6,9 @@ Resumo de onde o sistema está, o que só o escritório pode fazer e o que ainda
 
 | Área | Estado | Onde |
 |---|---|---|
-| Banco (21 migrations, RLS, papéis, RPCs, MFA por policy, Vault) | Pronto; testado num Postgres real no CI | `supabase/migrations`, `supabase/tests` |
+| Banco (55 migrations, RLS, papéis, RPCs, MFA por policy, Vault) | Pronto; testado num Postgres real no CI | `supabase/migrations`, `supabase/tests` |
 | Motor de prazos (TJ-MT, CPC, recesso, dobro, feriados por comarca) | Pronto; 100% de cobertura; 11 casos de referência | `src/lib/prazos`, `tests/fixtures/prazos-casos.json`, `docs/regras/prazos.md` |
-| Captação DJEN + dedup + classificação por IA + sugestão de prazo | Pronto; roda pelos crons de `vercel.json` | `src/server/jobs/captar-djen.ts`, `classificar.ts`, `src/lib/djen`, `src/lib/ia` |
+| Captação DJEN + dedup + classificação por IA + sugestão de prazo | Pronto; roda pelo pg_cron (migration 0023), não pela Vercel | `src/server/jobs/captar-djen.ts`, `classificar.ts`, `src/lib/djen`, `src/lib/ia` |
 | Enriquecimento pelo DataJud | Pronto | `src/server/jobs/enriquecer-datajud.ts`, `src/lib/datajud` |
 | Telas: Hoje, Publicações, Prazos, Tarefas, Processos (lista, detalhe, kanban, importação CSV), Clientes, Aprovações, Configurações (escritório, equipe, atos, fases, calendário, ausências, notificações, integrações, segurança), Rotinas, Divergências, Métricas, Notificações, MFA (`/mfa`, `/mfa/cadastro`) | Pronto | `src/app/(painel)`, `src/app/(auth)/mfa` |
 | Notificações (painel, e-mail via Resend, WhatsApp por template), alertas D-3/D-1/D0, 24 h/48 h sem tratamento, resumo do dia, vigilante da captação, exportação diária de prazos | Pronto | `src/server/notificacoes.ts`, `src/server/jobs/*` |
@@ -29,6 +29,20 @@ Resumo de onde o sistema está, o que só o escritório pode fazer e o que ainda
 9. **LGPD**: nomear o encarregado, aprovar `docs/lgpd/*`, pedir à Anthropic a incorporação das cláusulas-padrão da ANPD, incluir a cláusula de uso de IA no contrato de honorários.
 10. **Rede do ambiente do Claude Code**: liberar os domínios listados em `docs/deploy.md`, seção 7, para que as próximas sessões consigam testar DJEN, DataJud e Meta daqui.
 
+## 3a. Feito em 31/10/2026: reorganização em torno do fluxo de trabalho
+
+Regra de referência em `docs/regras/fluxo-de-trabalho.md`. Nada de rota apagada; só o menu e os encadeamentos mudaram.
+
+- Menu de 22 para 8 itens (`menu.ts`); Assistente e Aprovações (com contador) no cabeçalho; nome do escritório vem da sessão.
+- Configurações em grupos (Escritório, Prazos e processos, Comunicação, Operação, Conformidade); Rotinas, Divergências, Produtividade, Métricas, Custo IA, Plano e Outros tribunais entraram na grade. `/admin/status` passou a aceitar advogado e administrativo, como o menu já prometia.
+- Processo e Cliente viraram hubs com abas (`components/dominio/Abas.tsx`): o processo mostra audiências, peças, análises, cálculos e contrato; o cliente mostra contratos, parcelas e conversas.
+- Caixa **Próximo passo** (`components/dominio/ProximoPasso.tsx`) nas telas de publicação, prazo, tarefa e minuta; **Decidir agora** no Hoje.
+- Encadeamento: vincular publicação cria o prazo sugerido (se a IA disse que gera prazo) e leva a ele; confirmar prazo leva à tarefa; tarefa tem "Redigir peça" (minuta nasce ligada a processo, prazo e tarefa; tipo sugerido pelo ato); minuta protocolada conclui a tarefa e cumpre o prazo (migration `20261031000055`, **aplicar com `supabase db push`**).
+- Revisão pela IA de dentro da minuta (`revisarVersaoAction`), com histórico por versão; `/revisor` segue para texto colado.
+- Peças virou central com três portas (nova peça, revisar pronta, varrer autos) e ferramentas; Prazos ganhou aba Audiências.
+- Bug: link da assistente para "outros tribunais" apontava para `/analises`.
+- Pendente desta rodada: unificar as três telas de métricas em abas, emitir os eventos `nova_publicacao` e `tarefa_atrasada`, rotina de arquivar publicações tratadas após 30 dias (cada um proposto como tarefa separada). Os testes de banco (`supabase/tests`) não rodaram nesta máquina (sem Postgres local em 5432): a migration 0055 precisa ser provada no CI ou num Postgres local antes do `db push`.
+
 ## 3. Feito em 29/10/2026 (antes só previsto)
 
 - MFA TOTP obrigatório para sócio e advogado: policy restritiva com `aal2` nas tabelas sensíveis e checagem nas RPCs; telas `/mfa` e `/mfa/cadastro`; Configurações → Segurança. Exige habilitar TOTP em Authentication → Multi-Factor no painel do Supabase.
@@ -46,6 +60,11 @@ Resumo de onde o sistema está, o que só o escritório pode fazer e o que ainda
 - Projeto `sistema-para-adv` criado na Vercel, ligado ao GitHub, com as variáveis de produção.
 - Rotinas agendadas pelo Postgres (`pg_cron` + `pg_net`, migration 0023) porque o plano Hobby da Vercel recusa crons frequentes; ADR 0003 tem o adendo. Pendente: decidir sobre o plano Pro (uso comercial pelos termos da Vercel).
 - Região do Supabase é `us-west-2`, não São Paulo como o plano previa: decidir antes de carregar dados de clientes.
+
+## 3a1. Feito em 31/10/2026
+
+- Rotina `arquivar-publicacoes` (`src/server/jobs/arquivar-publicacoes.ts`, rota `/api/jobs/arquivar-publicacoes`, migration 0056 agendando no pg_cron dias úteis às 05h UTC): publicações em `tratada`, `ignorada` ou `duplicada` há mais de 30 dias passam a `arquivada` pela RPC `transicionar_publicacao`, com evento em `publicacao_eventos`. `sem_prazo` fica de fora até alguém dar o "ciente". Aparece em `/admin/status` e `/status`.
+- Banco de produção trocado para o projeto Supabase `sistema-para-adv-sp` (ref `eiieseukuuyqkkebumax`, região `sa-east-1`, plano Free). As 56 migrations (até a 0056) já estão aplicadas nele; a CLI está linkada nele. O projeto antigo `qcikrqyzrtgfhtlfbabi` (us-west-2) fica para pausar depois. Pendente no banco novo: segredos `app:url` e `app:cron_secret` no Vault (sem eles o pg_cron pula as rotinas), variáveis da Vercel e do `.env.local` apontando para ele, SMTP da Resend, escritório e sócio iniciais.
 
 ## 3b. Fases 2 e 3 em construção (plano aprovado em 29/10/2026)
 

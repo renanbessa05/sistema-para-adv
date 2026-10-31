@@ -8,19 +8,27 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Campo, Input, Select, Textarea } from "@/components/ui/input";
 import { novaMinutaAction } from "../actions";
+import { tipoPecaPorAto } from "@/lib/pecas/tipo-por-ato";
+import { ProximoPasso } from "@/components/dominio/ProximoPasso";
 
 export const metadata = { title: "Nova minuta" };
 export const dynamic = "force-dynamic";
 
-export default async function PaginaNovaMinuta({ searchParams }: { searchParams: Promise<{ erro?: string; processo?: string; prazo?: string }> }) {
+export default async function PaginaNovaMinuta({ searchParams }: { searchParams: Promise<{ erro?: string; processo?: string; prazo?: string; tarefa?: string }> }) {
   await exigirSessao();
-  const { erro, processo, prazo } = await searchParams;
+  const { erro, processo, prazo, tarefa } = await searchParams;
   const supabase = await criarClienteServidor();
-  const [{ data: processos }, documentos, { data: prazos }] = await Promise.all([
+  const [{ data: processos }, documentos, { data: prazos }, { data: tarefaLigada }] = await Promise.all([
     supabase.from("processos").select("id, numero_cnj_mascara").in("status", ["ativo", "suspenso"]).order("atualizado_em", { ascending: false }).limit(500),
     processo ? listarDocumentos(supabase, { processoId: processo, limite: 50 }).catch(() => []) : Promise.resolve([]),
-    processo ? supabase.from("prazos").select("id, ato_descricao, data_final, status").eq("processo_id", processo).in("status", ["sugerido", "confirmado", "prorrogado"]).order("data_final") : Promise.resolve({ data: [] }),
+    processo ? supabase.from("prazos").select("id, ato_descricao, data_final, status").eq("processo_id", processo).in("status", ["sugerido", "confirmado", "prorrogado", "vencido"]).order("data_final") : Promise.resolve({ data: [] }),
+    tarefa ? supabase.from("tarefas").select("id, titulo, tipo").eq("id", tarefa).maybeSingle() : Promise.resolve({ data: null }),
   ]);
+  const prazoLigado = (prazos ?? []).find((p) => p.id === prazo) ?? null;
+  const tipoSugerido = tipoPecaPorAto((prazoLigado?.ato_descricao as string | null) ?? null, Boolean(prazoLigado));
+  const modoSugerido = processo ? "A" : "C";
+  const numeroProcesso = (processos ?? []).find((p) => p.id === processo)?.numero_cnj_mascara as string | null | undefined;
+  const tituloSugerido = prazoLigado ? `${(prazoLigado.ato_descricao as string | null) ?? "Peça"}${numeroProcesso ? ` · ${numeroProcesso}` : ""}` : "";
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -31,6 +39,7 @@ export default async function PaginaNovaMinuta({ searchParams }: { searchParams:
         <p className="text-sm text-zinc-500">Modo C (caso novo): seis etapas com aprovação, redação só na última. Modo A: redação direta a partir do relato. Modo B: revisão de um rascunho colado.</p>
       </div>
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
+      {tarefaLigada ? <ProximoPasso titulo={`Peça da tarefa «${tarefaLigada.titulo as string}»`} descricao="Processo, prazo e tarefa já vêm ligados. Ao protocolar esta peça, a tarefa é concluída e o prazo, cumprido." /> : null}
       <Card>
         <CardHeader>
           <CardTitle>Intake (Passo 2 da skill)</CardTitle>
@@ -38,18 +47,19 @@ export default async function PaginaNovaMinuta({ searchParams }: { searchParams:
         </CardHeader>
         <CardContent>
           <form action={novaMinutaAction} className="grid gap-3 sm:grid-cols-3">
+            {tarefaLigada ? <input type="hidden" name="tarefa_id" value={tarefaLigada.id as string} /> : null}
             <Campo label="Título" className="sm:col-span-2">
-              <Input name="titulo" required placeholder="Inicial de indenização da Marina" />
+              <Input name="titulo" required placeholder="Inicial de indenização da Marina" defaultValue={tituloSugerido} />
             </Campo>
             <Campo label="Modo">
-              <Select name="modo" defaultValue="C">
+              <Select name="modo" defaultValue={modoSugerido}>
                 <option value="C">C: caso novo, 6 etapas</option>
                 <option value="A">A: redação direta</option>
                 <option value="B">B: revisar rascunho</option>
               </Select>
             </Campo>
             <Campo label="Tipo de peça">
-              <Select name="tipo_peca" defaultValue="inicial">
+              <Select name="tipo_peca" defaultValue={tipoSugerido}>
                 {Object.entries(ROTULO_TIPO_PECA).map(([v, r]) => (
                   <option key={v} value={v}>
                     {r}

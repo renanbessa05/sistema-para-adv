@@ -4,12 +4,15 @@ import { horasUteisEntre } from "@/lib/notificacoes";
 import { formatarDataBR, variaveisAlertaPrazo, variaveisPublicacaoSemTratamento } from "@/lib/whatsapp";
 import { adicionarDias, diferencaEmDias, hojeNoFuso } from "@/lib/prazos";
 import { envServidor } from "@/lib/config/env";
-import { carregarContexto, enfileirarEvento } from "../notificacoes";
+import { carregarContexto, enfileirarEvento, type ContextoEscritorio } from "../notificacoes";
 import { executarJob, listarEscritoriosAtivos } from "./registro";
 
 const STATUS_SEM_TRATAMENTO = ["nova", "classificada", "vinculada", "sem_processo", "com_prazo_sugerido"];
 
-/** D-3, D-1, D0 e vencidos: um alerta por prazo, destinatário e dia (dedup pela chave). */
+/**
+ * D-3, D-1, D0 e vencidos: um alerta por prazo, destinatário e dia (dedup pela chave).
+ * No mesmo passo, tarefas abertas com vencimento passado geram `tarefa_atrasada` para o executor (painel, 07:30 local).
+ */
 export async function alertasDePrazo(admin: SupabaseClient, opcoes: { agora?: Date } = {}) {
   const env = envServidor();
   const resumo = [];
@@ -47,13 +50,44 @@ export async function alertasDePrazo(admin: SupabaseClient, opcoes: { agora?: Da
             agora: opcoes.agora,
           });
         }
-        return { itens: enfileiradas, detalhes: { prazosAvaliados: prazos?.length ?? 0, hoje } };
+        const tarefas = await alertasDeTarefaAtrasada(admin, ctx, { hoje, appUrl: env.APP_URL, agora: opcoes.agora });
+        return { itens: enfileiradas + tarefas.enfileiradas, detalhes: { prazosAvaliados: prazos?.length ?? 0, tarefasAtrasadas: tarefas.avaliadas, hoje } };
       },
       escritorio.id,
     );
     resumo.push({ escritorio: escritorio.nome, ...r });
   }
   return resumo;
+}
+
+/**
+ * Tarefas abertas com `vencimento < hoje`: evento `tarefa_atrasada` para o executor (sem executor, o responsável da tarefa;
+ * sem nenhum, a regra manda aos sócios). A chave_dedup leva o dia local, então cada tarefa avisa uma vez por dia.
+ */
+export async function alertasDeTarefaAtrasada(admin: SupabaseClient, ctx: ContextoEscritorio, opcoes: { hoje: string; appUrl: string; agora?: Date }): Promise<{ avaliadas: number; enfileiradas: number }> {
+  const { data: tarefas, error } = await admin
+    .from("tarefas")
+    .select("id, titulo, vencimento, executor_id, responsavel_id, processos(numero_cnj_mascara)")
+    .eq("escritorio_id", ctx.id)
+    .not("status", "in", "(concluida,cancelada)")
+    .lt("vencimento", opcoes.hoje);
+  if (error) throw new Error(error.message);
+  let enfileiradas = 0;
+  for (const t of tarefas ?? []) {
+    const vencimento = String(t.vencimento);
+    const dias = diferencaEmDias(vencimento, opcoes.hoje);
+    const mascara = (t.processos as unknown as { numero_cnj_mascara: string | null } | null)?.numero_cnj_mascara;
+    const link = `${opcoes.appUrl}/tarefas/${t.id}`;
+    const texto = `📌 Tarefa atrasada há ${dias} dia(s): ${t.titulo}${mascara ? ` · ${mascara}` : ""} · vencia em ${formatarDataBR(vencimento)}. ${link}`;
+    enfileiradas += await enfileirarEvento(admin, ctx, {
+      evento: "tarefa_atrasada",
+      objeto: { tipo: "tarefa", id: t.id as string },
+      responsavelId: (t.executor_id as string | null) ?? (t.responsavel_id as string | null) ?? undefined,
+      variaveis: { titulo: String(t.titulo), numero_processo: mascara ?? "", vencimento, dias_atraso: String(dias), link, texto, assunto: `Tarefa atrasada: ${t.titulo}`, html: `<p>${texto}</p>` },
+      agora: opcoes.agora,
+    });
+  }
+  return { avaliadas: tarefas?.length ?? 0, enfileiradas };
 }
 
 /** Publicações sem tratamento há 24 h úteis (responsável) e 48 h úteis (sócios). */

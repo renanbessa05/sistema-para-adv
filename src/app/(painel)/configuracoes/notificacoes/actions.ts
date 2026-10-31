@@ -8,7 +8,8 @@ import { criarClienteServidor } from "@/lib/supabase/server";
 
 const DESTINO = "/configuracoes/notificacoes";
 
-const EVENTOS = ["nova_publicacao", "publicacao_sem_processo", "publicacao_sem_tratamento_24h", "publicacao_sem_tratamento_48h", "prazo_d3", "prazo_d1", "prazo_d0", "prazo_vencido", "tarefa_atrasada", "tarefa_reatribuida", "resumo_do_dia", "captacao_falhou", "calendario_incompleto", "convite"] as const;
+// Mesmos eventos que a tela lista (REGRAS menos os sem emissor), para o override poder ser gravado em todos eles.
+const EVENTOS = ["nova_publicacao", "publicacao_sem_processo", "publicacao_sem_tratamento_24h", "publicacao_sem_tratamento_48h", "prazo_d3", "prazo_d1", "prazo_d0", "prazo_vencido", "parcela_vencida", "audiencia_d1", "ia_teto_proximo", "cliente_pediu_contato", "tarefa_atrasada", "resumo_do_dia", "captacao_falhou"] as const;
 const CANAIS = ["painel", "whatsapp", "email"] as const;
 
 /** Liga ou desliga um canal para um evento: grava o override em regras_notificacao (UNIQUE escritorio_id, evento, canal). */
