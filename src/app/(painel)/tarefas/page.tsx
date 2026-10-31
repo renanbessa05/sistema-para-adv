@@ -41,7 +41,7 @@ export default async function PaginaTarefas({ searchParams }: { searchParams: Pr
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold">Tarefas</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Tarefas</h1>
           <p className="text-sm text-zinc-500">
             {executorId === sessao.usuarioId ? "Suas tarefas" : executorId ? `Tarefas de ${nomes.get(executorId) ?? "membro"}` : "Todas as tarefas do escritório"} · {atrasadas} atrasada(s) · {criticas} crítica(s)
           </p>

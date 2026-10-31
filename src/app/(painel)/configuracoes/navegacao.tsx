@@ -25,12 +25,12 @@ export function areasPara(papel: Papel) {
 
 export function NavegacaoConfiguracoes({ papel, atual }: { papel: Papel; atual: string }) {
   return (
-    <nav className="flex flex-wrap gap-1 border-b border-zinc-200 pb-2 text-sm dark:border-zinc-800" aria-label="Configurações">
-      <Link href="/configuracoes" className={`rounded-md px-2 py-1 ${atual === "/configuracoes" ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900" : "hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}>
+    <nav className="flex gap-1 overflow-x-auto whitespace-nowrap border-b border-zinc-200 pb-2 text-sm" aria-label="Configurações">
+      <Link href="/configuracoes" className={`rounded-md px-3 py-1.5 ${atual === "/configuracoes" ? "bg-marca-600 text-white shadow-sm" : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"}`}>
         Visão geral
       </Link>
       {areasPara(papel).map((a) => (
-        <Link key={a.href} href={a.href} className={`rounded-md px-2 py-1 ${atual === a.href ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900" : "hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}>
+        <Link key={a.href} href={a.href} className={`rounded-md px-3 py-1.5 ${atual === a.href ? "bg-marca-600 text-white shadow-sm" : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"}`}>
           {a.rotulo}
         </Link>
       ))}

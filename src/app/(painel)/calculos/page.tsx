@@ -25,12 +25,12 @@ export default async function PaginaCalculos() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold">Cálculos</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Cálculos</h1>
           <p className="text-sm text-zinc-500">
             Atualização monetária e juros. Índices do BCB; regras marcadas &ldquo;a confirmar&rdquo; dependem de revisão da advogada.
           </p>
         </div>
-        <Link href="/calculos/novo" className="inline-flex h-9 items-center rounded-md bg-zinc-900 px-4 text-sm text-white hover:bg-zinc-700">
+        <Link href="/calculos/novo" className="inline-flex h-9 items-center rounded-md bg-marca-600 px-4 text-sm text-white shadow-sm hover:bg-marca-700">
           Novo cálculo
         </Link>
       </div>

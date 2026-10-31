@@ -34,7 +34,7 @@ export default async function PaginaStatusPublico() {
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 p-6">
       <header className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold">Status do sistema</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Status do sistema</h1>
         <p className="text-sm text-neutral-600">Saúde geral, sem dados de clientes ou processos.</p>
       </header>
 

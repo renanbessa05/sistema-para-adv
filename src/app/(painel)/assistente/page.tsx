@@ -27,7 +27,7 @@ export default async function PaginaAssistente({ searchParams }: { searchParams:
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-xl font-semibold">Assistente</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Assistente</h1>
         <p className="text-sm text-zinc-500">Pergunte sobre processos, publicações, prazos, tarefas e documentos. Ações de escrita pedem confirmação; peças, contratos e cálculos têm telas próprias.</p>
       </div>
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}

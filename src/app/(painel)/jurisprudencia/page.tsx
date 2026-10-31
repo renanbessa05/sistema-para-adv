@@ -29,7 +29,7 @@ export default async function PaginaJurisprudencia({ searchParams }: { searchPar
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold">Jurisprudência</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Jurisprudência</h1>
           <p className="text-sm text-zinc-500">
             Busca na base do escritório. Na peça, só entra precedente que aparece aqui, pelo id de citação.
           </p>

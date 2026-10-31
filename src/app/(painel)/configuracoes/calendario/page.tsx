@@ -48,7 +48,7 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Configurações</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Configurações</h1>
       <NavegacaoConfiguracoes papel={sessao.papel} atual="/configuracoes/calendario" />
       {params.erro ? <Alert tom="perigo">{params.erro}</Alert> : null}
       {params.ok ? <Alert tom="sucesso">{params.ok}</Alert> : null}

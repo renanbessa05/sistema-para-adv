@@ -23,7 +23,7 @@ export default async function PaginaRevisor({ searchParams }: { searchParams: Pr
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-xl font-semibold">Revisor de peças</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Revisor de peças</h1>
         <p className="text-sm text-zinc-500">Cole a petição para conferir antes do protocolo. A análise lê como o juiz e a triagem do PJe leriam; o que o sistema consegue conferir sozinho (CNJ, Doc. NN, lacunas, prazo) prevalece sobre a leitura da IA.</p>
       </div>
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}

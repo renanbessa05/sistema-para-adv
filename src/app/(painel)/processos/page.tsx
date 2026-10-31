@@ -88,7 +88,7 @@ export default async function PaginaProcessos({ searchParams }: { searchParams: 
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold">Processos</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Processos</h1>
           <p className="text-sm text-zinc-500">{total} processo(s) na carteira com os filtros atuais.</p>
         </div>
         <div className="flex gap-2">

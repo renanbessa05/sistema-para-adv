@@ -33,7 +33,7 @@ export default async function PaginaNovoProcesso({ searchParams }: { searchParam
         <Link href="/processos" className="text-sm text-zinc-500 hover:underline">
           ← Processos
         </Link>
-        <h1 className="text-xl font-semibold">Novo processo</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Novo processo</h1>
         <p className="text-sm text-zinc-500">Ao salvar, o sistema cria as partes e consulta o DataJud para completar classe, órgão e movimentações.</p>
       </div>
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}

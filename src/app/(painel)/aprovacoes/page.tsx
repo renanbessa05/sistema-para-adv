@@ -31,7 +31,7 @@ export default async function PaginaAprovacoes({ searchParams }: { searchParams:
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-xl font-semibold">Aprovações</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Aprovações</h1>
         <p className="text-sm text-zinc-500">Tudo que a IA ou o WhatsApp propõe passa por decisão humana. Sócio decide tudo; advogado, o que é dos seus processos.</p>
       </div>
 

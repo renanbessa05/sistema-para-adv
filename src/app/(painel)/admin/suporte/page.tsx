@@ -25,7 +25,7 @@ export default async function PaginaSuporte() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Acessos de suporte</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Acessos de suporte</h1>
       <Alert tom="info">Você está em modo de leitura. Não há ações de escrita para o suporte; o acesso vale só até a validade indicada pelo escritório.</Alert>
       <Card>
         <CardHeader>

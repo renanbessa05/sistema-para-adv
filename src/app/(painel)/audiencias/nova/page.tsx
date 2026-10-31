@@ -26,7 +26,7 @@ export default async function PaginaNovaAudiencia({ searchParams }: { searchPara
         <Link href="/audiencias" className="text-sm text-zinc-500 hover:underline">
           ← Audiências
         </Link>
-        <h1 className="text-xl font-semibold">Nova audiência</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Nova audiência</h1>
       </div>
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       <Card>

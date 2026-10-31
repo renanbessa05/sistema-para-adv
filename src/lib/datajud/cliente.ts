@@ -74,6 +74,8 @@ const TENTATIVAS_429 = 3;
 const ESPERA_429_MS = 60_000;
 const TENTATIVAS_5XX = 3;
 const ESPERA_5XX_BASE_MS = 1_000;
+/** Sem limite, uma API lenta prende a ação do usuário por minutos. Cada tentativa tem teto próprio. */
+const TIMEOUT_REQUISICAO_MS = 8_000;
 
 async function lerCorpo(resposta: Response): Promise<string> {
   try {
@@ -107,6 +109,7 @@ export function criarClienteDatajud(opcoes: OpcoesClienteDatajud): ClienteDataju
       try {
         resposta = await fetchImpl(url, {
           method: "POST",
+          signal: AbortSignal.timeout(TIMEOUT_REQUISICAO_MS),
           headers: {
             Authorization: `APIKey ${apiKey}`,
             "Content-Type": "application/json",

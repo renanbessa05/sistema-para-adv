@@ -39,7 +39,7 @@ export default async function PaginaAtendimento({ searchParams }: { searchParams
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-xl font-semibold">Atendimento</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Atendimento</h1>
         <p className="text-sm text-zinc-500">Conversas com clientes. Respostas livres da IA aparecem aqui como rascunho e só saem depois de aprovadas em Aprovações.</p>
       </div>
       {lista.length === 0 ? (

@@ -50,7 +50,7 @@ export default async function PaginaClientes({ searchParams }: { searchParams: P
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold">Clientes</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Clientes</h1>
           <p className="text-sm text-zinc-500">{total} cliente(s).</p>
         </div>
         {podeEditarProcesso(sessao.papel) ? (

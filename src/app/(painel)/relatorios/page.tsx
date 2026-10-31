@@ -38,7 +38,7 @@ export default async function PaginaRelatorios({ searchParams }: { searchParams:
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Relatórios de produtividade</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Relatórios de produtividade</h1>
         <nav className="flex gap-2 text-sm">
           <Link className="rounded-md border px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800" href={`/relatorios?mes=${mesAnterior(competencia).slice(0, 7)}`}>
             Mês anterior

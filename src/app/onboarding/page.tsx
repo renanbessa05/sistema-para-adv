@@ -16,7 +16,7 @@ export default async function PaginaOnboarding({ searchParams }: { searchParams:
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
       <div className="flex w-full flex-col items-center gap-4">
-        <h1 className="text-xl font-semibold">Vamos criar o seu escritório</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Vamos criar o seu escritório</h1>
         <FormularioOnboarding erro={erro} />
       </div>
     </main>

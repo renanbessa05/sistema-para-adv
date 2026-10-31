@@ -28,7 +28,7 @@ export default async function PaginaTribunais({ searchParams }: { searchParams: 
         <Link href="/configuracoes" className="text-sm text-zinc-500 hover:underline">
           ← Configurações
         </Link>
-        <h1 className="text-xl font-semibold">Camada local dos tribunais</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Camada local dos tribunais</h1>
         <p className="text-sm text-zinc-500">
           Os {pendentes ?? 0} itens-base de cada TJ fora de MT começam como “a verificar”. Só entram como confirmados os que o sócio confirma aqui, com fonte oficial.
         </p>

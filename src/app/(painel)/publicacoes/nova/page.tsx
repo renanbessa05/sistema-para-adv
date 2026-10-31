@@ -35,7 +35,7 @@ export default async function PaginaNovaPublicacao({ searchParams }: { searchPar
           </Link>{" "}
           / lançamento manual
         </p>
-        <h1 className="text-xl font-semibold">Lançar publicação</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Lançar publicação</h1>
         <p className="text-sm text-zinc-500">Intimação vista no PJe ou recebida por e-mail. Nasce como «nova»; o prazo, se marcado, nasce sugerido e precisa de confirmação.</p>
       </div>
 

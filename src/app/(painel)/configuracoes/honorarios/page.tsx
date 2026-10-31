@@ -22,7 +22,7 @@ export default async function PaginaHonorarios({ searchParams }: { searchParams:
   return (
     <div className="flex flex-col gap-4">
       <NavegacaoConfiguracoes papel={sessao.papel} atual="/configuracoes/honorarios" />
-      <h1 className="text-xl font-semibold">Honorários</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Honorários</h1>
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       {ok ? <Alert tom="sucesso">{ok}</Alert> : null}
       <Card>

@@ -23,10 +23,10 @@ export default async function PaginaContratos({ searchParams }: { searchParams: 
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold">Contratos e honorários</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Contratos e honorários</h1>
           <p className="text-sm text-zinc-500">Entrada do caso: diagnóstico pela IA, cálculo pela Tabela OAB/MT, confirmação da advogada, documentos e aprovação.</p>
         </div>
-        <Link href="/contratos/novo" className="inline-flex h-9 items-center rounded-md bg-zinc-900 px-4 text-sm text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900">
+        <Link href="/contratos/novo" className="inline-flex h-9 items-center rounded-md bg-marca-600 px-4 text-sm text-white shadow-sm hover:bg-marca-700 dark:bg-zinc-100 dark:text-zinc-900">
           Novo contrato
         </Link>
       </div>

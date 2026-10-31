@@ -24,7 +24,7 @@ export default async function PaginaNovoContrato({ searchParams }: { searchParam
         <Link href="/contratos" className="text-sm text-zinc-500 hover:underline">
           ← Contratos
         </Link>
-        <h1 className="text-xl font-semibold">Novo contrato: entrada do caso</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Novo contrato: entrada do caso</h1>
         <p className="text-sm text-zinc-500">As duas perguntas de abertura da skill (demanda em curso? qual polo?) e o relato. A IA diagnostica; o cálculo e a modalidade vêm em seguida para você confirmar.</p>
       </div>
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}

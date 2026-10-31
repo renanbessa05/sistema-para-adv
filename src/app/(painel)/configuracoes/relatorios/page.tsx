@@ -27,7 +27,7 @@ export default async function PaginaRelatoriosAgendados({ searchParams }: { sear
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Configurações</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Configurações</h1>
       <NavegacaoConfiguracoes papel={sessao.papel} atual="/configuracoes/relatorios" />
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       {ok ? <Alert tom="sucesso">{ok}</Alert> : null}

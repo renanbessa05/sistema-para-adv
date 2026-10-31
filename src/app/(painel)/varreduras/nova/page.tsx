@@ -25,7 +25,7 @@ export default async function PaginaNovaVarredura({ searchParams }: { searchPara
         <Link href="/minutas" className="text-sm text-zinc-500 hover:underline">
           ← Peças
         </Link>
-        <h1 className="text-xl font-semibold">Varredura dos autos</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Varredura dos autos</h1>
         <p className="text-sm text-zinc-500">Processo em curso com autos anexados. A IA mapeia o processo e lista os pontos exploráveis por eixo; você aprova os pontos e a peça é redigida sobre eles.</p>
       </div>
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}

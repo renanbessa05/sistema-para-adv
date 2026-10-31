@@ -25,7 +25,7 @@ export default async function PaginaPlano({ searchParams }: { searchParams: Prom
   if (sessao.papel !== "socio") {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-xl font-semibold">Plano</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Plano</h1>
         <Alert tom="info">Plano e acessos de suporte são do sócio.</Alert>
       </div>
     );
@@ -47,7 +47,7 @@ export default async function PaginaPlano({ searchParams }: { searchParams: Prom
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Plano e acesso de suporte</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Plano e acesso de suporte</h1>
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       {ok ? <Alert tom="info">{ok}</Alert> : null}
 

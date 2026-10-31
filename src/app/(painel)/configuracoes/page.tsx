@@ -12,7 +12,7 @@ export default async function PaginaConfiguracoes() {
   const areas = areasPara(sessao.papel);
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Configurações</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Configurações</h1>
       <NavegacaoConfiguracoes papel={sessao.papel} atual="/configuracoes" />
       {sessao.papel !== "socio" ? <Alert tom="info">Configurações do escritório, atos, fases e notificações são do sócio. Você pode cuidar do seu telefone, das suas ausências{sessao.papel === "administrativo" ? ", do calendário forense e das ausências da equipe" : ""}.</Alert> : null}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

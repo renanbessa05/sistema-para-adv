@@ -25,7 +25,7 @@ export default async function PaginaNovoCalculo({ searchParams }: { searchParams
         <Link href="/calculos" className="text-sm text-zinc-500 hover:underline">
           ← Cálculos
         </Link>
-        <h1 className="text-xl font-semibold">Novo cálculo</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Novo cálculo</h1>
       </div>
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       <Card>

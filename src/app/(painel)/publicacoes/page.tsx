@@ -37,7 +37,7 @@ export default async function PaginaPublicacoes({ searchParams }: { searchParams
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold">Publicações</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Publicações</h1>
           <p className="text-sm text-zinc-500">Caixa de entrada do DJEN e lançamentos manuais. O texto só aparece no detalhe.</p>
         </div>
         {podeLancar ? (

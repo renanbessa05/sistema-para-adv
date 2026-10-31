@@ -21,7 +21,7 @@ export default async function PaginaDocumentosConfig({ searchParams }: { searchP
   return (
     <div className="flex flex-col gap-4">
       <NavegacaoConfiguracoes papel={sessao.papel} atual="/configuracoes/documentos" />
-      <h1 className="text-xl font-semibold">Documentos gerados</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Documentos gerados</h1>
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       {ok ? <Alert tom="sucesso">{ok}</Alert> : null}
       <Card>

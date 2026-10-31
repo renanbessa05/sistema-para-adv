@@ -83,7 +83,7 @@ export default async function PaginaPrazos({ searchParams }: { searchParams: Pro
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-xl font-semibold">Prazos</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Prazos</h1>
         <p className="text-sm text-zinc-500">
           Ordenados pela data final. Hoje: {formatarData(periodos.hoje)} · vencido e hoje em vermelho, até 3 dias em âmbar.
         </p>

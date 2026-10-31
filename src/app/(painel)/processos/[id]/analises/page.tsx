@@ -42,7 +42,7 @@ export default async function PaginaAnalises({
         <Link href={`/processos/${id}`} className="text-sm text-zinc-500 hover:underline">
           ← Processo
         </Link>
-        <h1 className="text-xl font-semibold">Mapa do julgador</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Mapa do julgador</h1>
         <p className="font-mono text-sm text-zinc-500">{(processo.numero_cnj_mascara as string | null) ?? "sem número"}</p>
       </div>
       <Alert tom="alerta">Previsão judicial para estudo do caso, do ponto de vista neutro de quem julga. Não é decisão oficial e não substitui o magistrado.</Alert>

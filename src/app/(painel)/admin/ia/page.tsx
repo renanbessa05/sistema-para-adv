@@ -41,7 +41,7 @@ export default async function PaginaIa() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Custo de IA (mês corrente)</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Custo de IA (mês corrente)</h1>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Cartao titulo="Gasto no mês (US$)" valor={gasto.toFixed(2)} />
         <Cartao titulo="Teto mensal (US$)" valor={teto.toFixed(2)} />

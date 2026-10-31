@@ -64,7 +64,7 @@ export default async function PaginaDivergencias({ searchParams }: { searchParam
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-xl font-semibold">Divergências da operação paralela</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Divergências da operação paralela</h1>
         <p className="text-sm text-zinc-500">
           Toda sexta, cruze os prazos do sistema com o PJe e registre aqui o que divergiu. Divergência sem causa preenchida conta como &quot;não explicada&quot; e zera a contagem. Runbook: <code>docs/runbooks/operacao-paralela.md</code>.
         </p>

@@ -21,7 +21,7 @@ export default async function PaginaNovoCliente({ searchParams }: { searchParams
         <Link href="/clientes" className="text-sm text-zinc-500 hover:underline">
           ← Clientes
         </Link>
-        <h1 className="text-xl font-semibold">Novo cliente</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Novo cliente</h1>
       </div>
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       <form action={criarCliente} className="flex flex-col gap-4">

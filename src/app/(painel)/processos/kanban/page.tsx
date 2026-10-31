@@ -36,7 +36,7 @@ export default async function PaginaKanban({ searchParams }: { searchParams: Pro
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold">Kanban de processos</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Kanban de processos</h1>
           <p className="text-sm text-zinc-500">Processos ativos e suspensos por fase. {podeMover ? "Para mover, escolha a fase no cartão." : "Seu papel só visualiza."} Fases em Configurações → Fases.</p>
         </div>
         <Link href="/processos" className="text-sm hover:underline">

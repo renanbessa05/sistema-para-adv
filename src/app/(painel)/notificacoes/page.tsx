@@ -52,7 +52,7 @@ export default async function PaginaNotificacoes() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Notificações {naoLidas ? <Badge tom="info">{naoLidas} não lidas</Badge> : null}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Notificações {naoLidas ? <Badge tom="info">{naoLidas} não lidas</Badge> : null}</h1>
         {naoLidas ? (
           <form action={marcarTodasLidas}>
             <Button variante="contorno" tamanho="sm" type="submit">

@@ -31,7 +31,7 @@ export default async function PaginaNovaTarefa({ searchParams }: { searchParams:
         <Link href="/tarefas" className="text-sm text-zinc-500 hover:underline">
           ← Tarefas
         </Link>
-        <h1 className="text-xl font-semibold">Nova tarefa</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Nova tarefa</h1>
       </div>
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       <form action={criarTarefa} className="flex flex-col gap-4">

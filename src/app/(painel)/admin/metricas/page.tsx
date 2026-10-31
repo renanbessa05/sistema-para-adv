@@ -37,7 +37,7 @@ export default async function PaginaMetricas() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Métricas (últimos 30 dias)</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Métricas (últimos 30 dias)</h1>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Cartao titulo="Publicações captadas" valor={String(soma("publicacoes_captadas"))} />
         <Cartao titulo="Prazos confirmados" valor={String(soma("prazos_confirmados"))} />

@@ -27,7 +27,7 @@ export default async function PaginaNovaMinuta({ searchParams }: { searchParams:
         <Link href="/minutas" className="text-sm text-zinc-500 hover:underline">
           ← Peças
         </Link>
-        <h1 className="text-xl font-semibold">Nova minuta</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Nova minuta</h1>
         <p className="text-sm text-zinc-500">Modo C (caso novo): seis etapas com aprovação, redação só na última. Modo A: redação direta a partir do relato. Modo B: revisão de um rascunho colado.</p>
       </div>
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}

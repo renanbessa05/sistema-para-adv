@@ -23,7 +23,7 @@ export default async function PaginaImportarJurisprudencia({ searchParams }: { s
         <Link href="/jurisprudencia" className="text-sm text-zinc-500 hover:underline">
           ← Jurisprudência
         </Link>
-        <h1 className="text-xl font-semibold">Importar jurisprudência</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Importar jurisprudência</h1>
       </div>
       {ok ? <Alert tom="sucesso">{ok}</Alert> : null}
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}

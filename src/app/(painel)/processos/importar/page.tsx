@@ -18,7 +18,7 @@ export default async function PaginaImportar() {
         <Link href="/processos" className="text-sm text-zinc-500 hover:underline">
           ← Processos
         </Link>
-        <h1 className="text-xl font-semibold">Importar carteira (CSV)</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Importar carteira (CSV)</h1>
         <p className="text-sm text-zinc-500">Envie o arquivo, confira a pré-visualização e confirme. Processos já cadastrados não são duplicados; o DataJud completa os dados em seguida.</p>
       </div>
       <Card>

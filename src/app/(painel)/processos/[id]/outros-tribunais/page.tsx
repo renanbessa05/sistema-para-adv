@@ -44,7 +44,7 @@ export default async function PaginaOutrosTribunais({
         <Link href={`/processos/${id}`} className="text-sm text-zinc-500 hover:underline">
           ← Processo
         </Link>
-        <h1 className="text-xl font-semibold">Análise em outro tribunal</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Análise em outro tribunal</h1>
         <p className="font-mono text-sm text-zinc-500">{(processo.numero_cnj_mascara as string | null) ?? "sem número"}</p>
       </div>
       {!tribunal.aplicavel ? <Alert tom="alerta">{tribunal.mato_grosso ? "Este processo é do TJ-MT: use as análises próprias de Mato Grosso." : `Esta análise não se aplica: ${tribunal.motivo}.`}</Alert> : null}

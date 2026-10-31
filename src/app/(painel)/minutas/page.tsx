@@ -23,14 +23,14 @@ export default async function PaginaMinutas({ searchParams }: { searchParams: Pr
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold">Peças</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Peças</h1>
           <p className="text-sm text-zinc-500">Minutas conduzidas em seis etapas com aprovação (caso novo), revisão de rascunho ou redação direta, e varredura dos autos de processo em curso.</p>
         </div>
         <div className="flex gap-2">
           <Link href="/varreduras/nova" className="inline-flex h-9 items-center rounded-md border border-zinc-300 px-4 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
             Varredura dos autos
           </Link>
-          <Link href="/minutas/nova" className="inline-flex h-9 items-center rounded-md bg-zinc-900 px-4 text-sm text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900">
+          <Link href="/minutas/nova" className="inline-flex h-9 items-center rounded-md bg-marca-600 px-4 text-sm text-white shadow-sm hover:bg-marca-700 dark:bg-zinc-100 dark:text-zinc-900">
             Nova minuta
           </Link>
         </div>

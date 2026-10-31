@@ -34,7 +34,7 @@ export default async function PaginaStatus() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Rotinas</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Rotinas</h1>
       {alertas.length > 0 && (
         <Alert tom="perigo" titulo="Rotinas sem execução no prazo">
           <ul className="list-disc pl-5">
