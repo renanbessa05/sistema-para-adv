@@ -8,7 +8,7 @@ export default function PaginaPrivacidade() {
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 text-sm leading-relaxed">
       <h1 className="mb-4 text-2xl font-semibold">Política de privacidade</h1>
-      <p className="mb-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-amber-900">
+      <p className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900">
         Versão de modelo. Todos os pontos marcados como (a confirmar) dependem de revisão jurídica pela advogada responsável e pelo encarregado antes da publicação.
       </p>
 

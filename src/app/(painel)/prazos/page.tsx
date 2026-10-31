@@ -1,16 +1,17 @@
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { exigirSessao } from "@/server/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { carregarCalendario } from "@/server/calendario";
 import { listarMembros, mapaNomes } from "@/server/publicacoes";
 import { calcularPeriodos } from "@/lib/prazos/periodos";
-import { formatarData } from "@/lib/utils";
-import { BadgeDataFinal, ROTULO_STATUS_PRAZO, TOM_STATUS_PRAZO } from "@/components/dominio/CartaoPrazo";
+import { cn, formatarData } from "@/lib/utils";
+import { BadgeDataFinal, DiaAgenda, ROTULO_STATUS_PRAZO, TOM_STATUS_PRAZO, urgenciaPrazo } from "@/components/dominio/CartaoPrazo";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, Vazio } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Input, Label, Select } from "@/components/ui/input";
+import { Button, classesBotao } from "@/components/ui/button";
+import { Campo, Input, Select } from "@/components/ui/input";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { Abas, abaAtual } from "@/components/dominio/Abas";
 import { listarAudiencias } from "@/server/audiencias";
@@ -94,18 +95,37 @@ export default async function PaginaPrazos({ searchParams }: { searchParams: Pro
   const nomes = mapaNomes(membros);
   const responsaveis = membros.filter((m) => m.usuario_id && (m.papel === "socio" || m.papel === "advogado"));
   const linhas = (prazos ?? []) as unknown as Linha[];
+  const filtrosAtivos = Boolean(periodo || responsavel || processo);
+
+  /** Mesmos filtros com outro status (chips acima da tabela). */
+  const linkStatus = (novo: string) => {
+    const p = new URLSearchParams();
+    if (novo !== "pendentes") p.set("status", novo);
+    if (periodo) p.set("periodo", periodo);
+    if (responsavel) p.set("responsavel", responsavel);
+    if (processo) p.set("processo", processo);
+    const s = p.toString();
+    return s ? `/prazos?${s}` : "/prazos";
+  };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Prazos e agenda</h1>
-          <p className="text-sm text-zinc-500">
-            {aba === "audiencias" ? "Audiências a partir de hoje. Alerta de véspera para o responsável e os sócios." : <>Ordenados pela data final. Hoje: {formatarData(periodos.hoje)} · vencido e hoje em vermelho, até 3 dias em âmbar.</>}
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">Prazos e agenda</h1>
+          <p className="mt-1 text-sm text-zinc-500">
+            {aba === "audiencias" ? (
+              "Audiências a partir de hoje. Alerta de véspera para o responsável e os sócios."
+            ) : (
+              <>
+                Ordenados pela data final. Hoje: <span className="font-semibold text-zinc-700 tabular-nums">{formatarData(periodos.hoje)}</span> · vencido e hoje em vermelho, até 3 dias em âmbar.
+              </>
+            )}
           </p>
         </div>
         {aba === "audiencias" && podeAgendar ? (
-          <Link href="/audiencias/nova" className="inline-flex h-9 items-center rounded-md bg-marca-600 px-4 text-sm text-white shadow-sm hover:bg-marca-700">
+          <Link href="/audiencias/nova" className={classesBotao()}>
+            <Plus aria-hidden />
             Nova audiência
           </Link>
         ) : null}
@@ -118,7 +138,7 @@ export default async function PaginaPrazos({ searchParams }: { searchParams: Pro
       {error ? <Alert tom="perigo">Não foi possível listar os prazos: {error.message}</Alert> : null}
 
       {aba === "audiencias" ? (
-        <Card>
+        <Card className="overflow-hidden">
           <CardContent className="p-0">
             {audiencias.length === 0 ? (
               <div className="p-4">
@@ -128,8 +148,7 @@ export default async function PaginaPrazos({ searchParams }: { searchParams: Pro
               <Table>
                 <THead>
                   <TR>
-                    <TH>Data</TH>
-                    <TH>Hora</TH>
+                    <TH>Quando</TH>
                     <TH>Tipo</TH>
                     <TH>Processo</TH>
                     <TH>Modalidade</TH>
@@ -140,17 +159,26 @@ export default async function PaginaPrazos({ searchParams }: { searchParams: Pro
                   {audiencias.map((a) => {
                     const instante = new Date(String(a.data_hora));
                     const proc = a.processos as { numero_cnj_mascara?: string } | null;
+                    const dataIso = new Intl.DateTimeFormat("sv-SE", { timeZone }).format(instante);
+                    const encerrada = a.status === "realizada" || a.status === "cancelada";
                     return (
                       <TR key={a.id as string}>
-                        <TD className="whitespace-nowrap">{formatarData(new Intl.DateTimeFormat("sv-SE", { timeZone }).format(instante))}</TD>
-                        <TD>{horaLocal(instante, timeZone)}</TD>
-                        <TD>{a.tipo as string}</TD>
                         <TD className="whitespace-nowrap">
-                          <Link href={`/processos/${a.processo_id as string}?aba=prazos`} className="font-mono text-xs hover:underline">
+                          <span className="flex items-center gap-3">
+                            <DiaAgenda data={dataIso} urgencia={encerrada ? "encerrado" : urgenciaPrazo(dataIso, periodos.hoje, "confirmado")} className="h-10 w-10" />
+                            <span className="flex flex-col leading-tight">
+                              <span className="font-semibold text-zinc-950 tabular-nums">{formatarData(dataIso)}</span>
+                              <span className="text-xs text-zinc-500 tabular-nums">{horaLocal(instante, timeZone)}</span>
+                            </span>
+                          </span>
+                        </TD>
+                        <TD className="capitalize">{a.tipo as string}</TD>
+                        <TD className="whitespace-nowrap">
+                          <Link href={`/processos/${a.processo_id as string}?aba=prazos`} className="font-mono text-xs text-zinc-700 hover:text-marca-700 hover:underline">
                             {proc?.numero_cnj_mascara ?? "sem número"}
                           </Link>
                         </TD>
-                        <TD>{a.modalidade as string}</TD>
+                        <TD className="capitalize text-zinc-600">{a.modalidade as string}</TD>
                         <TD>
                           <Badge tom={a.status === "realizada" ? "sucesso" : a.status === "cancelada" ? "perigo" : "info"}>{a.status as string}</Badge>
                         </TD>
@@ -165,114 +193,124 @@ export default async function PaginaPrazos({ searchParams }: { searchParams: Pro
       ) : null}
 
       {aba === "prazos" ? (
-      <>
-      <Card>
-        <CardContent className="p-4">
-          <form method="get" action="/prazos" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            <div>
-              <Label htmlFor="status">Status</Label>
-              <Select id="status" name="status" defaultValue={status}>
-                {Object.entries(FILTROS_STATUS).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v.rotulo}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="periodo">Período</Label>
-              <Select id="periodo" name="periodo" defaultValue={periodo}>
-                {Object.entries(PERIODOS).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="responsavel">Responsável</Label>
-              <Select id="responsavel" name="responsavel" defaultValue={responsavel}>
-                <option value="">Todos</option>
-                {responsaveis.map((m) => (
-                  <option key={m.usuario_id as string} value={m.usuario_id as string}>
-                    {m.nome_completo}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="processo">Processo</Label>
-              <Input id="processo" name="processo" placeholder="número CNJ" defaultValue={processo} />
-            </div>
-            <div className="flex items-end gap-2">
-              <Button type="submit" variante="secundaria">
-                Filtrar
-              </Button>
-              <Link href="/prazos" className="text-sm text-zinc-500 hover:underline">
-                Limpar
+        <>
+          <nav aria-label="Filtrar por status" className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 whitespace-nowrap md:mx-0 md:flex-wrap md:px-0 md:whitespace-normal">
+            {Object.entries(FILTROS_STATUS).map(([k, v]) => (
+              <Link
+                key={k}
+                href={linkStatus(k)}
+                aria-current={status === k ? "page" : undefined}
+                className={cn(
+                  "inline-flex h-8 shrink-0 items-center rounded-full border px-3 text-[13px] font-semibold transition-colors",
+                  status === k ? "border-marca-600 bg-marca-600 text-white shadow-marca" : "border-zinc-200 bg-white text-zinc-700 shadow-xs hover:border-zinc-300 hover:bg-zinc-50",
+                )}
+              >
+                {k === "pendentes" ? "Pendentes" : v.rotulo}
               </Link>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+            ))}
+          </nav>
 
-      <Card>
-        <CardContent className="p-0">
-          {linhas.length === 0 ? (
-            <div className="p-4">
-              <Vazio titulo="Nenhum prazo com estes filtros" descricao="Prazos sugeridos nascem das publicações classificadas; confirme-os para virar tarefa." />
-            </div>
-          ) : (
-            <Table>
-              <THead>
-                <TR>
-                  <TH>Data final</TH>
-                  <TH>Data interna</TH>
-                  <TH>Ato</TH>
-                  <TH>Processo</TH>
-                  <TH>Status</TH>
-                  <TH>Responsável</TH>
-                  <TH>Calendário</TH>
-                </TR>
-              </THead>
-              <TBody>
-                {linhas.map((p) => (
-                  <TR key={p.id}>
-                    <TD className="whitespace-nowrap">
-                      <Link href={`/prazos/${p.id}`}>
-                        <BadgeDataFinal dataFinal={p.data_final} hoje={periodos.hoje} status={p.status} />
-                      </Link>
-                    </TD>
-                    <TD className="whitespace-nowrap text-zinc-500">{formatarData(p.data_interna) || "—"}</TD>
-                    <TD>
-                      <Link href={`/prazos/${p.id}`} className="hover:underline">
-                        {p.ato_descricao ?? "ato a praticar"}
-                      </Link>
-                      {p.quantidade ? (
-                        <span className="block text-xs text-zinc-500">
-                          {p.quantidade} dia(s){p.multiplicador > 1 ? ` × ${p.multiplicador}` : ""}
-                        </span>
-                      ) : null}
-                    </TD>
-                    <TD className="whitespace-nowrap">
-                      <Link href={`/processos/${p.processo_id}`} className="font-mono text-xs hover:underline">
-                        {p.processos?.numero_cnj_mascara ?? "processo"}
-                      </Link>
-                    </TD>
-                    <TD>
-                      <Badge tom={TOM_STATUS_PRAZO[p.status] ?? "neutro"}>{ROTULO_STATUS_PRAZO[p.status] ?? p.status}</Badge>
-                    </TD>
-                    <TD className="whitespace-nowrap">{p.responsavel_id ? nomes.get(p.responsavel_id) ?? "—" : <span className="text-zinc-400">sem responsável</span>}</TD>
-                    <TD>{p.calendario_incompleto ? <Badge tom="alerta">incompleto</Badge> : null}</TD>
-                  </TR>
-                ))}
-              </TBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-      {linhas.length >= 300 ? <p className="text-sm text-zinc-500">Mostrando os 300 primeiros. Refine os filtros para ver o restante.</p> : null}
-      </>
+          <Card>
+            <CardContent className="p-4 sm:p-5">
+              <form method="get" action="/prazos" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1.3fr_auto]">
+                <input type="hidden" name="status" value={status} />
+                <Campo label="Período">
+                  <Select id="periodo" name="periodo" defaultValue={periodo}>
+                    {Object.entries(PERIODOS).map(([k, v]) => (
+                      <option key={k} value={k}>
+                        {v}
+                      </option>
+                    ))}
+                  </Select>
+                </Campo>
+                <Campo label="Responsável">
+                  <Select id="responsavel" name="responsavel" defaultValue={responsavel}>
+                    <option value="">Todos</option>
+                    {responsaveis.map((m) => (
+                      <option key={m.usuario_id as string} value={m.usuario_id as string}>
+                        {m.nome_completo}
+                      </option>
+                    ))}
+                  </Select>
+                </Campo>
+                <Campo label="Processo">
+                  <Input id="processo" name="processo" placeholder="número CNJ" defaultValue={processo} className="font-mono" />
+                </Campo>
+                <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-1">
+                  <Button type="submit" variante="secundaria" className="flex-1 lg:flex-none">
+                    Filtrar
+                  </Button>
+                  <Link href="/prazos" className={classesBotao({ variante: "fantasma", className: filtrosAtivos ? undefined : "text-zinc-400" })}>
+                    Limpar
+                  </Link>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
+              {linhas.length === 0 ? (
+                <div className="p-4">
+                  <Vazio titulo="Nenhum prazo com estes filtros" descricao="Prazos sugeridos nascem das publicações classificadas; confirme-os para virar tarefa." />
+                </div>
+              ) : (
+                <Table>
+                  <THead>
+                    <TR>
+                      <TH>Data final</TH>
+                      <TH className="min-w-56">Ato</TH>
+                      <TH>Processo</TH>
+                      <TH>Status</TH>
+                      <TH>Responsável</TH>
+                    </TR>
+                  </THead>
+                  <TBody>
+                    {linhas.map((p) => {
+                      const urgencia = urgenciaPrazo(p.data_final, periodos.hoje, p.status);
+                      return (
+                        <TR key={p.id}>
+                          <TD className="whitespace-nowrap">
+                            <Link href={`/prazos/${p.id}`} className="flex items-center gap-3">
+                              <DiaAgenda data={p.data_final} urgencia={urgencia} className="h-10 w-10" />
+                              <span className="flex flex-col items-start gap-0.5 leading-tight">
+                                <BadgeDataFinal dataFinal={p.data_final} hoje={periodos.hoje} status={p.status} />
+                                <span className="text-xs text-zinc-500 tabular-nums">{p.data_interna ? `interna ${formatarData(p.data_interna)}` : "sem data interna"}</span>
+                              </span>
+                            </Link>
+                          </TD>
+                          <TD>
+                            <Link href={`/prazos/${p.id}`} className="block font-semibold text-zinc-950 hover:text-marca-700">
+                              {p.ato_descricao ?? "ato a praticar"}
+                            </Link>
+                            <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500">
+                              {p.quantidade ? (
+                                <span className="tabular-nums">
+                                  {p.quantidade} dia(s){p.multiplicador > 1 ? ` × ${p.multiplicador}` : ""}
+                                </span>
+                              ) : null}
+                              {p.calendario_incompleto ? <Badge tom="alerta">calendário incompleto</Badge> : null}
+                            </span>
+                          </TD>
+                          <TD className="whitespace-nowrap">
+                            <Link href={`/processos/${p.processo_id}`} className="font-mono text-xs text-zinc-700 hover:text-marca-700 hover:underline">
+                              {p.processos?.numero_cnj_mascara ?? "processo"}
+                            </Link>
+                          </TD>
+                          <TD>
+                            <Badge tom={TOM_STATUS_PRAZO[p.status] ?? "neutro"}>{ROTULO_STATUS_PRAZO[p.status] ?? p.status}</Badge>
+                          </TD>
+                          <TD className="whitespace-nowrap text-zinc-700">{p.responsavel_id ? nomes.get(p.responsavel_id) ?? "—" : <span className="text-zinc-400">sem responsável</span>}</TD>
+                        </TR>
+                      );
+                    })}
+                  </TBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+          {linhas.length >= 300 ? <p className="text-[13px] text-zinc-500">Mostrando os 300 primeiros. Refine os filtros para ver o restante.</p> : null}
+        </>
       ) : null}
     </div>
   );

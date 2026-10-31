@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { envServidor } from "@/lib/config/env";
 import { obterSessao } from "@/server/sessao";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import { TelaEntrada } from "@/components/dominio/TelaEntrada";
 import { FormularioOnboarding } from "./formulario";
 
 export default async function PaginaOnboarding({ searchParams }: { searchParams: Promise<{ erro?: string }> }) {
@@ -14,11 +16,16 @@ export default async function PaginaOnboarding({ searchParams }: { searchParams:
   if (await obterSessao()) redirect("/hoje");
   const { erro } = await searchParams;
   return (
-    <main className="flex min-h-screen items-center justify-center p-4">
-      <div className="flex w-full flex-col items-center gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Vamos criar o seu escritório</h1>
-        <FormularioOnboarding erro={erro} />
-      </div>
-    </main>
+    <TelaEntrada>
+      <Card className="shadow-md">
+        <CardHeader className="pt-7">
+          <h1 className="text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">Vamos criar o seu escritório</h1>
+          <CardDescription>Três passos curtos. Você será o sócio responsável; os demais membros entram por convite.</CardDescription>
+        </CardHeader>
+        <CardContent className="pb-7">
+          <FormularioOnboarding erro={erro} />
+        </CardContent>
+      </Card>
+    </TelaEntrada>
   );
 }

@@ -1,16 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { FileSignature, Pencil, X } from "lucide-react";
 import { exigirSessao } from "@/server/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { listarMembros, mapaNomes, membrosComUsuario } from "@/server/equipe";
 import { classificarTarefa, EVENTOS_TAREFA, permissoesTarefa, PRIORIDADES, STATUS_TAREFA, TIPOS_TAREFA } from "@/server/tarefas";
 import { hojeNoFuso } from "@/lib/prazos";
-import { formatarData, formatarDataHora } from "@/lib/utils";
+import { cn, formatarData, formatarDataHora } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, classesBotao } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
-import { Campo, Input, Select, Textarea } from "@/components/ui/input";
+import { Campo, GrupoCampos, Input, Select, Textarea } from "@/components/ui/input";
 import { alterarStatusTarefa, cancelarTarefa, concluirTarefa, editarTarefa, reatribuirTarefa } from "../actions";
 import { ProximoPasso } from "@/components/dominio/ProximoPasso";
 
@@ -82,36 +83,46 @@ export default async function PaginaTarefa({ params, searchParams }: { params: P
     ...(tarefa.prazo_id ? [{ href: `/prazos/${tarefa.prazo_id}`, rotulo: "prazo" }] : []),
     ...(tarefa.publicacao_id ? [{ href: `/publicacoes/${tarefa.publicacao_id}`, rotulo: "publicação" }] : []),
   ];
+  const vencimentoTom = tarefa.atrasada ? "text-red-600" : tarefa.vencimento === hoje ? "text-ouro-700" : "text-zinc-900";
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <Link href="/tarefas" className="text-sm text-zinc-500 hover:underline">
-            ← Tarefas
-          </Link>
-          <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-[13px] text-zinc-500">
+            <Link href="/tarefas" className="font-semibold text-marca-600 hover:underline">
+              Tarefas
+            </Link>
+            <span className="mx-1.5 text-zinc-300">/</span>
+            detalhe
+          </p>
+          <h1 className="mt-1 flex flex-wrap items-center gap-2 text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">
             {tarefa.titulo}
-            <Badge tom={TOM_STATUS[tarefa.status] ?? "neutro"}>{STATUS_TAREFA[tarefa.status] ?? tarefa.status}</Badge>
-            {tarefa.critica ? <Badge tom="perigo">crítica</Badge> : null}
-            {tarefa.atrasada ? <Badge tom="alerta">atrasada</Badge> : null}
+            <span className="flex flex-wrap items-center gap-1.5">
+              <Badge tom={TOM_STATUS[tarefa.status] ?? "neutro"}>{STATUS_TAREFA[tarefa.status] ?? tarefa.status}</Badge>
+              {tarefa.critica ? <Badge tom="perigo">crítica</Badge> : null}
+              {tarefa.atrasada ? <Badge tom="alerta">atrasada</Badge> : null}
+            </span>
           </h1>
-          <p className="text-sm text-zinc-500">
+          <p className="mt-1 text-sm text-zinc-500">
             {TIPOS_TAREFA[tarefa.tipo] ?? tarefa.tipo} · prioridade {PRIORIDADES[tarefa.prioridade] ?? tarefa.prioridade} · origem {tarefa.origem}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {tarefaAberta && podeRedigir && minuta ? (
-            <Link href={`/minutas/${minuta.id as string}`} className="inline-flex h-9 items-center rounded-md bg-marca-600 px-4 text-sm text-white shadow-sm hover:bg-marca-700">
+            <Link href={`/minutas/${minuta.id as string}`} className={classesBotao()}>
+              <FileSignature aria-hidden />
               Continuar peça
             </Link>
           ) : tarefaAberta && podeRedigir && pedePeca ? (
-            <Link href={linkNovaPeca} className="inline-flex h-9 items-center rounded-md bg-marca-600 px-4 text-sm text-white shadow-sm hover:bg-marca-700">
+            <Link href={linkNovaPeca} className={classesBotao()}>
+              <FileSignature aria-hidden />
               Redigir peça
             </Link>
           ) : null}
           {pode.editar ? (
-            <Link href={modoEdicao ? `/tarefas/${id}` : `/tarefas/${id}?editar=1`} className="inline-flex h-9 items-center rounded-md border border-zinc-300 px-4 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
+            <Link href={modoEdicao ? `/tarefas/${id}` : `/tarefas/${id}?editar=1`} className={classesBotao({ variante: "contorno" })}>
+              {modoEdicao ? <X aria-hidden /> : <Pencil aria-hidden />}
               {modoEdicao ? "Fechar edição" : "Editar"}
             </Link>
           ) : null}
@@ -133,85 +144,89 @@ export default async function PaginaTarefa({ params, searchParams }: { params: P
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle>Detalhes</CardTitle>
+            <CardTitle>{modoEdicao ? "Editar tarefa" : "Detalhes"}</CardTitle>
+            {modoEdicao ? <CardDescription>Título, vencimento, prioridade e descrição. Executor muda em «Reatribuir».</CardDescription> : null}
           </CardHeader>
           <CardContent>
             {modoEdicao ? (
-              <form action={editarTarefa.bind(null, id)} className="grid gap-3 sm:grid-cols-2">
-                <Campo label="Título" className="sm:col-span-2">
-                  <Input name="titulo" required defaultValue={tarefa.titulo} />
-                </Campo>
-                <Campo label="Vencimento (data interna)">
-                  <Input name="vencimento" type="date" defaultValue={tarefa.vencimento ?? ""} />
-                </Campo>
-                <Campo label="Prioridade">
-                  <Select name="prioridade" defaultValue={tarefa.prioridade}>
-                    {Object.entries(PRIORIDADES).map(([v, r]) => (
-                      <option key={v} value={v}>
-                        {r}
-                      </option>
-                    ))}
-                  </Select>
-                </Campo>
-                <Campo label="Descrição" className="sm:col-span-2">
-                  <Textarea name="descricao" defaultValue={tarefa.descricao ?? ""} rows={3} />
-                </Campo>
-                <div className="flex justify-end sm:col-span-2">
+              <form action={editarTarefa.bind(null, id)} className="flex flex-col gap-4">
+                <GrupoCampos>
+                  <Campo label="Título" className="sm:col-span-2">
+                    <Input name="titulo" required defaultValue={tarefa.titulo} />
+                  </Campo>
+                  <Campo label="Vencimento (data interna)">
+                    <Input name="vencimento" type="date" defaultValue={tarefa.vencimento ?? ""} />
+                  </Campo>
+                  <Campo label="Prioridade">
+                    <Select name="prioridade" defaultValue={tarefa.prioridade}>
+                      {Object.entries(PRIORIDADES).map(([v, r]) => (
+                        <option key={v} value={v}>
+                          {r}
+                        </option>
+                      ))}
+                    </Select>
+                  </Campo>
+                  <Campo label="Descrição" className="sm:col-span-2">
+                    <Textarea name="descricao" defaultValue={tarefa.descricao ?? ""} rows={3} className="min-h-24" />
+                  </Campo>
+                </GrupoCampos>
+                <div className="flex justify-end gap-2">
+                  <Link href={`/tarefas/${id}`} className={classesBotao({ variante: "contorno" })}>
+                    Cancelar
+                  </Link>
                   <Button type="submit">Salvar</Button>
                 </div>
               </form>
             ) : (
-              <dl className="grid gap-x-4 gap-y-2 text-sm sm:grid-cols-2">
-                <Item rotulo="Executor" valor={tarefa.executor_id ? nome(tarefa.executor_id) : "sem executor"} />
-                <Item rotulo="Responsável" valor={tarefa.responsavel_id ? nome(tarefa.responsavel_id) : "—"} />
-                <Item rotulo="Vencimento (data interna)" valor={formatarData(tarefa.vencimento)} />
-                <Item rotulo="Criada em" valor={`${formatarDataHora(tarefa.criado_em, timeZone)} por ${tarefa.criado_por_tipo === "usuario" ? nome(tarefa.criado_por_id) : tarefa.criado_por_tipo}`} />
+              <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                <Item rotulo="Executor">{tarefa.executor_id ? nome(tarefa.executor_id) : <span className="text-zinc-400">sem executor</span>}</Item>
+                <Item rotulo="Responsável">{tarefa.responsavel_id ? nome(tarefa.responsavel_id) : "—"}</Item>
+                <Item rotulo="Vencimento (data interna)">
+                  <span className={cn("font-semibold tabular-nums", vencimentoTom)}>{formatarData(tarefa.vencimento) || "—"}</span>
+                  {tarefa.atrasada ? <span className="ml-1.5 text-xs text-red-600">passou</span> : tarefa.vencimento === hoje ? <span className="ml-1.5 text-xs text-ouro-700">hoje</span> : null}
+                </Item>
+                <Item rotulo="Criada em">{`${formatarDataHora(tarefa.criado_em, timeZone)} por ${tarefa.criado_por_tipo === "usuario" ? nome(tarefa.criado_por_id) : tarefa.criado_por_tipo}`}</Item>
                 {tarefa.processo_id ? (
-                  <div>
-                    <dt className="text-xs uppercase tracking-wide text-zinc-500">Processo</dt>
-                    <dd>
-                      <Link href={`/processos/${tarefa.processo_id}`} className="font-mono text-xs hover:underline">
-                        {tarefa.processos?.numero_cnj_mascara ?? tarefa.processo_id}
-                      </Link>
-                      {tarefa.processos?.segredo_justica ? (
-                        <Badge tom="perigo" className="ml-2">
-                          sigiloso
-                        </Badge>
-                      ) : null}
-                    </dd>
-                  </div>
+                  <Item rotulo="Processo">
+                    <Link href={`/processos/${tarefa.processo_id}`} className="font-mono text-xs text-marca-700 hover:underline">
+                      {tarefa.processos?.numero_cnj_mascara ?? tarefa.processo_id}
+                    </Link>
+                    {tarefa.processos?.segredo_justica ? (
+                      <Badge tom="perigo" className="ml-2">
+                        sigiloso
+                      </Badge>
+                    ) : null}
+                  </Item>
                 ) : null}
                 {tarefa.prazo_id && tarefa.prazos ? (
-                  <div>
-                    <dt className="text-xs uppercase tracking-wide text-zinc-500">Prazo ligado</dt>
-                    <dd>
-                      <Link href={`/prazos/${tarefa.prazo_id}`} className="hover:underline">
-                        {tarefa.prazos.ato_descricao ?? "Prazo"} · fatal {formatarData(tarefa.prazos.data_final)}
-                      </Link>{" "}
-                      <Badge tom={tarefa.prazos.status === "vencido" ? "perigo" : "contorno"}>{tarefa.prazos.status}</Badge>
-                    </dd>
-                  </div>
+                  <Item rotulo="Prazo ligado">
+                    <Link href={`/prazos/${tarefa.prazo_id}`} className="font-semibold text-zinc-950 hover:text-marca-700">
+                      {tarefa.prazos.ato_descricao ?? "Prazo"} · fatal <span className="tabular-nums">{formatarData(tarefa.prazos.data_final)}</span>
+                    </Link>{" "}
+                    <Badge tom={tarefa.prazos.status === "vencido" ? "perigo" : "contorno"}>{tarefa.prazos.status}</Badge>
+                  </Item>
                 ) : null}
                 {tarefa.publicacao_id ? (
-                  <div>
-                    <dt className="text-xs uppercase tracking-wide text-zinc-500">Publicação</dt>
-                    <dd>
-                      <Link href={`/publicacoes/${tarefa.publicacao_id}`} className="hover:underline">
-                        ver publicação
-                      </Link>
-                    </dd>
-                  </div>
+                  <Item rotulo="Publicação">
+                    <Link href={`/publicacoes/${tarefa.publicacao_id}`} className="font-medium text-marca-700 hover:underline">
+                      ver publicação
+                    </Link>
+                  </Item>
                 ) : null}
-                {tarefa.descricao ? <Item rotulo="Descrição" valor={tarefa.descricao} className="sm:col-span-2" /> : null}
-                {tarefa.concluida_em ? <Item rotulo="Concluída" valor={`${formatarDataHora(tarefa.concluida_em, timeZone)} por ${nome(tarefa.concluida_por)}`} /> : null}
-                {tarefa.cancelada_motivo ? <Item rotulo="Motivo do cancelamento" valor={tarefa.cancelada_motivo} /> : null}
+                {tarefa.descricao ? (
+                  <Item rotulo="Descrição" className="sm:col-span-2">
+                    <span className="block max-w-prose leading-relaxed whitespace-pre-line">{tarefa.descricao}</span>
+                  </Item>
+                ) : null}
+                {tarefa.concluida_em ? <Item rotulo="Concluída">{`${formatarDataHora(tarefa.concluida_em, timeZone)} por ${nome(tarefa.concluida_por)}`}</Item> : null}
+                {tarefa.cancelada_motivo ? <Item rotulo="Motivo do cancelamento">{tarefa.cancelada_motivo}</Item> : null}
               </dl>
             )}
           </CardContent>
         </Card>
 
         <div className="flex flex-col gap-4">
-          <Card>
+          <Card className={cn(pode.mover || pode.concluir ? "border-marca-200" : undefined)}>
             <CardHeader>
               <CardTitle>Ações</CardTitle>
               <CardDescription>{sessao.papel === "estagiario" ? "Estagiário leva a tarefa até “pronta para revisão”." : "As regras de quem pode o quê estão no banco; aqui só aparece o que o seu papel permite."}</CardDescription>
@@ -226,12 +241,12 @@ export default async function PaginaTarefa({ params, searchParams }: { params: P
                 </form>
               ) : null}
               {pode.concluir ? (
-                <form action={concluirTarefa.bind(null, id)} className="flex flex-col gap-2 rounded-md border border-zinc-200 p-2 dark:border-zinc-800">
+                <form action={concluirTarefa.bind(null, id)} className="flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50/40 p-3">
                   {prazoAberto ? (
-                    <label className="inline-flex items-start gap-2">
-                      <input type="checkbox" name="protocolado" className="mt-0.5" />
+                    <label className="flex cursor-pointer items-start gap-2.5 text-[13px] leading-snug text-zinc-800">
+                      <input type="checkbox" name="protocolado" className="mt-0.5 h-4 w-4 shrink-0 accent-marca-600" />
                       <span>
-                        Protocolado? Marcar o prazo <strong>{tarefa.prazos?.ato_descricao ?? ""}</strong> como cumprido.
+                        Protocolado? Marcar o prazo <strong className="font-semibold">{tarefa.prazos?.ato_descricao ?? ""}</strong> como cumprido.
                       </span>
                     </label>
                   ) : null}
@@ -241,7 +256,7 @@ export default async function PaginaTarefa({ params, searchParams }: { params: P
                 </form>
               ) : null}
               {pode.cancelar ? (
-                <form action={cancelarTarefa.bind(null, id)} className="flex flex-col gap-2 rounded-md border border-zinc-200 p-2 dark:border-zinc-800">
+                <form action={cancelarTarefa.bind(null, id)} className="flex flex-col gap-2 rounded-xl border border-zinc-200 p-3">
                   <Input name="motivo" required placeholder="Motivo do cancelamento" />
                   <Button type="submit" variante="perigo" className="w-full">
                     Cancelar tarefa
@@ -256,6 +271,7 @@ export default async function PaginaTarefa({ params, searchParams }: { params: P
             <Card>
               <CardHeader>
                 <CardTitle>Reatribuir</CardTitle>
+                <CardDescription>Passa a tarefa para outro executor; o histórico registra de quem para quem.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form action={reatribuirTarefa.bind(null, id)} className="flex flex-col gap-2 text-sm">
@@ -283,29 +299,33 @@ export default async function PaginaTarefa({ params, searchParams }: { params: P
       <Card>
         <CardHeader>
           <CardTitle>Histórico</CardTitle>
+          <CardDescription>Tudo que aconteceu com a tarefa, em ordem.</CardDescription>
         </CardHeader>
         <CardContent>
           {(eventos ?? []).length === 0 ? (
-            <p className="text-sm text-zinc-500">Sem eventos.</p>
+            <p className="py-2 text-sm text-zinc-400">Sem eventos.</p>
           ) : (
-            <ul className="divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
+            <ol className="relative flex flex-col gap-3 border-l border-zinc-200 pl-4">
               {(eventos ?? []).map((e) => {
                 const dados = (e.dados ?? {}) as Record<string, unknown>;
                 return (
-                  <li key={e.id as string} className="flex flex-col gap-0.5 py-1.5 sm:flex-row sm:items-baseline sm:gap-3">
-                    <span className="shrink-0 text-xs text-zinc-500">{formatarDataHora(e.criado_em as string, timeZone)}</span>
-                    <span>
-                      <strong>{EVENTOS_TAREFA[e.tipo as string] ?? (e.tipo as string)}</strong> por {nome(e.usuario_id as string | null)}
+                  <li key={e.id as string} className="relative text-sm">
+                    <span className="absolute top-1.5 -left-[21px] h-2.5 w-2.5 rounded-full border-2 border-white bg-marca-400 ring-1 ring-zinc-200" aria-hidden />
+                    <p className="text-xs text-zinc-500 tabular-nums">
+                      {formatarDataHora(e.criado_em as string, timeZone)} · {nome(e.usuario_id as string | null)}
+                    </p>
+                    <p className="text-zinc-800">
+                      <strong className="font-semibold text-zinc-950">{EVENTOS_TAREFA[e.tipo as string] ?? (e.tipo as string)}</strong>
                       {e.tipo === "reatribuida" ? ` · de ${e.de_usuario_id ? nome(e.de_usuario_id as string) : "ninguém"} para ${nome(e.para_usuario_id as string | null)}` : ""}
                       {e.tipo === "status_alterado" && dados.de && dados.para ? ` · ${STATUS_TAREFA[String(dados.de)] ?? dados.de} → ${STATUS_TAREFA[String(dados.para)] ?? dados.para}` : ""}
                       {e.tipo === "vencimento_alterado" ? ` · ${formatarData(dados.de as string | null) || "—"} → ${formatarData(dados.para as string | null) || "—"}` : ""}
-                      {typeof dados.motivo === "string" && dados.motivo ? <span className="block text-xs text-zinc-500">motivo: {dados.motivo}</span> : null}
-                      {dados.protocolado === true ? <span className="block text-xs text-zinc-500">protocolado: prazo marcado como cumprido</span> : null}
-                    </span>
+                    </p>
+                    {typeof dados.motivo === "string" && dados.motivo ? <p className="text-[13px] text-zinc-600">motivo: {dados.motivo}</p> : null}
+                    {dados.protocolado === true ? <p className="text-[13px] text-emerald-700">protocolado: prazo marcado como cumprido</p> : null}
                   </li>
                 );
               })}
-            </ul>
+            </ol>
           )}
         </CardContent>
       </Card>
@@ -313,11 +333,11 @@ export default async function PaginaTarefa({ params, searchParams }: { params: P
   );
 }
 
-function Item({ rotulo, valor, className }: { rotulo: string; valor: string | null | undefined; className?: string }) {
+function Item({ rotulo, children, className }: { rotulo: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={className}>
-      <dt className="text-xs uppercase tracking-wide text-zinc-500">{rotulo}</dt>
-      <dd className="whitespace-pre-line">{valor || <span className="text-zinc-400">—</span>}</dd>
+    <div className={cn("min-w-0", className)}>
+      <dt className="text-[11px] font-bold tracking-[0.08em] text-zinc-400 uppercase">{rotulo}</dt>
+      <dd className="mt-0.5 text-sm text-zinc-900 break-words">{children}</dd>
     </div>
   );
 }

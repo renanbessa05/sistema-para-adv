@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft, Calculator } from "lucide-react";
 import { exigirSessao } from "@/server/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { formatarReais } from "@/lib/honorarios/tabela";
@@ -48,79 +49,107 @@ export default async function PaginaCalculo({
   const status = c.status as string;
   const podeEnviar = ["socio", "advogado"].includes(sessao.papel) && status === "rascunho" && Boolean(totais);
   const enviar = enviarCalculoAction.bind(null, id);
+  const celulaNumero = "text-right tabular-nums whitespace-nowrap";
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <Link href="/calculos" className="text-sm text-zinc-500 hover:underline">
-          ← Cálculos
-        </Link>
-        <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold">
-          {c.titulo as string}
-          <Badge tom={status === "aprovado" ? "sucesso" : status === "rejeitado" ? "perigo" : "info"}>{status}</Badge>
-        </h1>
-        <p className="text-sm text-zinc-500">
-          Regra: {regra?.nome ?? (c.regra_codigo as string)}
-          {regra?.a_confirmar ? " · regra a confirmar pela advogada" : ""}
-        </p>
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0 flex flex-col gap-1">
+          <Link href="/calculos" className="inline-flex items-center gap-1 text-[13px] font-semibold text-zinc-500 hover:text-marca-700">
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+            Cálculos
+          </Link>
+          <h1 className="flex flex-wrap items-center gap-2.5 text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">
+            <span className="min-w-0 break-words">{c.titulo as string}</span>
+            <Badge tom={status === "aprovado" ? "sucesso" : status === "rejeitado" ? "perigo" : "info"}>{status}</Badge>
+          </h1>
+          <p className="text-sm text-zinc-500">
+            Regra: {regra?.nome ?? (c.regra_codigo as string)}
+            {regra?.a_confirmar ? <span className="font-semibold text-ouro-700"> · regra a confirmar pela advogada</span> : ""}
+          </p>
+        </div>
+        {podeEnviar ? (
+          <form action={enviar}>
+            <Button type="submit">Enviar para aprovação</Button>
+          </form>
+        ) : null}
       </div>
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       {ok ? <Alert tom="sucesso">{ok}</Alert> : null}
       <Card>
         <CardHeader>
-          <CardTitle>Resultado</CardTitle>
-          <CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <Calculator className="h-4 w-4 text-marca-600" aria-hidden />
+            Resultado
+          </CardTitle>
+          <CardDescription className="tabular-nums">
             {totais
               ? `Total atualizado: ${formatarReais(totais.total)} (principal ${formatarReais(totais.valorOriginal)}, correção ${formatarReais(totais.valorCorrigido - totais.valorOriginal)}, juros ${formatarReais(totais.juros)})`
               : "Sem resultado."}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
+          {totais ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Indicador titulo="Principal" valor={formatarReais(totais.valorOriginal)} />
+              <Indicador titulo="Correção" valor={formatarReais(totais.valorCorrigido - totais.valorOriginal)} />
+              <Indicador titulo="Juros" valor={formatarReais(totais.juros)} />
+              <Indicador titulo="Total atualizado" valor={formatarReais(totais.total)} destaque />
+            </div>
+          ) : null}
           <Table>
             <THead>
               <TR>
                 <TH>Item</TH>
                 <TH>Data inicial</TH>
-                <TH>Principal</TH>
-                <TH>Corrigido</TH>
-                <TH>Juros</TH>
-                <TH>Total</TH>
+                <TH className="text-right">Principal</TH>
+                <TH className="text-right">Corrigido</TH>
+                <TH className="text-right">Juros</TH>
+                <TH className="text-right">Total</TH>
               </TR>
             </THead>
             <TBody>
               {(itens ?? []).map((i) => (
                 <TR key={i.ordem as number}>
-                  <TD>{i.descricao as string}</TD>
-                  <TD>{String(i.data_inicial)}</TD>
-                  <TD>{formatarReais(Number(i.valor_original))}</TD>
-                  <TD>{formatarReais(Number(i.valor_corrigido))}</TD>
-                  <TD>{formatarReais(Number(i.juros))}</TD>
-                  <TD>{formatarReais(Number(i.total))}</TD>
+                  <TD className="min-w-[180px] font-semibold text-zinc-950">{i.descricao as string}</TD>
+                  <TD className="text-zinc-600 tabular-nums whitespace-nowrap">{String(i.data_inicial)}</TD>
+                  <TD className={celulaNumero}>{formatarReais(Number(i.valor_original))}</TD>
+                  <TD className={celulaNumero}>{formatarReais(Number(i.valor_corrigido))}</TD>
+                  <TD className={celulaNumero}>{formatarReais(Number(i.juros))}</TD>
+                  <TD className={`${celulaNumero} font-semibold text-zinc-950`}>{formatarReais(Number(i.total))}</TD>
                 </TR>
               ))}
             </TBody>
           </Table>
-          <details>
-            <summary className="cursor-pointer text-sm text-zinc-500">Memória de cálculo</summary>
-            <ul className="mt-2 flex flex-col gap-2 text-xs">
-              {memoria.map((m) => (
-                <li key={m.descricao}>
-                  <strong>{m.descricao}</strong>
-                  <ul className="list-disc pl-5">
-                    {m.passos.map((p, k) => (
-                      <li key={k}>{p.texto}</li>
-                    ))}
-                  </ul>
-                </li>
-              ))}
-            </ul>
-          </details>
-          {podeEnviar ? (
-            <form action={enviar} className="flex justify-end">
-              <Button type="submit">Enviar para aprovação</Button>
-            </form>
-          ) : null}
+          <details className="group rounded-xl border border-zinc-200 bg-zinc-50/50">
+              <summary className="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-semibold text-zinc-700 hover:text-zinc-950 [&::-webkit-details-marker]:hidden">
+                Memória de cálculo
+                <span className="ml-auto text-xs font-normal text-zinc-400 group-open:hidden">abrir</span>
+                <span className="ml-auto hidden text-xs font-normal text-zinc-400 group-open:inline">fechar</span>
+              </summary>
+              <ul className="flex flex-col gap-3 border-t border-zinc-200 px-4 py-3 text-xs leading-relaxed text-zinc-700">
+                {memoria.map((m) => (
+                  <li key={m.descricao} className="min-w-0">
+                    <strong className="text-zinc-950">{m.descricao}</strong>
+                    <ul className="mt-1 list-disc space-y-0.5 pl-5 tabular-nums">
+                      {m.passos.map((p, k) => (
+                        <li key={k}>{p.texto}</li>
+                      ))}
+                    </ul>
+                  </li>
+                ))}
+              </ul>
+            </details>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function Indicador({ titulo, valor, destaque = false }: { titulo: string; valor: string; destaque?: boolean }) {
+  return (
+    <div className={destaque ? "min-w-0 rounded-xl border border-marca-200 bg-marca-50 px-3.5 py-3" : "min-w-0 rounded-xl border border-zinc-200 bg-zinc-50/60 px-3.5 py-3"}>
+      <p className="text-[11px] font-bold tracking-[0.06em] text-zinc-500 uppercase">{titulo}</p>
+      <p className={`mt-1 truncate text-[17px] font-extrabold tracking-[-0.02em] tabular-nums ${destaque ? "text-marca-800" : "text-zinc-950"}`}>{valor}</p>
     </div>
   );
 }

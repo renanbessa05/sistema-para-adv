@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { exigirSessao } from "@/server/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Vazio } from "@/components/ui/alert";
+import { classesBotao } from "@/components/ui/button";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { formatarReais } from "@/lib/honorarios/tabela";
 import { formatarData } from "@/lib/utils";
@@ -22,15 +25,16 @@ export default async function PaginaCalculos() {
     .limit(200);
   const lista = data ?? [];
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Cálculos</h1>
-          <p className="text-sm text-zinc-500">
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">Cálculos</h1>
+          <p className="max-w-prose text-sm text-zinc-500">
             Atualização monetária e juros. Índices do BCB; regras marcadas &ldquo;a confirmar&rdquo; dependem de revisão da advogada.
           </p>
         </div>
-        <Link href="/calculos/novo" className="inline-flex h-9 items-center rounded-md bg-marca-600 px-4 text-sm text-white shadow-sm hover:bg-marca-700">
+        <Link href="/calculos/novo" className={classesBotao({ variante: "primaria" })}>
+          <Plus aria-hidden />
           Novo cálculo
         </Link>
       </div>
@@ -38,16 +42,23 @@ export default async function PaginaCalculos() {
         <CardHeader>
           <CardTitle>{lista.length} cálculo(s)</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className={lista.length === 0 ? undefined : "px-2 pb-2"}>
           {lista.length === 0 ? (
-            <p className="text-sm text-zinc-500">Nenhum cálculo ainda.</p>
+            <Vazio
+              titulo="Nenhum cálculo ainda."
+              acao={
+                <Link href="/calculos/novo" className={classesBotao({ variante: "contorno", tamanho: "sm" })}>
+                  Novo cálculo
+                </Link>
+              }
+            />
           ) : (
             <Table>
               <THead>
                 <TR>
                   <TH>Título</TH>
                   <TH>Regra</TH>
-                  <TH>Total</TH>
+                  <TH className="text-right">Total</TH>
                   <TH>Status</TH>
                   <TH>Atualizado</TH>
                 </TR>
@@ -58,17 +69,17 @@ export default async function PaginaCalculos() {
                   const status = c.status as string;
                   return (
                     <TR key={c.id as string}>
-                      <TD>
-                        <Link href={`/calculos/${c.id}`} className="hover:underline">
+                      <TD className="min-w-0 max-w-[280px]">
+                        <Link href={`/calculos/${c.id}`} className="block truncate font-semibold text-zinc-950 hover:text-marca-700">
                           {c.titulo as string}
                         </Link>
                       </TD>
-                      <TD className="font-mono text-xs">{c.regra_codigo as string}</TD>
-                      <TD>{resultado ? formatarReais(Number(resultado.totais.total)) : "—"}</TD>
+                      <TD className="font-mono text-xs text-zinc-600">{c.regra_codigo as string}</TD>
+                      <TD className="text-right font-semibold text-zinc-950 tabular-nums whitespace-nowrap">{resultado ? formatarReais(Number(resultado.totais.total)) : "—"}</TD>
                       <TD>
                         <Badge tom={status === "aprovado" ? "sucesso" : status === "rejeitado" ? "perigo" : "info"}>{status}</Badge>
                       </TD>
-                      <TD className="text-xs text-zinc-500">{formatarData(String(c.atualizado_em).slice(0, 10))}</TD>
+                      <TD className="text-xs text-zinc-500 tabular-nums whitespace-nowrap">{formatarData(String(c.atualizado_em).slice(0, 10))}</TD>
                     </TR>
                   );
                 })}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft, Gavel } from "lucide-react";
 import { exigirSessao } from "@/server/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { identificarTribunal } from "@/lib/tribunais/codigos";
@@ -37,13 +38,19 @@ export default async function PaginaAnalises({
   const ultima = analises?.[0] ?? null;
   const podeGerar = ["socio", "advogado"].includes(sessao.papel) && tribunal.mato_grosso;
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <Link href={`/processos/${id}`} className="text-sm text-zinc-500 hover:underline">
-          ← Processo
-        </Link>
-        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Mapa do julgador</h1>
-        <p className="font-mono text-sm text-zinc-500">{(processo.numero_cnj_mascara as string | null) ?? "sem número"}</p>
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-5">
+      <div className="flex items-start gap-4">
+        <span className="hidden h-12 w-12 shrink-0 place-items-center rounded-2xl bg-marca-50 text-marca-600 sm:grid" aria-hidden>
+          <Gavel className="h-6 w-6" />
+        </span>
+        <div className="min-w-0">
+          <Link href={`/processos/${id}`} className="inline-flex items-center gap-1 text-[13px] font-semibold text-zinc-500 hover:text-marca-700">
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+            Processo
+          </Link>
+          <h1 className="mt-1 text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">Mapa do julgador</h1>
+          <p className="font-mono text-sm text-zinc-500">{(processo.numero_cnj_mascara as string | null) ?? "sem número"}</p>
+        </div>
       </div>
       <Alert tom="alerta">Previsão judicial para estudo do caso, do ponto de vista neutro de quem julga. Não é decisão oficial e não substitui o magistrado.</Alert>
       {!tribunal.mato_grosso ? <Alert tom="info">Esta análise é da skill do TJ-MT. Para outros tribunais, use a análise em outro tribunal.</Alert> : null}
@@ -56,12 +63,14 @@ export default async function PaginaAnalises({
             <CardDescription>Os autos (PDF) precisam estar anexados ao processo. O foco é opcional e não altera a neutralidade da análise.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form action={gerarMapaJulgadorAction.bind(null, id)} className="grid gap-3 sm:grid-cols-2">
-              <Campo label="Foco (opcional)">
+            <form action={gerarMapaJulgadorAction.bind(null, id)} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <Campo label="Foco (opcional)" className="min-w-0 flex-1">
                 <Input name="foco" placeholder="ex.: conferir a prescrição das parcelas" />
               </Campo>
-              <div className="flex items-end justify-end">
-                <BotaoEnviar rotuloEnviando="Analisando… pode levar uns minutos">Analisar como julgador</BotaoEnviar>
+              <div className="flex justify-end">
+                <BotaoEnviar rotuloEnviando="Analisando… pode levar uns minutos" className="h-10 w-full sm:w-auto">
+                  Analisar como julgador
+                </BotaoEnviar>
               </div>
             </form>
           </CardContent>
@@ -74,7 +83,7 @@ export default async function PaginaAnalises({
             <CardDescription>Gerada em {new Date(String(ultima.criado_em)).toLocaleString("pt-BR")}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Markdown texto={String(ultima.conteudo_md ?? "")} />
+            <Markdown texto={String(ultima.conteudo_md ?? "")} className="leading-relaxed" />
           </CardContent>
         </Card>
       ) : null}

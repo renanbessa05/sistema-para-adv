@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft, Bot, CalendarDays, Calculator, FileText, Gavel, Landmark, Lock, MapPin, Pencil, Plus, RefreshCw, ScanSearch, UserRound, Users } from "lucide-react";
 import { exigirSessao } from "@/server/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { advogadosESocios, listarMembros, mapaNomes, membrosComUsuario } from "@/server/equipe";
@@ -9,16 +10,18 @@ import { listarMinutas, ROTULO_STATUS_MINUTA } from "@/server/minutas";
 import { listarParcelas, ROTULO_STATUS_CONTRATO } from "@/server/contratos";
 import { ROTULO_AREA, ROTULO_TIPO_PECA } from "@/lib/ia/schemas/minutas";
 import { horaLocal } from "@/lib/audiencias/datas";
-import { formatarData, formatarDataHora } from "@/lib/utils";
+import { hojeNoFuso } from "@/lib/prazos";
+import { cn, formatarData, formatarDataHora } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Campo, Input, Select, Textarea } from "@/components/ui/input";
+import { Button, classesBotao } from "@/components/ui/button";
+import { Campo, GrupoCampos, Input, Select, Textarea } from "@/components/ui/input";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { adicionarColaborador, adicionarParte, alterarResponsavel, alterarSigilo, atualizarPeloDatajud, atualizarProcesso, moverFase, removerColaborador, removerParte } from "../actions";
 import { CartaoDocumentos } from "@/components/dominio/CartaoDocumentos";
 import { Abas, abaAtual } from "@/components/dominio/Abas";
+import { DiaAgenda, ROTULO_STATUS_PRAZO, TOM_STATUS_PRAZO, urgenciaPrazo } from "@/components/dominio/CartaoPrazo";
 import { listarDocumentos } from "@/server/documentos";
 
 export const metadata = { title: "Processo" };
@@ -128,6 +131,7 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
   const parcelas = contratos[0] ? await listarParcelas(supabase, contratos[0].id).catch(() => []) : [];
 
   const timeZone = (escritorio?.timezone as string | undefined) ?? "America/Cuiaba";
+  const hoje = hojeNoFuso(timeZone);
   const nomes = mapaNomes(membros);
   const colaboradorIds = (colaboradores ?? []).map((c) => c.usuario_id as string);
   const podeEditar = podeEditarProcesso(sessao.papel);
@@ -153,45 +157,62 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
   ];
   const atual = modoEdicao ? "geral" : abaAtual(abas, aba);
 
+  const nomeCliente =
+    (partes ?? [])
+      .filter((p) => p.eh_cliente)
+      .map((p) => p.nome as string)
+      .join(", ") || null;
+  const nomeResponsavel = processo.responsavel_id ? (nomes.get(processo.responsavel_id) ?? "membro") : null;
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <Link href="/processos" className="text-sm text-zinc-500 hover:underline">
-            ← Processos
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0">
+          <Link href="/processos" className="inline-flex items-center gap-1 text-[13px] font-semibold text-zinc-500 hover:text-marca-700">
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+            Processos
           </Link>
-          <h1 className="flex flex-wrap items-center gap-2 font-mono text-xl font-semibold">
-            {processo.numero_cnj_mascara}
-            <Badge tom={processo.status === "ativo" ? "sucesso" : processo.status === "suspenso" ? "alerta" : "neutro"}>{STATUS_PROCESSO[processo.status] ?? processo.status}</Badge>
-            {processo.segredo_justica ? <Badge tom="perigo">sigiloso{processo.nivel_sigilo ? ` (nível ${processo.nivel_sigilo})` : ""}</Badge> : null}
-            <Badge tom={processo.competencia === "juizado_especial" ? "alerta" : "contorno"}>{COMPETENCIAS[processo.competencia] ?? processo.competencia}</Badge>
-          </h1>
-          <p className="text-sm text-zinc-500">
-            {(partes ?? [])
-              .filter((p) => p.eh_cliente)
-              .map((p) => p.nome as string)
-              .join(", ") || "sem cliente vinculado"}
-            {fase ? ` · fase: ${fase.nome}` : ""}
-            {processo.responsavel_id ? ` · ${nomes.get(processo.responsavel_id) ?? "membro"}` : ""}
-          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <h1 className="font-mono text-[22px] leading-tight font-bold tracking-[-0.02em] text-zinc-950 sm:text-[26px]">{processo.numero_cnj_mascara}</h1>
+            <span className="flex flex-wrap items-center gap-1.5">
+              <Badge tom={processo.status === "ativo" ? "sucesso" : processo.status === "suspenso" ? "alerta" : "neutro"}>{STATUS_PROCESSO[processo.status] ?? processo.status}</Badge>
+              {processo.segredo_justica ? (
+                <Badge tom="perigo">
+                  <Lock className="h-3 w-3" aria-hidden />
+                  sigiloso{processo.nivel_sigilo ? ` (nível ${processo.nivel_sigilo})` : ""}
+                </Badge>
+              ) : null}
+              <Badge tom={processo.competencia === "juizado_especial" ? "alerta" : "contorno"}>{COMPETENCIAS[processo.competencia] ?? processo.competencia}</Badge>
+            </span>
+          </div>
+          <dl className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1.5 text-[13px]">
+            <Fato Icone={UserRound} rotulo="Cliente" valor={nomeCliente} vazio="sem cliente vinculado" />
+            <Fato Icone={MapPin} rotulo="Comarca" valor={comarca} vazio="comarca não informada" />
+            <Fato Icone={Gavel} rotulo="Fase" valor={fase?.nome ?? null} vazio="sem fase" />
+            <Fato Icone={Users} rotulo="Responsável" valor={nomeResponsavel} vazio="sem responsável" />
+          </dl>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 lg:shrink-0 lg:justify-end">
           {podeEditar ? (
-            <Link href={modoEdicao ? `/processos/${id}` : `/processos/${id}?editar=1`} className="inline-flex h-9 items-center rounded-md border border-zinc-300 px-4 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
+            <Link href={modoEdicao ? `/processos/${id}` : `/processos/${id}?editar=1`} className={classesBotao({ variante: "contorno" })}>
+              <Pencil aria-hidden />
               {modoEdicao ? "Fechar edição" : "Editar dados"}
             </Link>
           ) : null}
-          <Link href={`/minutas/nova?processo=${id}`} className="inline-flex h-9 items-center rounded-md bg-marca-600 px-4 text-sm text-white shadow-sm hover:bg-marca-700">
-            Nova peça
-          </Link>
-          <Link href={`/assistente?processo=${id}`} className="inline-flex h-9 items-center rounded-md border border-zinc-300 px-4 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
+          <Link href={`/assistente?processo=${id}`} className={classesBotao({ variante: "contorno" })}>
+            <Bot aria-hidden />
             Perguntar à assistente
           </Link>
           <form action={atualizarPeloDatajud.bind(null, id)}>
             <Button type="submit" variante="secundaria">
+              <RefreshCw aria-hidden />
               Atualizar pelo DataJud
             </Button>
           </form>
+          <Link href={`/minutas/nova?processo=${id}`} className={classesBotao({ variante: "primaria" })}>
+            <Plus aria-hidden />
+            Nova peça
+          </Link>
         </div>
       </div>
 
@@ -220,7 +241,8 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
               </CardHeader>
               <CardContent>
                 {modoEdicao ? (
-                  <form action={atualizarProcesso.bind(null, id)} className="grid gap-3 sm:grid-cols-2">
+                  <form action={atualizarProcesso.bind(null, id)} className="flex flex-col gap-5">
+                    <GrupoCampos titulo="Situação e competência" colunas={2}>
                     <Campo label="Status">
                       <Select name="status" defaultValue={processo.status}>
                         {Object.entries(STATUS_PROCESSO).map(([v, r]) => (
@@ -258,30 +280,38 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
                         ))}
                       </Select>
                     </Campo>
+                    </GrupoCampos>
+                    <GrupoCampos titulo="Juízo e classe" descricao="O DataJud preenche estes campos quando encontra o processo; ajuste só se vier errado." colunas={2}>
                     <Campo label="Órgão julgador">
                       <Input name="orgao_julgador_nome" defaultValue={processo.orgao_julgador_nome ?? ""} />
                     </Campo>
                     <Campo label="Classe">
                       <Input name="classe_nome" defaultValue={processo.classe_nome ?? ""} />
                     </Campo>
-                    <Campo label="Grau">
+                    <Campo label="Grau" dica="G1 para primeira instância, G2 para segunda.">
                       <Input name="grau" defaultValue={processo.grau ?? ""} placeholder="G1, G2…" />
                     </Campo>
                     <Campo label="Data de ajuizamento">
                       <Input name="data_ajuizamento" type="date" defaultValue={processo.data_ajuizamento ?? ""} />
                     </Campo>
-                    <Campo label="Valor da causa (R$)">
+                    <Campo label="Valor da causa (R$)" dica="Só números; use vírgula ou ponto para os centavos.">
                       <Input name="valor_causa" defaultValue={processo.valor_causa === null ? "" : String(processo.valor_causa)} inputMode="decimal" />
                     </Campo>
-                    <Campo label="Observações" className="sm:col-span-2">
+                    </GrupoCampos>
+                    <GrupoCampos titulo="Observações" colunas={1}>
+                    <Campo label="Anotações internas da equipe">
                       <Textarea name="observacoes" defaultValue={processo.observacoes ?? ""} rows={3} />
                     </Campo>
-                    <div className="flex justify-end gap-2 sm:col-span-2">
+                    </GrupoCampos>
+                    <div className="flex flex-wrap justify-end gap-2 border-t border-zinc-100 pt-4">
+                      <Link href={`/processos/${id}`} className={classesBotao({ variante: "contorno" })}>
+                        Cancelar
+                      </Link>
                       <Button type="submit">Salvar</Button>
                     </div>
                   </form>
                 ) : (
-                  <dl className="grid gap-x-4 gap-y-2 text-sm sm:grid-cols-2">
+                  <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
                     <Item rotulo="Tribunal" valor={processo.numero_cnj.slice(13, 14) === "8" && processo.numero_cnj.slice(14, 16) === "11" ? "TJ-MT" : `segmento ${processo.numero_cnj.slice(13, 14)}, tribunal ${processo.numero_cnj.slice(14, 16)}`} />
                     <Item rotulo="Comarca" valor={comarca} />
                     <Item rotulo="Órgão julgador" valor={processo.orgao_julgador_nome} />
@@ -302,12 +332,18 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
               <Card>
                 <CardHeader>
                   <CardTitle>Responsável</CardTitle>
+                  <CardDescription>Quem decide os prazos e recebe os alertas deste processo.</CardDescription>
                 </CardHeader>
-                <CardContent className="flex flex-col gap-2 text-sm">
-                  <p>{processo.responsavel_id ? (nomes.get(processo.responsavel_id) ?? "membro") : <span className="text-zinc-500">Sem responsável</span>}</p>
+                <CardContent className="flex flex-col gap-3 text-sm">
+                  <p className="flex items-center gap-2.5">
+                    <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-bold", nomeResponsavel ? "bg-marca-50 text-marca-700" : "bg-zinc-100 text-zinc-400")} aria-hidden>
+                      {nomeResponsavel ? nomeResponsavel.trim().charAt(0).toUpperCase() : <UserRound className="h-4 w-4" />}
+                    </span>
+                    {nomeResponsavel ? <span className="font-semibold text-zinc-950">{nomeResponsavel}</span> : <span className="text-zinc-500">Sem responsável</span>}
+                  </p>
                   {sessao.papel === "socio" || sessao.papel === "advogado" ? (
                     <form action={alterarResponsavel.bind(null, id)} className="flex gap-2">
-                      <Select name="responsavel_id" defaultValue={processo.responsavel_id ?? ""} aria-label="Novo responsável">
+                      <Select name="responsavel_id" defaultValue={processo.responsavel_id ?? ""} aria-label="Novo responsável" className="min-w-0 flex-1">
                         <option value="">Sem responsável</option>
                         {advogadosESocios(membros).map((m) => (
                           <option key={m.usuario_id} value={m.usuario_id}>
@@ -332,7 +368,7 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
                   {podeEditar ? (
                     <form action={moverFase.bind(null, id)} className="flex gap-2">
                       <input type="hidden" name="voltar" value={`/processos/${id}`} />
-                      <Select name="fase_id" defaultValue={processo.fase_id ?? ""} aria-label="Fase">
+                      <Select name="fase_id" defaultValue={processo.fase_id ?? ""} aria-label="Fase" className="min-w-0 flex-1">
                         <option value="">Sem fase</option>
                         {fases.map((f) => (
                           <option key={f.id} value={f.id}>
@@ -345,7 +381,7 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
                       </Button>
                     </form>
                   ) : (
-                    <p>{fase?.nome ?? "Sem fase"}</p>
+                    <p className="font-semibold text-zinc-950">{fase?.nome ?? <span className="font-normal text-zinc-500">Sem fase</span>}</p>
                   )}
                 </CardContent>
               </Card>
@@ -356,7 +392,7 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
                     <CardTitle>Sigilo</CardTitle>
                     <CardDescription>Em segredo de justiça, só responsável, colaboradores e sócios leem o texto das publicações.</CardDescription>
                   </CardHeader>
-                  <CardContent>
+                    <CardContent>
                     <form action={alterarSigilo.bind(null, id)} className="flex flex-wrap items-center gap-2 text-sm">
                       {processo.segredo_justica ? (
                         <>
@@ -392,25 +428,34 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
             <Card>
               <CardHeader>
                 <CardTitle>Partes</CardTitle>
+                <CardDescription>Quem está em cada polo. A parte marcada como cliente liga o processo ao cadastro dela.</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
-                {(partes ?? []).length === 0 ? <p className="text-sm text-zinc-500">Nenhuma parte cadastrada.</p> : null}
-                <ul className="divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
+                {(partes ?? []).length === 0 ? <VazioCartao texto="Nenhuma parte cadastrada." /> : null}
+                <ul className="divide-y divide-zinc-100 text-sm">
                   {(partes ?? []).map((p) => (
-                    <li key={p.id as string} className="flex items-center justify-between gap-2 py-1.5">
-                      <span>
-                        {p.cliente_id ? (
-                          <Link href={`/clientes/${p.cliente_id}`} className="hover:underline">
-                            {p.nome as string}
-                          </Link>
-                        ) : (
-                          (p.nome as string)
-                        )}
-                        {p.documento ? <span className="ml-1 text-xs text-zinc-500">{formatarDocumento(p.documento as string)}</span> : null}
-                        <Badge tom={p.eh_cliente ? "sucesso" : "contorno"} className="ml-2">
-                          {p.eh_cliente ? "cliente" : POLOS[p.polo as string] ?? p.polo}
-                        </Badge>
-                        {p.eh_cliente ? <span className="ml-1 text-xs text-zinc-500">{POLOS[p.polo as string] ?? p.polo}</span> : null}
+                    <li key={p.id as string} className="flex items-center justify-between gap-3 py-2">
+                      <span className="flex min-w-0 items-center gap-3">
+                        <span className={cn("grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold", p.eh_cliente ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500")} aria-hidden>
+                          {(p.nome as string).trim().charAt(0).toUpperCase()}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                            {p.cliente_id ? (
+                              <Link href={`/clientes/${p.cliente_id}`} className="truncate font-semibold text-zinc-950 hover:text-marca-700">
+                                {p.nome as string}
+                              </Link>
+                            ) : (
+                              <span className="truncate font-semibold text-zinc-900">{p.nome as string}</span>
+                            )}
+                            <Badge tom={p.eh_cliente ? "sucesso" : "contorno"}>{p.eh_cliente ? "cliente" : (POLOS[p.polo as string] ?? p.polo)}</Badge>
+                          </span>
+                          <span className="block truncate text-xs text-zinc-500 tabular-nums">
+                            {p.eh_cliente ? (POLOS[p.polo as string] ?? p.polo) : null}
+                            {p.eh_cliente && p.documento ? " · " : null}
+                            {p.documento ? formatarDocumento(p.documento as string) : null}
+                          </span>
+                        </span>
                       </span>
                       {podeEditar ? (
                         <form action={removerParte.bind(null, id, p.id as string)}>
@@ -423,7 +468,8 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
                   ))}
                 </ul>
                 {podeEditar ? (
-                  <form action={adicionarParte.bind(null, id)} className="grid gap-2 rounded-md border border-dashed border-zinc-300 p-2 sm:grid-cols-4 dark:border-zinc-700">
+                  <form action={adicionarParte.bind(null, id)} className="grid gap-2 rounded-xl border border-dashed border-zinc-300 bg-zinc-50/60 p-3 sm:grid-cols-4">
+                    <p className="text-[11px] font-bold tracking-[0.08em] text-zinc-400 uppercase sm:col-span-4">Adicionar parte</p>
                     <Select name="cliente_id" defaultValue="" aria-label="Cliente" className="sm:col-span-2">
                       <option value="">Não é cliente</option>
                       {(clientes ?? []).map((c) => (
@@ -441,7 +487,7 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
                       ))}
                     </Select>
                     <Input name="documento" placeholder="CPF/CNPJ (opcional)" className="sm:col-span-2" />
-                    <Button type="submit" variante="secundaria" tamanho="sm">
+                    <Button type="submit" variante="secundaria" className="h-10">
                       Adicionar parte
                     </Button>
                   </form>
@@ -455,24 +501,32 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
                 <CardDescription>Quem atua no processo além do responsável. Colaborador advogado também decide prazos.</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
-                {colaboradorIds.length === 0 ? <p className="text-sm text-zinc-500">Nenhum colaborador.</p> : null}
-                <ul className="divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
-                  {colaboradorIds.map((uid) => (
-                    <li key={uid} className="flex items-center justify-between gap-2 py-1.5">
-                      <span>{nomes.get(uid) ?? "membro"}</span>
-                      {podeEditar ? (
-                        <form action={removerColaborador.bind(null, id, uid)}>
-                          <Button type="submit" variante="fantasma" tamanho="sm">
-                            Remover
-                          </Button>
-                        </form>
-                      ) : null}
-                    </li>
-                  ))}
+                {colaboradorIds.length === 0 ? <VazioCartao texto="Nenhum colaborador." /> : null}
+                <ul className="divide-y divide-zinc-100 text-sm">
+                  {colaboradorIds.map((uid) => {
+                    const nome = nomes.get(uid) ?? "membro";
+                    return (
+                      <li key={uid} className="flex items-center justify-between gap-3 py-2">
+                        <span className="flex min-w-0 items-center gap-3">
+                          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-marca-50 text-xs font-bold text-marca-700" aria-hidden>
+                            {nome.trim().charAt(0).toUpperCase()}
+                          </span>
+                          <span className="truncate font-semibold text-zinc-900">{nome}</span>
+                        </span>
+                        {podeEditar ? (
+                          <form action={removerColaborador.bind(null, id, uid)}>
+                            <Button type="submit" variante="fantasma" tamanho="sm">
+                              Remover
+                            </Button>
+                          </form>
+                        ) : null}
+                      </li>
+                    );
+                  })}
                 </ul>
                 {podeEditar ? (
                   <form action={adicionarColaborador.bind(null, id)} className="flex gap-2">
-                    <Select name="usuario_id" defaultValue="" aria-label="Membro">
+                    <Select name="usuario_id" defaultValue="" aria-label="Membro" className="min-w-0 flex-1">
                       <option value="">Escolha um membro…</option>
                       {membrosComUsuario(membros)
                         .filter((m) => m.ativo && !colaboradorIds.includes(m.usuario_id) && m.usuario_id !== processo.responsavel_id)
@@ -482,7 +536,7 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
                           </option>
                         ))}
                     </Select>
-                    <Button type="submit" variante="secundaria" tamanho="sm">
+                    <Button type="submit" variante="secundaria" className="h-10">
                       Adicionar
                     </Button>
                   </form>
@@ -500,14 +554,13 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
               <CardTitle>Publicações ligadas</CardTitle>
               <CardDescription>{veSigiloso ? "Resumo gerado pela IA; o texto completo e as decisões ficam na página da publicação." : "Processo sigiloso: seu papel vê só data e tipo."}</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-3">
               {(publicacoes ?? []).length === 0 ? (
-                <p className="text-sm text-zinc-500">
-                  Nenhuma publicação vinculada.{" "}
-                  <Link href={`/publicacoes/nova?processo=${id}`} className="underline">
+                <VazioCartao texto="Nenhuma publicação vinculada.">
+                  <Link href={`/publicacoes/nova?processo=${id}`} className={classesBotao({ variante: "contorno", tamanho: "sm" })}>
                     Lançar intimação vista no PJe
                   </Link>
-                </p>
+                </VazioCartao>
               ) : (
                 <Table>
                   <THead>
@@ -521,13 +574,13 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
                   <TBody>
                     {(publicacoes ?? []).map((pub) => (
                       <TR key={pub.id as string}>
-                        <TD className="whitespace-nowrap">
-                          <Link href={`/publicacoes/${pub.id}`} className="hover:underline">
+                        <TD className="whitespace-nowrap tabular-nums">
+                          <Link href={`/publicacoes/${pub.id}`} className="font-semibold text-zinc-950 hover:text-marca-700">
                             {formatarData((pub.data_disponibilizacao ?? pub.data_publicacao) as string | null) || "—"}
                           </Link>
                         </TD>
-                        <TD>{(pub.tipo as string | null) ?? (pub.tipo_documento as string | null) ?? "—"}</TD>
-                        <TD className="max-w-xl text-zinc-700 dark:text-zinc-300">{veSigiloso ? ((pub.resumo_ia as string | null) ?? <span className="text-zinc-400">sem resumo</span>) : <span className="text-zinc-400">oculto (sigilo)</span>}</TD>
+                        <TD className="whitespace-nowrap text-zinc-700">{(pub.tipo as string | null) ?? (pub.tipo_documento as string | null) ?? "—"}</TD>
+                        <TD className="min-w-[16rem] max-w-xl text-zinc-700">{veSigiloso ? ((pub.resumo_ia as string | null) ?? <span className="text-zinc-400">sem resumo</span>) : <span className="text-zinc-400">oculto (sigilo)</span>}</TD>
                         <TD>
                           <Badge>{pub.status as string}</Badge>
                         </TD>
@@ -546,23 +599,22 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
             </CardHeader>
             <CardContent>
               {(movimentacoes ?? []).length === 0 ? (
-                <p className="text-sm text-zinc-500">Nenhuma movimentação registrada. Use &quot;Atualizar pelo DataJud&quot;.</p>
+                <VazioCartao texto="Nenhuma movimentação registrada. Use &quot;Atualizar pelo DataJud&quot; no topo da página." />
               ) : (
-                <ul className="divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
-                  {(movimentacoes ?? []).map((m) => (
-                    <li key={m.id as string} className="flex flex-col gap-0.5 py-1.5 sm:flex-row sm:items-baseline sm:gap-3">
-                      <span className="shrink-0 text-xs text-zinc-500">{formatarDataHora(m.data as string, timeZone)}</span>
-                      <span>
-                        {m.nome as string}
-                        {m.codigo_tpu ? <span className="ml-1 text-xs text-zinc-400">TPU {m.codigo_tpu as number}</span> : null}
-                        {m.complemento ? <span className="block text-xs text-zinc-500">{m.complemento as string}</span> : null}
-                      </span>
-                      <Badge tom="contorno" className="sm:ml-auto">
-                        {m.origem as string}
-                      </Badge>
+                <ol className="relative flex flex-col border-l border-zinc-200 pl-5 text-sm">
+                  {(movimentacoes ?? []).map((m, i) => (
+                    <li key={m.id as string} className="relative pb-4 last:pb-0">
+                      <span className={cn("absolute top-1.5 -left-[25px] h-[9px] w-[9px] rounded-full ring-4 ring-white", i === 0 ? "bg-marca-600" : "bg-zinc-300")} aria-hidden />
+                      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                        <span className="text-xs font-semibold text-zinc-500 tabular-nums">{formatarDataHora(m.data as string, timeZone)}</span>
+                        <Badge tom="contorno">{m.origem as string}</Badge>
+                        {m.codigo_tpu ? <span className="font-mono text-[11px] text-zinc-400">TPU {m.codigo_tpu as number}</span> : null}
+                      </div>
+                      <p className="mt-0.5 font-medium text-zinc-900">{m.nome as string}</p>
+                      {m.complemento ? <p className="mt-0.5 text-xs leading-relaxed text-zinc-500">{m.complemento as string}</p> : null}
                     </li>
                   ))}
-                </ul>
+                </ol>
               )}
             </CardContent>
           </Card>
@@ -579,21 +631,26 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
               </CardHeader>
               <CardContent>
                 {(prazos ?? []).length === 0 ? (
-                  <p className="text-sm text-zinc-500">Nenhum prazo.</p>
+                  <VazioCartao texto="Nenhum prazo neste processo." />
                 ) : (
-                  <ul className="divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
-                    {(prazos ?? []).map((p) => (
-                      <li key={p.id as string} className="flex items-center justify-between gap-2 py-1.5">
-                        <Link href={`/prazos/${p.id}`} className="hover:underline">
-                          {(p.ato_descricao as string | null) ?? "Prazo"}
-                        </Link>
-                        <span className="flex items-center gap-2 whitespace-nowrap">
-                          <Badge tom={TOM_PRAZO[p.status as string] ?? "neutro"}>{p.status as string}</Badge>
-                          <span>{formatarData(p.data_final as string)}</span>
-                          {p.data_interna ? <span className="text-xs text-zinc-500">interna {formatarData(p.data_interna as string)}</span> : null}
-                        </span>
-                      </li>
-                    ))}
+                  <ul className="divide-y divide-zinc-100 text-sm">
+                    {(prazos ?? []).map((p) => {
+                      const status = p.status as string;
+                      const dataFinal = p.data_final as string;
+                      return (
+                        <li key={p.id as string} className="flex items-center gap-3 py-2">
+                          <DiaAgenda data={dataFinal} urgencia={urgenciaPrazo(dataFinal, hoje, status)} />
+                          <Link href={`/prazos/${p.id}`} className="min-w-0 flex-1">
+                            <span className="block truncate font-semibold text-zinc-950 hover:text-marca-700">{(p.ato_descricao as string | null) ?? "Prazo"}</span>
+                            <span className="block text-xs text-zinc-500 tabular-nums">
+                              fatal {formatarData(dataFinal)}
+                              {p.data_interna ? ` · interna ${formatarData(p.data_interna as string)}` : ""}
+                            </span>
+                          </Link>
+                          <Badge tom={TOM_STATUS_PRAZO[status] ?? TOM_PRAZO[status] ?? "neutro"}>{ROTULO_STATUS_PRAZO[status] ?? status}</Badge>
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </CardContent>
@@ -602,37 +659,44 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
             <Card>
               <CardHeader>
                 <CardTitle>Tarefas</CardTitle>
+                <CardDescription>Trabalho distribuído à equipe a partir dos prazos e das decisões deste processo.</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex flex-col gap-3">
                 {(tarefas ?? []).length === 0 ? (
-                  <p className="text-sm text-zinc-500">
-                    Nenhuma tarefa.{" "}
-                    <Link href={`/tarefas/nova?processo=${id}`} className="underline">
+                  <VazioCartao texto="Nenhuma tarefa.">
+                    <Link href={`/tarefas/nova?processo=${id}`} className={classesBotao({ variante: "contorno", tamanho: "sm" })}>
+                      <Plus aria-hidden />
                       Criar tarefa
                     </Link>
-                  </p>
+                  </VazioCartao>
                 ) : (
-                  <ul className="divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
-                    {(tarefas ?? []).map((t) => (
-                      <li key={t.id as string} className="flex items-center justify-between gap-2 py-1.5">
-                        <Link href={`/tarefas/${t.id}`} className="hover:underline">
-                          {t.titulo as string}
-                        </Link>
-                        <span className="flex items-center gap-2 whitespace-nowrap text-xs text-zinc-500">
-                          {t.executor_id ? nomes.get(t.executor_id as string) : "sem executor"}
-                          <Badge tom={t.status === "concluida" ? "sucesso" : t.status === "cancelada" ? "neutro" : "info"}>{STATUS_TAREFA[t.status as string] ?? t.status}</Badge>
-                          {t.vencimento ? formatarData(t.vencimento as string) : null}
-                        </span>
-                      </li>
-                    ))}
+                  <ul className="divide-y divide-zinc-100 text-sm">
+                    {(tarefas ?? []).map((t) => {
+                      const encerrada = t.status === "concluida" || t.status === "cancelada";
+                      const atrasada = !encerrada && Boolean(t.vencimento) && (t.vencimento as string) < hoje;
+                      return (
+                        <li key={t.id as string} className="flex items-center gap-3 py-2">
+                          <span className={cn("h-[18px] w-[18px] shrink-0 rounded-lg border-[1.5px]", t.status === "concluida" ? "border-emerald-300 bg-emerald-50" : atrasada ? "border-red-300 bg-red-50" : "border-zinc-200 bg-white")} aria-hidden />
+                          <Link href={`/tarefas/${t.id}`} className="min-w-0 flex-1">
+                            <span className={cn("block truncate font-semibold hover:text-marca-700", encerrada ? "text-zinc-500" : "text-zinc-950")}>{t.titulo as string}</span>
+                            <span className="block truncate text-xs text-zinc-500 tabular-nums">
+                              {t.executor_id ? (nomes.get(t.executor_id as string) ?? "membro") : "sem executor"}
+                              {t.vencimento ? ` · vence ${formatarData(t.vencimento as string)}` : ""}
+                            </span>
+                          </Link>
+                          {atrasada ? <Badge tom="perigo">atrasada</Badge> : <Badge tom={t.status === "concluida" ? "sucesso" : t.status === "cancelada" ? "neutro" : "info"}>{STATUS_TAREFA[t.status as string] ?? t.status}</Badge>}
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
                 {(tarefas ?? []).length > 0 ? (
-                  <p className="mt-2 text-xs">
-                    <Link href={`/tarefas/nova?processo=${id}`} className="underline">
+                  <AcoesCartao>
+                    <Link href={`/tarefas/nova?processo=${id}`} className={classesBotao({ variante: "contorno", tamanho: "sm" })}>
+                      <Plus aria-hidden />
                       Criar tarefa neste processo
                     </Link>
-                  </p>
+                  </AcoesCartao>
                 ) : null}
               </CardContent>
             </Card>
@@ -643,42 +707,44 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
               <CardTitle>Audiências</CardTitle>
               <CardDescription>Alerta de véspera para o responsável e os sócios.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-3">
               {audiencias.length === 0 ? (
-                <p className="text-sm text-zinc-500">
-                  Nenhuma audiência.{" "}
+                <VazioCartao texto="Nenhuma audiência.">
                   {["socio", "advogado"].includes(sessao.papel) ? (
-                    <Link href={`/audiencias/nova?processo=${id}`} className="underline">
+                    <Link href={`/audiencias/nova?processo=${id}`} className={classesBotao({ variante: "contorno", tamanho: "sm" })}>
+                      <CalendarDays aria-hidden />
                       Marcar audiência
                     </Link>
                   ) : null}
-                </p>
+                </VazioCartao>
               ) : (
-                <ul className="divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
+                <ul className="divide-y divide-zinc-100 text-sm">
                   {audiencias.map((a) => {
                     const instante = new Date(a.data_hora);
+                    const dataIso = new Intl.DateTimeFormat("sv-SE", { timeZone }).format(instante);
+                    const urgencia = a.status === "realizada" || a.status === "cancelada" ? "encerrado" : urgenciaPrazo(dataIso, hoje, "confirmado");
                     return (
-                      <li key={a.id} className="flex items-center justify-between gap-2 py-1.5">
-                        <span>
-                          {ROTULO_AUDIENCIA[a.tipo] ?? a.tipo} <span className="text-xs text-zinc-500">· {a.modalidade}</span>
-                        </span>
-                        <span className="flex items-center gap-2 whitespace-nowrap">
-                          <Badge tom={a.status === "realizada" ? "sucesso" : a.status === "cancelada" ? "perigo" : "info"}>{a.status}</Badge>
-                          <span>
-                            {formatarData(new Intl.DateTimeFormat("sv-SE", { timeZone }).format(instante))} {horaLocal(instante, timeZone)}
+                      <li key={a.id} className="flex items-center gap-3 py-2">
+                        <DiaAgenda data={dataIso} urgencia={urgencia === "vencido" ? "encerrado" : urgencia} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-semibold text-zinc-950">{ROTULO_AUDIENCIA[a.tipo] ?? a.tipo}</span>
+                          <span className="block text-xs text-zinc-500 tabular-nums">
+                            {formatarData(dataIso)} às {horaLocal(instante, timeZone)} · {a.modalidade}
                           </span>
                         </span>
+                        <Badge tom={a.status === "realizada" ? "sucesso" : a.status === "cancelada" ? "perigo" : "info"}>{a.status}</Badge>
                       </li>
                     );
                   })}
                 </ul>
               )}
               {audiencias.length > 0 && ["socio", "advogado"].includes(sessao.papel) ? (
-                <p className="mt-2 text-xs">
-                  <Link href={`/audiencias/nova?processo=${id}`} className="underline">
+                <AcoesCartao>
+                  <Link href={`/audiencias/nova?processo=${id}`} className={classesBotao({ variante: "contorno", tamanho: "sm" })}>
+                    <CalendarDays aria-hidden />
                     Marcar audiência neste processo
                   </Link>
-                </p>
+                </AcoesCartao>
               ) : null}
             </CardContent>
           </Card>
@@ -692,14 +758,14 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
               <CardTitle>Peças</CardTitle>
               <CardDescription>Minutas deste processo, em qualquer modo. Peça aprovada e protocolada fecha a tarefa e o prazo ligados.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-3">
               {minutas.length === 0 ? (
-                <p className="text-sm text-zinc-500">
-                  Nenhuma peça.{" "}
-                  <Link href={`/minutas/nova?processo=${id}`} className="underline">
+                <VazioCartao texto="Nenhuma peça neste processo.">
+                  <Link href={`/minutas/nova?processo=${id}`} className={classesBotao({ variante: "contorno", tamanho: "sm" })}>
+                    <FileText aria-hidden />
                     Redigir peça
                   </Link>
-                </p>
+                </VazioCartao>
               ) : (
                 <Table>
                   <THead>
@@ -714,19 +780,19 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
                   <TBody>
                     {minutas.map((m) => (
                       <TR key={m.id}>
-                        <TD>
-                          <Link href={`/minutas/${m.id}`} className="hover:underline">
+                        <TD className="min-w-[12rem]">
+                          <Link href={`/minutas/${m.id}`} className="font-semibold text-zinc-950 hover:text-marca-700">
                             {m.titulo}
                           </Link>
                         </TD>
-                        <TD>
+                        <TD className="text-zinc-600">
                           {ROTULO_TIPO_PECA[m.tipo_peca]} · {ROTULO_AREA[m.area]} · modo {m.modo}
                         </TD>
-                        <TD>{m.modo === "C" ? `${Math.min(m.etapa_atual, 6)}/6` : "redação"}</TD>
+                        <TD className="whitespace-nowrap text-zinc-600 tabular-nums">{m.modo === "C" ? `${Math.min(m.etapa_atual, 6)}/6` : "redação"}</TD>
                         <TD>
                           <Badge tom={TOM_MINUTA[m.status] ?? "neutro"}>{ROTULO_STATUS_MINUTA[m.status] ?? m.status}</Badge>
                         </TD>
-                        <TD className="whitespace-nowrap text-xs text-zinc-500">{formatarData(m.atualizado_em.slice(0, 10))}</TD>
+                        <TD className="whitespace-nowrap text-xs text-zinc-500 tabular-nums">{formatarData(m.atualizado_em.slice(0, 10))}</TD>
                       </TR>
                     ))}
                   </TBody>
@@ -743,38 +809,49 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
                 {analises.length === 0 ? (
-                  <p className="text-sm text-zinc-500">Nenhuma análise gerada.</p>
+                  <VazioCartao texto="Nenhuma análise gerada." />
                 ) : (
-                  <ul className="divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
+                  <ul className="divide-y divide-zinc-100 text-sm">
                     {analises.map((a) => (
-                      <li key={a.id} className="flex items-center justify-between gap-2 py-1.5">
-                        <Link href={linkDaAnalise(a, id)} className="hover:underline">
-                          {ROTULO_ANALISE[a.tipo] ?? a.tipo}
-                        </Link>
-                        <span className="flex items-center gap-2 whitespace-nowrap text-xs text-zinc-500">
-                          {a.minuta_id ? (
-                            <Link href={`/minutas/${a.minuta_id}`} className="underline">
-                              peça
-                            </Link>
-                          ) : null}
-                          <Badge tom="contorno">{a.status}</Badge>
-                          {formatarDataHora(a.criado_em, timeZone)}
+                      <li key={a.id} className="flex items-center gap-3 py-2">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-marca-50 text-marca-600" aria-hidden>
+                          <ScanSearch className="h-4 w-4" />
                         </span>
+                        <span className="min-w-0 flex-1">
+                          <Link href={linkDaAnalise(a, id)} className="block truncate font-semibold text-zinc-950 hover:text-marca-700">
+                            {ROTULO_ANALISE[a.tipo] ?? a.tipo}
+                          </Link>
+                          <span className="block text-xs text-zinc-500 tabular-nums">
+                            {formatarDataHora(a.criado_em, timeZone)}
+                            {a.minuta_id ? (
+                              <>
+                                {" · "}
+                                <Link href={`/minutas/${a.minuta_id}`} className="font-semibold text-marca-600 hover:underline">
+                                  ver peça
+                                </Link>
+                              </>
+                            ) : null}
+                          </span>
+                        </span>
+                        <Badge tom="contorno">{a.status}</Badge>
                       </li>
                     ))}
                   </ul>
                 )}
-                <div className="flex flex-wrap gap-2 text-xs">
-                  <Link href={`/varreduras/nova?processo=${id}`} className="rounded-md border border-zinc-300 px-2 py-1 hover:bg-zinc-100 dark:border-zinc-700">
+                <AcoesCartao>
+                  <Link href={`/varreduras/nova?processo=${id}`} className={classesBotao({ variante: "contorno", tamanho: "sm" })}>
+                    <ScanSearch aria-hidden />
                     Varrer os autos
                   </Link>
-                  <Link href={`/processos/${id}/analises`} className="rounded-md border border-zinc-300 px-2 py-1 hover:bg-zinc-100 dark:border-zinc-700">
+                  <Link href={`/processos/${id}/analises`} className={classesBotao({ variante: "contorno", tamanho: "sm" })}>
+                    <Gavel aria-hidden />
                     Mapa do julgador
                   </Link>
-                  <Link href={`/processos/${id}/outros-tribunais`} className="rounded-md border border-zinc-300 px-2 py-1 hover:bg-zinc-100 dark:border-zinc-700">
+                  <Link href={`/processos/${id}/outros-tribunais`} className={classesBotao({ variante: "contorno", tamanho: "sm" })}>
+                    <Landmark aria-hidden />
                     Outros tribunais
                   </Link>
-                </div>
+                </AcoesCartao>
               </CardContent>
             </Card>
 
@@ -785,27 +862,31 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
                 {calculos.length === 0 ? (
-                  <p className="text-sm text-zinc-500">Nenhum cálculo.</p>
+                  <VazioCartao texto="Nenhum cálculo." />
                 ) : (
-                  <ul className="divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
+                  <ul className="divide-y divide-zinc-100 text-sm">
                     {calculos.map((c) => (
-                      <li key={c.id} className="flex items-center justify-between gap-2 py-1.5">
-                        <Link href={`/calculos/${c.id}`} className="hover:underline">
-                          {c.titulo}
-                        </Link>
-                        <span className="flex items-center gap-2 whitespace-nowrap text-xs text-zinc-500">
-                          <Badge tom="contorno">{c.status}</Badge>
-                          {formatarData(c.atualizado_em.slice(0, 10))}
+                      <li key={c.id} className="flex items-center gap-3 py-2">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-zinc-100 text-zinc-600" aria-hidden>
+                          <Calculator className="h-4 w-4" />
                         </span>
+                        <span className="min-w-0 flex-1">
+                          <Link href={`/calculos/${c.id}`} className="block truncate font-semibold text-zinc-950 hover:text-marca-700">
+                            {c.titulo}
+                          </Link>
+                          <span className="block text-xs text-zinc-500 tabular-nums">atualizado {formatarData(c.atualizado_em.slice(0, 10))}</span>
+                        </span>
+                        <Badge tom="contorno">{c.status}</Badge>
                       </li>
                     ))}
                   </ul>
                 )}
-                <div className="text-xs">
-                  <Link href={`/calculos/novo?processo=${id}`} className="rounded-md border border-zinc-300 px-2 py-1 hover:bg-zinc-100 dark:border-zinc-700">
+                <AcoesCartao>
+                  <Link href={`/calculos/novo?processo=${id}`} className={classesBotao({ variante: "contorno", tamanho: "sm" })}>
+                    <Calculator aria-hidden />
                     Novo cálculo
                   </Link>
-                </div>
+                </AcoesCartao>
               </CardContent>
             </Card>
           </div>
@@ -823,27 +904,31 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               {contratos.length === 0 ? (
-                <p className="text-sm text-zinc-500">
-                  Nenhum contrato ligado a este processo.{" "}
+                <VazioCartao texto="Nenhum contrato ligado a este processo.">
                   {["socio", "advogado"].includes(sessao.papel) ? (
-                    <Link href={`/contratos/novo?processo=${id}`} className="underline">
+                    <Link href={`/contratos/novo?processo=${id}`} className={classesBotao({ variante: "contorno", tamanho: "sm" })}>
                       Fazer a entrada do caso
                     </Link>
                   ) : null}
-                </p>
+                </VazioCartao>
               ) : (
-                <ul className="divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
+                <ul className="divide-y divide-zinc-100 text-sm">
                   {contratos.map((c) => (
-                    <li key={c.id} className="flex items-center justify-between gap-2 py-1.5">
-                      <Link href={`/contratos/${c.id}`} className="hover:underline">
-                        {c.clientes?.nome ?? "Contrato"}
-                        {c.modalidade ? <span className="ml-1 text-xs text-zinc-500">· {c.modalidade}</span> : null}
-                      </Link>
-                      <span className="flex items-center gap-2 whitespace-nowrap text-xs text-zinc-500">
-                        {c.valor_fixo ? formatarValor(c.valor_fixo) : c.percentual_exito ? `${c.percentual_exito}% de êxito` : null}
-                        <Badge tom={c.status === "assinado" ? "sucesso" : c.status === "cancelado" ? "neutro" : "info"}>{ROTULO_STATUS_CONTRATO[c.status] ?? c.status}</Badge>
-                        {formatarData(c.criado_em.slice(0, 10))}
+                    <li key={c.id} className="flex items-center gap-3 py-2">
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-marca-50 text-marca-600" aria-hidden>
+                        <FileText className="h-4 w-4" />
                       </span>
+                      <span className="min-w-0 flex-1">
+                        <Link href={`/contratos/${c.id}`} className="block truncate font-semibold text-zinc-950 hover:text-marca-700">
+                          {c.clientes?.nome ?? "Contrato"}
+                        </Link>
+                        <span className="block truncate text-xs text-zinc-500 tabular-nums">
+                          {c.modalidade ? `${c.modalidade} · ` : ""}
+                          {c.valor_fixo ? `${formatarValor(c.valor_fixo)} · ` : c.percentual_exito ? `${c.percentual_exito}% de êxito · ` : ""}
+                          criado {formatarData(c.criado_em.slice(0, 10))}
+                        </span>
+                      </span>
+                      <Badge tom={c.status === "assinado" ? "sucesso" : c.status === "cancelado" ? "neutro" : "info"}>{ROTULO_STATUS_CONTRATO[c.status] ?? c.status}</Badge>
                     </li>
                   ))}
                 </ul>
@@ -859,9 +944,9 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
                   Do contrato mais recente. {parcelasPendentes.length ? `${parcelasPendentes.length} em aberto.` : "Nada em aberto."}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex flex-col gap-3">
                 {parcelas.length === 0 ? (
-                  <p className="text-sm text-zinc-500">Sem parcelas (honorários à vista ou por êxito).</p>
+                  <VazioCartao texto="Sem parcelas (honorários à vista ou por êxito)." />
                 ) : (
                   <Table>
                     <THead>
@@ -875,9 +960,9 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
                     <TBody>
                       {parcelas.map((p) => (
                         <TR key={p.id}>
-                          <TD>{p.numero}</TD>
-                          <TD className="whitespace-nowrap">{formatarData(p.vencimento)}</TD>
-                          <TD>{formatarValor(p.valor)}</TD>
+                          <TD className="font-semibold text-zinc-950 tabular-nums">{p.numero}</TD>
+                          <TD className="whitespace-nowrap tabular-nums">{formatarData(p.vencimento)}</TD>
+                          <TD className="whitespace-nowrap font-medium tabular-nums">{formatarValor(p.valor)}</TD>
                           <TD>
                             <Badge tom={p.status === "paga" ? "sucesso" : p.status === "atrasada" ? "perigo" : p.status === "cancelada" ? "neutro" : "info"}>{p.status}</Badge>
                           </TD>
@@ -886,11 +971,11 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
                     </TBody>
                   </Table>
                 )}
-                <p className="mt-2 text-xs">
-                  <Link href={`/contratos/${contratos[0].id}`} className="underline">
+                <AcoesCartao>
+                  <Link href={`/contratos/${contratos[0].id}`} className={classesBotao({ variante: "contorno", tamanho: "sm" })}>
                     Marcar parcelas no contrato
                   </Link>
-                </p>
+                </AcoesCartao>
               </CardContent>
             </Card>
           ) : null}
@@ -902,9 +987,37 @@ export default async function PaginaProcesso({ params, searchParams }: { params:
 
 function Item({ rotulo, valor, className }: { rotulo: string; valor: string | null | undefined; className?: string }) {
   return (
-    <div className={className}>
-      <dt className="text-xs uppercase tracking-wide text-zinc-500">{rotulo}</dt>
-      <dd className="whitespace-pre-line">{valor || <span className="text-zinc-400">—</span>}</dd>
+    <div className={cn("min-w-0", className)}>
+      <dt className="text-[11px] font-bold tracking-[0.08em] text-zinc-400 uppercase">{rotulo}</dt>
+      <dd className="mt-0.5 text-sm leading-snug font-medium whitespace-pre-line text-zinc-900">{valor || <span className="font-normal text-zinc-400">—</span>}</dd>
     </div>
   );
+}
+
+/** "Fato" do cabeçalho: ícone + rótulo curto + valor, em linha. */
+function Fato({ Icone, rotulo, valor, vazio }: { Icone: React.ComponentType<{ className?: string }>; rotulo: string; valor: string | null; vazio: string }) {
+  return (
+    <div className="inline-flex min-w-0 max-w-full items-center gap-1.5">
+      <Icone className="h-3.5 w-3.5 shrink-0 text-zinc-400" aria-hidden />
+      <dt className="sr-only">{rotulo}</dt>
+      <dd className={cn("truncate", valor ? "font-semibold text-zinc-800" : "text-zinc-400")} title={valor ?? undefined}>
+        {valor ?? vazio}
+      </dd>
+    </div>
+  );
+}
+
+/** Lista vazia dentro de um cartão, com ação opcional ao lado. */
+function VazioCartao({ texto, children }: { texto: string; children?: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/60 px-4 py-4 text-sm text-zinc-500">
+      <span>{texto}</span>
+      {children}
+    </div>
+  );
+}
+
+/** Rodapé de cartão com links secundários em forma de botão de contorno. */
+function AcoesCartao({ children }: { children: React.ReactNode }) {
+  return <div className="flex flex-wrap gap-2 border-t border-zinc-100 pt-3">{children}</div>;
 }

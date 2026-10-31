@@ -34,11 +34,11 @@ export default async function PaginaStatusPublico() {
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 p-6">
       <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Status do sistema</h1>
+        <h1 className="text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">Status do sistema</h1>
         <p className="text-sm text-neutral-600">Saúde geral, sem dados de clientes ou processos.</p>
       </header>
 
-      <section className={`rounded-md border px-4 py-3 text-sm ${operando ? "border-green-300 bg-green-50 text-green-800" : "border-amber-300 bg-amber-50 text-amber-800"}`}>
+      <section className={`rounded-lg border px-4 py-3 text-sm ${operando ? "border-green-300 bg-green-50 text-green-800" : "border-amber-300 bg-amber-50 text-amber-800"}`}>
         {operando ? "Sistema operando normalmente." : "Sistema com alguma instabilidade. A equipe já foi avisada pelos canais internos."}
       </section>
 

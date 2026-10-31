@@ -6,7 +6,7 @@ import { NavegacaoConfiguracoes } from "../navegacao";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Campo, Input } from "@/components/ui/input";
+import { Campo, GrupoCampos, Input } from "@/components/ui/input";
 import { salvarTimbreAction } from "./actions";
 
 export const metadata = { title: "Documentos" };
@@ -21,7 +21,12 @@ export default async function PaginaDocumentosConfig({ searchParams }: { searchP
   return (
     <div className="flex flex-col gap-4">
       <NavegacaoConfiguracoes papel={sessao.papel} atual="/configuracoes/documentos" />
-      <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Documentos gerados</h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">Documentos gerados</h1>
+          <p className="text-sm text-zinc-500">Timbre e qualificação que entram em contratos, procurações e demais documentos gerados.</p>
+        </div>
+      </div>
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       {ok ? <Alert tom="sucesso">{ok}</Alert> : null}
       <Card>
@@ -30,22 +35,56 @@ export default async function PaginaDocumentosConfig({ searchParams }: { searchP
           <CardDescription>Nome, razão social e CNPJ vêm de Configurações → Escritório. O resto entra no cabeçalho, no rodapé e na qualificação da CONTRATADA/OUTORGADA dos contratos e procurações.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={salvarTimbreAction} className="grid gap-2 sm:grid-cols-3">
-            <Campo label="Endereço (logradouro e número)" className="sm:col-span-2"><Input name="endereco" defaultValue={t.endereco ?? ""} /></Campo>
-            <Campo label="Bairro"><Input name="bairro" defaultValue={t.bairro ?? ""} /></Campo>
-            <Campo label="Cidade"><Input name="cidade" defaultValue={t.cidade ?? ""} /></Campo>
-            <Campo label="UF"><Input name="uf" defaultValue={t.uf ?? "MT"} maxLength={2} /></Campo>
-            <Campo label="CEP"><Input name="cep" defaultValue={t.cep ?? ""} /></Campo>
-            <Campo label="Telefone/WhatsApp"><Input name="telefone" defaultValue={t.telefone ?? ""} /></Campo>
-            <Campo label="E-mail do escritório"><Input name="email" defaultValue={t.email ?? ""} type="email" /></Campo>
-            <Campo label="Site"><Input name="site" defaultValue={t.site ?? ""} /></Campo>
-            <Campo label="Advogada(o) responsável"><Input name="advogadaNome" defaultValue={t.advogadaNome ?? ""} /></Campo>
-            <Campo label="OAB (ex.: 20.817-O)"><Input name="advogadaOab" defaultValue={t.advogadaOab ?? ""} /></Campo>
-            <Campo label="Nacionalidade"><Input name="advogadaNacionalidade" defaultValue={t.advogadaNacionalidade ?? "brasileira"} /></Campo>
-            <Campo label="Estado civil"><Input name="advogadaEstadoCivil" defaultValue={t.advogadaEstadoCivil ?? ""} /></Campo>
-            <Campo label="CPF (opcional, vai na procuração)"><Input name="advogadaCpf" defaultValue={t.advogadaCpf ?? ""} /></Campo>
-            <Campo label="E-mail profissional da advogada"><Input name="advogadaEmail" defaultValue={t.advogadaEmail ?? ""} type="email" /></Campo>
-            <div className="flex items-end sm:col-span-3">
+          <form action={salvarTimbreAction} className="flex flex-col gap-6">
+            <GrupoCampos titulo="Endereço" colunas={3}>
+              <Campo label="Endereço (logradouro e número)" className="sm:col-span-2">
+                <Input name="endereco" defaultValue={t.endereco ?? ""} />
+              </Campo>
+              <Campo label="Bairro">
+                <Input name="bairro" defaultValue={t.bairro ?? ""} />
+              </Campo>
+              <Campo label="Cidade">
+                <Input name="cidade" defaultValue={t.cidade ?? ""} />
+              </Campo>
+              <Campo label="UF">
+                <Input name="uf" defaultValue={t.uf ?? "MT"} maxLength={2} />
+              </Campo>
+              <Campo label="CEP">
+                <Input name="cep" defaultValue={t.cep ?? ""} />
+              </Campo>
+            </GrupoCampos>
+            <GrupoCampos titulo="Contato" colunas={3}>
+              <Campo label="Telefone/WhatsApp">
+                <Input name="telefone" defaultValue={t.telefone ?? ""} />
+              </Campo>
+              <Campo label="E-mail do escritório">
+                <Input name="email" defaultValue={t.email ?? ""} type="email" />
+              </Campo>
+              <Campo label="Site">
+                <Input name="site" defaultValue={t.site ?? ""} />
+              </Campo>
+            </GrupoCampos>
+            <GrupoCampos titulo="Advogada(o) responsável" descricao="Qualificação usada na procuração e no contrato." colunas={3}>
+              <Campo label="Advogada(o) responsável">
+                <Input name="advogadaNome" defaultValue={t.advogadaNome ?? ""} />
+              </Campo>
+              <Campo label="OAB (ex.: 20.817-O)">
+                <Input name="advogadaOab" defaultValue={t.advogadaOab ?? ""} />
+              </Campo>
+              <Campo label="Nacionalidade">
+                <Input name="advogadaNacionalidade" defaultValue={t.advogadaNacionalidade ?? "brasileira"} />
+              </Campo>
+              <Campo label="Estado civil">
+                <Input name="advogadaEstadoCivil" defaultValue={t.advogadaEstadoCivil ?? ""} />
+              </Campo>
+              <Campo label="CPF (opcional, vai na procuração)">
+                <Input name="advogadaCpf" defaultValue={t.advogadaCpf ?? ""} />
+              </Campo>
+              <Campo label="E-mail profissional da advogada">
+                <Input name="advogadaEmail" defaultValue={t.advogadaEmail ?? ""} type="email" />
+              </Campo>
+            </GrupoCampos>
+            <div className="flex justify-end">
               <Button type="submit">Salvar timbre</Button>
             </div>
           </form>

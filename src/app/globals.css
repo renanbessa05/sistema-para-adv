@@ -3,23 +3,64 @@
 /* Tema claro fixo: o modo escuro só vale se a classe modo-escuro estiver no html (hoje nunca está). */
 @custom-variant dark (&:where(.modo-escuro, .modo-escuro *));
 
+/*
+ * Sistema visual "Clareza": fundo claro azulado, azul vivo como cor de ação, âmbar para o que pede
+ * atenção, cantos arredondados e sombras suaves. Os cinzas padrão do Tailwind (zinc) são substituídos
+ * por uma escala com leve tom azul, para que todo `text-zinc-500` ou `border-zinc-200` já saia na
+ * paleta certa sem reescrever cada tela.
+ */
 @theme {
-  --color-marca-50: #f2f5f9;
-  --color-marca-100: #e1e8f1;
-  --color-marca-300: #8ea3be;
-  --color-marca-500: #2d4a72;
-  --color-marca-600: #1f3a5f;
-  --color-marca-700: #172d4b;
-  --color-marca-900: #0d1b2e;
-  --color-ouro-500: #a8864f;
-  --color-ouro-100: #f5efe4;
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  /* Cinzas azulados (substituem o zinc padrão) */
+  --color-zinc-50: #f5f7fb;
+  --color-zinc-100: #eef1f6;
+  --color-zinc-200: #e3e8f1;
+  --color-zinc-300: #cdd5e2;
+  --color-zinc-400: #94a0b8;
+  --color-zinc-500: #64708a;
+  --color-zinc-600: #4b5670;
+  --color-zinc-700: #3a4357;
+  --color-zinc-800: #262d3d;
+  --color-zinc-900: #16213a;
+  --color-zinc-950: #0b1530;
+
+  /* Azul da marca: cor de ação, links, item ativo */
+  --color-marca-50: #e9efff;
+  --color-marca-100: #d7e2ff;
+  --color-marca-200: #b7caff;
+  --color-marca-300: #8fb0ff;
+  --color-marca-400: #5b86f0;
+  --color-marca-500: #2f63e6;
+  --color-marca-600: #2456d6;
+  --color-marca-700: #1c47b8;
+  --color-marca-800: #183b96;
+  --color-marca-900: #0b1530;
+
+  /* Âmbar: o que pede atenção (publicações a tratar, prazos próximos, contadores) */
+  --color-ouro-50: #fffaf0;
+  --color-ouro-100: #fff4dc;
+  --color-ouro-200: #fbe4b4;
+  --color-ouro-300: #f5d9a3;
+  --color-ouro-500: #d97706;
+  --color-ouro-600: #b45309;
+  --color-ouro-700: #92400e;
+
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --shadow-xs: 0 1px 2px rgb(16 24 40 / 0.04);
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px -1px rgb(16 24 40 / 0.06);
+  --shadow-md: 0 1px 2px rgb(16 24 40 / 0.04), 0 6px 20px -10px rgb(16 24 40 / 0.14);
+  --shadow-lg: 0 2px 4px rgb(16 24 40 / 0.04), 0 16px 40px -16px rgb(16 24 40 / 0.2);
+  --shadow-marca: 0 10px 30px -12px rgb(36 86 214 / 0.35);
 }
 
 :root {
-  --background: #f6f7f9;
-  --foreground: #1c2430;
+  --background: #f5f7fb;
+  --foreground: #16213a;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -27,10 +68,148 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv11", "ss01";
+}
+
+/* Números alinhados em tabelas, datas e indicadores */
+table,
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: #d7e2ff;
+  color: #0b1530;
 }
 
 /* Foco visível para teclado em todo o sistema */
 :focus-visible {
   outline: 2px solid var(--color-marca-500);
   outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Controles nativos (date, select) seguem a paleta */
+input,
+select,
+textarea,
+button {
+  font: inherit;
+  color: inherit;
+}
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.6;
+}
+
+/* Barra de rolagem fina e discreta onde o navegador permite */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cdd5e2 transparent;
+}
+
+/* Animação suave de entrada para listas e cartões (respeita quem prefere menos movimento) */
+@media (prefers-reduced-motion: no-preference) {
+  .entrar {
+    animation: entrar 0.25s ease-out both;
+  }
+  @keyframes entrar {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/* Texto longo de peças e markdown da IA (sem plugin de tipografia) */
+.prose {
+  color: var(--color-zinc-800);
+  line-height: 1.65;
+}
+.prose :where(h1, h2, h3, h4) {
+  color: var(--color-zinc-950);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 1.4em 0 0.5em;
+  line-height: 1.25;
+}
+.prose :where(h1) {
+  font-size: 1.5rem;
+}
+.prose :where(h2) {
+  font-size: 1.25rem;
+}
+.prose :where(h3) {
+  font-size: 1.075rem;
+}
+.prose :where(p, ul, ol, blockquote, pre, table) {
+  margin: 0.75em 0;
+}
+.prose :where(ul) {
+  list-style: disc;
+  padding-left: 1.4em;
+}
+.prose :where(ol) {
+  list-style: decimal;
+  padding-left: 1.4em;
+}
+.prose :where(li) {
+  margin: 0.25em 0;
+}
+.prose :where(a) {
+  color: var(--color-marca-600);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.prose :where(strong) {
+  color: var(--color-zinc-950);
+  font-weight: 600;
+}
+.prose :where(blockquote) {
+  border-left: 3px solid var(--color-marca-200);
+  padding-left: 1em;
+  color: var(--color-zinc-600);
+}
+.prose :where(code) {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--color-zinc-100);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+.prose :where(pre) {
+  background: var(--color-zinc-100);
+  border-radius: 10px;
+  padding: 0.9em 1em;
+  overflow-x: auto;
+}
+.prose :where(pre code) {
+  background: transparent;
+  padding: 0;
+}
+.prose :where(table) {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.925em;
+}
+.prose :where(th, td) {
+  border: 1px solid var(--color-zinc-200);
+  padding: 0.4em 0.6em;
+  text-align: left;
+}
+.prose :where(th) {
+  background: var(--color-zinc-50);
+  font-weight: 600;
+}
+.prose :where(hr) {
+  border: 0;
+  border-top: 1px solid var(--color-zinc-200);
+  margin: 1.5em 0;
+}
+.prose-sm {
+  font-size: 0.9rem;
 }

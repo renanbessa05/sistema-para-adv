@@ -4,6 +4,9 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Alert } from "@/components/ui/alert";
+import { Campo, Input } from "@/components/ui/input";
+import { MessageCircle, Phone } from "lucide-react";
 import { adicionarContato, alterarConsentimento, desativarContato, gerarCodigoContato, type EstadoCodigo } from "./contatos-actions";
 
 export interface ContatoCliente {
@@ -19,7 +22,10 @@ export function CartaoContatos({ clienteId, contatos, podeGerir }: { clienteId: 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>WhatsApp do cliente</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <MessageCircle className="h-4 w-4 text-emerald-600" aria-hidden />
+          WhatsApp do cliente
+        </CardTitle>
         <CardDescription>
           Para receber mensagens do escritório, o número precisa ser confirmado (o cliente digita o código no WhatsApp) e autorizado por você. Mensagens livres só saem depois de aprovadas. O envio geral depende de Configurações → Atendimento.
         </CardDescription>
@@ -30,13 +36,12 @@ export function CartaoContatos({ clienteId, contatos, podeGerir }: { clienteId: 
           <LinhaContato key={c.id} clienteId={clienteId} contato={c} podeGerir={podeGerir} />
         ))}
         {podeGerir ? (
-          <form action={adicionarContato} className="flex flex-wrap items-end gap-2">
+          <form action={adicionarContato} className="flex flex-wrap items-end gap-2 rounded-xl border border-dashed border-zinc-300 bg-zinc-50/50 p-3">
             <input type="hidden" name="cliente_id" value={clienteId} />
-            <label className="flex flex-col gap-1 text-sm">
-              Telefone (DDI+DDD+número)
-              <input name="telefone" required placeholder="+5565999990000" className="rounded-md border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-zinc-900" />
-            </label>
-            <Button type="submit" variante="contorno">
+            <Campo label="Telefone" dica="Com DDI e DDD, só números: +5565999990000" className="min-w-56 flex-1">
+              <Input name="telefone" required placeholder="+5565999990000" inputMode="tel" />
+            </Campo>
+            <Button type="submit" variante="contorno" className="mb-5">
               Adicionar telefone
             </Button>
           </form>
@@ -51,9 +56,12 @@ function LinhaContato({ clienteId, contato, podeGerir }: { clienteId: string; co
   const verificado = Boolean(contato.verificado_em);
   const autorizado = Boolean(contato.opt_in_em) && !contato.opt_out_em;
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-zinc-200 p-3 text-sm dark:border-zinc-800">
+    <div className="flex flex-col gap-2.5 rounded-xl border border-zinc-200 bg-white p-3.5 text-sm shadow-xs dark:border-zinc-800">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-medium">{contato.telefone_e164}</span>
+        <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-600" aria-hidden>
+          <Phone className="h-4 w-4" />
+        </span>
+        <span className="font-mono text-[15px] font-semibold text-zinc-950 tabular-nums">{contato.telefone_e164}</span>
         <Badge tom={verificado ? "sucesso" : "alerta"}>{verificado ? "confirmado" : "não confirmado"}</Badge>
         <Badge tom={autorizado ? "sucesso" : "contorno"}>{autorizado ? "autorizado" : contato.opt_out_em ? "não autorizado (pediu para sair)" : "sem autorização"}</Badge>
       </div>
@@ -97,11 +105,12 @@ function LinhaContato({ clienteId, contato, podeGerir }: { clienteId: string; co
         </div>
       ) : null}
       {estado.codigo ? (
-        <p className="rounded-md bg-zinc-100 p-2 dark:bg-zinc-900">
-          Código: <strong className="font-mono text-base">{estado.codigo}</strong>. Vale por 30 minutos. Peça ao cliente que digite este código, sozinho, no WhatsApp do escritório.
-        </p>
+        <Alert tom="info" titulo="Código de confirmação gerado">
+          <span className="my-1 inline-block rounded-lg bg-white px-3 py-1 font-mono text-xl font-bold tracking-[0.2em] text-marca-700 shadow-xs ring-1 ring-marca-200">{estado.codigo}</span>
+          <span className="block">Vale por 30 minutos. Peça ao cliente que digite este código, sozinho, no WhatsApp do escritório.</span>
+        </Alert>
       ) : null}
-      {estado.erro ? <p className="text-red-600">{estado.erro}</p> : null}
+      {estado.erro ? <Alert tom="perigo">{estado.erro}</Alert> : null}
     </div>
   );
 }

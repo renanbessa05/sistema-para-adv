@@ -38,7 +38,7 @@ export function FormularioDesafio({ fatores, voltar }: { fatores: { id: string; 
   }
 
   return (
-    <form className="flex flex-col gap-3" onSubmit={verificar}>
+    <form className="flex flex-col gap-4" onSubmit={verificar}>
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       {fatores.length > 1 ? (
         <Campo label="Autenticador">
@@ -51,7 +51,7 @@ export function FormularioDesafio({ fatores, voltar }: { fatores: { id: string; 
           </Select>
         </Campo>
       ) : null}
-      <Campo label="Código de 6 dígitos">
+      <Campo label="Código de 6 dígitos" dica="O código muda a cada 30 segundos.">
         <Input
           name="codigo"
           inputMode="numeric"
@@ -63,10 +63,10 @@ export function FormularioDesafio({ fatores, voltar }: { fatores: { id: string; 
           value={codigo}
           onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ""))}
           placeholder="000000"
-          className="text-center text-lg tracking-widest"
+          className="h-14 text-center font-mono text-2xl font-semibold tracking-[0.4em] tabular-nums placeholder:tracking-[0.4em] placeholder:text-zinc-300"
         />
       </Campo>
-      <Button type="submit" disabled={enviando || codigo.length !== 6}>
+      <Button type="submit" tamanho="lg" className="w-full" disabled={enviando || codigo.length !== 6}>
         {enviando ? "Verificando…" : "Confirmar"}
       </Button>
     </form>

@@ -16,7 +16,7 @@ export interface Aba {
  */
 export function Abas({ base, abas, atual, extra }: { base: string; abas: Aba[]; atual: string; extra?: Record<string, string | undefined> }) {
   return (
-    <nav className="flex gap-1 overflow-x-auto whitespace-nowrap border-b border-zinc-200 text-sm" aria-label="Seções">
+    <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 whitespace-nowrap border-b border-zinc-200 text-sm md:mx-0 md:px-0" aria-label="Seções">
       {abas.map((a) => {
         const q = new URLSearchParams();
         if (a.chave !== abas[0]?.chave) q.set("aba", a.chave);
@@ -28,10 +28,13 @@ export function Abas({ base, abas, atual, extra }: { base: string; abas: Aba[]; 
             key={a.chave}
             href={qs ? `${base}?${qs}` : base}
             aria-current={on ? "page" : undefined}
-            className={cn("-mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-2", on ? "border-marca-600 font-medium text-marca-900" : "border-transparent text-zinc-600 hover:border-zinc-300 hover:text-zinc-900")}
+            className={cn(
+              "-mb-px inline-flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2.5 font-medium transition-colors",
+              on ? "border-marca-600 font-semibold text-marca-700" : "border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-900",
+            )}
           >
             {a.rotulo}
-            {a.contagem !== undefined ? <span className={cn("rounded-full px-1.5 text-[11px] leading-4", a.atencao ? "bg-ouro-500 text-white" : "bg-zinc-100 text-zinc-600")}>{a.contagem}</span> : null}
+            {a.contagem !== undefined ? <span className={cn("rounded-full px-1.5 text-[11px] leading-[18px] font-bold tabular-nums", a.atencao ? "bg-ouro-500 text-white" : on ? "bg-marca-100 text-marca-700" : "bg-zinc-100 text-zinc-600")}>{a.contagem}</span> : null}
           </Link>
         );
       })}

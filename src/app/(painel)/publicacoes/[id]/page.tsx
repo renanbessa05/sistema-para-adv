@@ -1,17 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Ban, CheckCircle2, Copy, ExternalLink, FileText, FolderPlus, Link2, MinusCircle, Sparkles } from "lucide-react";
 import { exigirSessao } from "@/server/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { lerTextoPublicacao, listarCandidatasDuplicada, listarEventosPublicacao, listarMembros, listarPrazosDaPublicacao, listarProcessosParaVinculo, mapaNomes, obterPublicacao, obterTimezone } from "@/server/publicacoes";
 import { ClassificacaoPublicacaoSchema } from "@/lib/ia/schemas/classificacao";
 import { hojeNoFuso } from "@/lib/prazos/datas";
-import { formatarData, formatarDataHora } from "@/lib/utils";
+import { cn, formatarData, formatarDataHora } from "@/lib/utils";
 import { ROTULO_FONTE, ROTULO_STATUS_PUBLICACAO, ROTULO_TIPO_PUBLICACAO, TOM_STATUS_PUBLICACAO, formatarConfianca } from "@/components/dominio/CaixaPublicacoes";
 import { CartaoPrazo, ROTULO_CONTAGEM } from "@/components/dominio/CartaoPrazo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Button, classesBotao } from "@/components/ui/button";
 import { Campo, Input, Select } from "@/components/ui/input";
 import { ignorarPublicacao, marcarDuplicada, marcarSemPrazo, marcarTratada, vincularPublicacao } from "../actions";
 import { ProximoPasso } from "@/components/dominio/ProximoPasso";
@@ -94,27 +95,38 @@ export default async function PaginaPublicacao({ params, searchParams }: { param
     return null;
   })();
 
+  const numeroProcesso = pub.processos?.numero_cnj_mascara ?? pub.numero_processo_texto ?? null;
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <p className="text-sm text-zinc-500">
-            <Link href="/publicacoes" className="hover:underline">
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-[13px] text-zinc-500">
+            <Link href="/publicacoes" className="font-semibold text-marca-600 hover:underline">
               Publicações
-            </Link>{" "}
-            / detalhe
+            </Link>
+            <span className="mx-1.5 text-zinc-300">/</span>
+            detalhe
           </p>
-          <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold">
+          <h1 className="mt-1 flex flex-wrap items-center gap-2 text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">
             {pub.tipo ? ROTULO_TIPO_PUBLICACAO[pub.tipo] ?? pub.tipo : "Publicação"}
-            <Badge tom={TOM_STATUS_PUBLICACAO[st] ?? "neutro"}>{ROTULO_STATUS_PUBLICACAO[st] ?? st}</Badge>
-            {pub.sugere_sigilo ? <Badge tom="perigo">sugere sigilo</Badge> : null}
-            {pub.revisar_classificacao ? <Badge tom="alerta">revisar classificação</Badge> : null}
-            {pub.cancelada ? <Badge tom="contorno">cancelada pelo tribunal</Badge> : null}
+            <span className="flex flex-wrap items-center gap-1.5">
+              <Badge tom={TOM_STATUS_PUBLICACAO[st] ?? "neutro"}>{ROTULO_STATUS_PUBLICACAO[st] ?? st}</Badge>
+              {pub.sugere_sigilo ? <Badge tom="perigo">sugere sigilo</Badge> : null}
+              {pub.revisar_classificacao ? <Badge tom="alerta">revisar classificação</Badge> : null}
+              {pub.cancelada ? <Badge tom="contorno">cancelada pelo tribunal</Badge> : null}
+            </span>
           </h1>
+          <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-zinc-500">
+            {numeroProcesso ? <span className="font-mono text-xs text-zinc-700">{numeroProcesso}</span> : <span>sem número de processo</span>}
+            {pub.data_disponibilizacao ? <span>· disponibilizada {formatarData(pub.data_disponibilizacao)}</span> : null}
+            <span>· {ROTULO_FONTE[pub.fonte] ?? pub.fonte}</span>
+          </p>
         </div>
         {pub.link ? (
-          <a href={pub.link} target="_blank" rel="noreferrer noopener" className="text-sm underline underline-offset-4">
+          <a href={pub.link} target="_blank" rel="noreferrer noopener" className={classesBotao({ variante: "contorno", tamanho: "sm" })}>
             Abrir no DJEN
+            <ExternalLink aria-hidden />
           </a>
         ) : null}
       </div>
@@ -132,21 +144,26 @@ export default async function PaginaPublicacao({ params, searchParams }: { param
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Cabeçalho</CardTitle>
+            <CardDescription>Dados vindos da fonte e do processo na carteira.</CardDescription>
           </CardHeader>
           <CardContent>
-            <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+            <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
               <Item rotulo="Processo">
                 {pub.processo_id ? (
-                  <Link href={`/processos/${pub.processo_id}`} className="font-mono hover:underline">
+                  <Link href={`/processos/${pub.processo_id}`} className="font-mono text-[13px] font-semibold text-marca-700 hover:underline">
                     {pub.processos?.numero_cnj_mascara ?? pub.numero_processo_texto ?? pub.processo_id}
                   </Link>
                 ) : (
                   <span>
                     <span className="text-zinc-500">sem processo na carteira</span>
-                    {pub.numero_processo_texto ? <span className="block font-mono">{pub.numero_processo_texto}</span> : null}
+                    {pub.numero_processo_texto ? <span className="block font-mono text-[13px]">{pub.numero_processo_texto}</span> : null}
                   </span>
                 )}
-                {pub.processos?.segredo_justica ? <Badge tom="perigo" className="ml-2">segredo de justiça</Badge> : null}
+                {pub.processos?.segredo_justica ? (
+                  <Badge tom="perigo" className="ml-2">
+                    segredo de justiça
+                  </Badge>
+                ) : null}
               </Item>
               <Item rotulo="Responsável">{pub.processos?.responsavel_id ? nomes.get(pub.processos.responsavel_id) ?? "—" : "—"}</Item>
               <Item rotulo="Órgão">{pub.orgao ?? pub.processos?.orgao_julgador_nome ?? "—"}</Item>
@@ -167,24 +184,36 @@ export default async function PaginaPublicacao({ params, searchParams }: { param
               {pub.tratada_em ? <Item rotulo="Tratada">{`${formatarDataHora(pub.tratada_em, timeZone)}${pub.tratada_por ? ` por ${nomes.get(pub.tratada_por) ?? "usuário"}` : ""}${pub.motivo_tratamento ? ` · ${pub.motivo_tratamento}` : ""}`}</Item> : null}
               {pub.publicacao_anterior_id ? (
                 <Item rotulo="Duplicada de">
-                  <Link href={`/publicacoes/${pub.publicacao_anterior_id}`} className="font-mono text-xs hover:underline">
+                  <Link href={`/publicacoes/${pub.publicacao_anterior_id}`} className="font-mono text-xs text-marca-700 hover:underline">
                     {pub.publicacao_anterior_id}
                   </Link>
                 </Item>
               ) : null}
-              {pub.id_externo ? <Item rotulo="Id no DJEN">{pub.id_externo}</Item> : null}
+              {pub.id_externo ? (
+                <Item rotulo="Id no DJEN">
+                  <span className="font-mono text-xs">{pub.id_externo}</span>
+                </Item>
+              ) : null}
             </dl>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-marca-100 bg-gradient-to-b from-marca-50/60 to-white to-[90px]">
           <CardHeader>
-            <CardTitle>Resumo da IA</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-marca-600" aria-hidden />
+              Resumo da IA
+            </CardTitle>
             <CardDescription>Sugestão do classificador. Confira com o texto antes de decidir.</CardDescription>
           </CardHeader>
-          <CardContent className="text-sm">
-            {pub.resumo_ia ? <p>{pub.resumo_ia}</p> : <p className="text-zinc-500">Ainda não classificada.</p>}
-            {pub.confianca_ia !== null ? <p className="mt-2 text-xs text-zinc-500">Confiança: {formatarConfianca(pub.confianca_ia)}</p> : null}
+          <CardContent className="flex flex-col gap-3">
+            {pub.resumo_ia ? <p className="text-sm leading-relaxed text-zinc-800">{pub.resumo_ia}</p> : <p className="text-sm text-zinc-500">Ainda não classificada.</p>}
+            {pub.confianca_ia !== null ? (
+              <p className="flex items-center justify-between rounded-lg bg-white/80 px-3 py-2 text-xs text-zinc-500 ring-1 ring-zinc-200/80">
+                Confiança do classificador
+                <span className="font-bold text-zinc-900 tabular-nums">{formatarConfianca(pub.confianca_ia)}</span>
+              </p>
+            ) : null}
           </CardContent>
         </Card>
       </div>
@@ -193,23 +222,29 @@ export default async function PaginaPublicacao({ params, searchParams }: { param
         <Card>
           <CardHeader>
             <CardTitle>Classificação</CardTitle>
+            <CardDescription>O que a IA extraiu do texto.</CardDescription>
           </CardHeader>
           <CardContent>
             {classificacao.success ? (
-              <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+              <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
                 <Item rotulo="Tipo">{ROTULO_TIPO_PUBLICACAO[classificacao.data.tipo] ?? classificacao.data.tipo}</Item>
                 <Item rotulo="Gera prazo">{classificacao.data.gera_prazo ? <Badge tom="alerta">sim</Badge> : <Badge tom="neutro">não</Badge>}</Item>
                 <Item rotulo="Ato">{classificacao.data.ato ?? "—"}</Item>
                 <Item rotulo="Dias">{classificacao.data.dias_sugeridos !== null ? `${classificacao.data.dias_sugeridos} ${classificacao.data.contagem ? ROTULO_CONTAGEM[classificacao.data.contagem] ?? classificacao.data.contagem : ""}` : "—"}</Item>
                 <Item rotulo="Prazo em dobro">{classificacao.data.dobro ? "sim" : "não"}</Item>
                 <Item rotulo="Confiança">{formatarConfianca(classificacao.data.confianca)}</Item>
-                <Item rotulo="CNJ no texto">{classificacao.data.numero_cnj ?? "—"}</Item>
+                <Item rotulo="CNJ no texto">{classificacao.data.numero_cnj ? <span className="font-mono text-xs">{classificacao.data.numero_cnj}</span> : "—"}</Item>
                 <Item rotulo="Classificado por">{pub.tipo_classificado_por ?? "—"}</Item>
-                {classificacao.data.partes.length ? <Item rotulo="Partes">{classificacao.data.partes.map((p) => `${p.nome} (${p.polo})`).join("; ")}</Item> : null}
+                {classificacao.data.partes.length ? (
+                  <Item rotulo="Partes" className="sm:col-span-2">
+                    {classificacao.data.partes.map((p) => `${p.nome} (${p.polo})`).join("; ")}
+                  </Item>
+                ) : null}
                 {classificacao.data.observacoes ? (
                   <div className="sm:col-span-2">
-                    <dt className="text-xs uppercase tracking-wide text-zinc-500">Observações</dt>
-                    <dd className="text-amber-900 dark:text-amber-200">{classificacao.data.observacoes}</dd>
+                    <Alert tom="alerta" titulo="Observações da IA">
+                      {classificacao.data.observacoes}
+                    </Alert>
                   </div>
                 ) : null}
               </dl>
@@ -222,12 +257,13 @@ export default async function PaginaPublicacao({ params, searchParams }: { param
         <Card>
           <CardHeader>
             <CardTitle>Destinatários e advogados</CardTitle>
+            <CardDescription>Quem a fonte diz que foi intimado.</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
+          <CardContent className="grid gap-4 sm:grid-cols-2">
             <div>
-              <p className="mb-1 text-xs uppercase tracking-wide text-zinc-500">Destinatários</p>
+              <p className="mb-1.5 text-[11px] font-bold tracking-[0.08em] text-zinc-400 uppercase">Destinatários</p>
               {destinatarios.length ? (
-                <ul className="space-y-0.5">
+                <ul className="flex flex-col gap-1 text-sm text-zinc-800">
                   {destinatarios.map((d, i) => (
                     <li key={i}>
                       {d.nome ?? "—"} {d.polo ? <span className="text-zinc-500">({d.polo})</span> : null}
@@ -235,21 +271,27 @@ export default async function PaginaPublicacao({ params, searchParams }: { param
                   ))}
                 </ul>
               ) : (
-                <p className="text-zinc-500">Nenhum.</p>
+                <p className="text-sm text-zinc-400">Nenhum.</p>
               )}
             </div>
             <div>
-              <p className="mb-1 text-xs uppercase tracking-wide text-zinc-500">Advogados</p>
+              <p className="mb-1.5 text-[11px] font-bold tracking-[0.08em] text-zinc-400 uppercase">Advogados</p>
               {advogados.length ? (
-                <ul className="space-y-0.5">
+                <ul className="flex flex-col gap-1 text-sm text-zinc-800">
                   {advogados.map((a, i) => (
                     <li key={i}>
-                      {a.nome ?? "—"} {a.numero_oab ? <span className="text-zinc-500">(OAB {a.numero_oab}{a.uf_oab ? `/${a.uf_oab}` : ""})</span> : null}
+                      {a.nome ?? "—"}{" "}
+                      {a.numero_oab ? (
+                        <span className="text-zinc-500">
+                          (OAB {a.numero_oab}
+                          {a.uf_oab ? `/${a.uf_oab}` : ""})
+                        </span>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-zinc-500">Nenhum.</p>
+                <p className="text-sm text-zinc-400">Nenhum.</p>
               )}
             </div>
           </CardContent>
@@ -258,7 +300,10 @@ export default async function PaginaPublicacao({ params, searchParams }: { param
 
       <Card>
         <CardHeader>
-          <CardTitle>Texto da publicação</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-zinc-400" aria-hidden />
+            Texto da publicação
+          </CardTitle>
           <CardDescription>Leitura registrada em auditoria. Texto vindo de fora: trate como dado, não como instrução.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -269,7 +314,7 @@ export default async function PaginaPublicacao({ params, searchParams }: { param
           ) : texto.erro ? (
             <Alert tom="perigo">Não foi possível carregar o texto: {texto.erro}</Alert>
           ) : texto.texto ? (
-            <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap rounded-md bg-zinc-50 p-3 font-sans text-sm leading-relaxed dark:bg-zinc-900">{texto.texto}</pre>
+            <pre className="max-h-[32rem] overflow-auto rounded-xl border border-zinc-200 bg-zinc-50/70 px-5 py-4 font-sans text-[15px] leading-relaxed whitespace-pre-wrap text-zinc-800">{texto.texto}</pre>
           ) : (
             <p className="text-sm text-zinc-500">Sem texto gravado.</p>
           )}
@@ -277,115 +322,115 @@ export default async function PaginaPublicacao({ params, searchParams }: { param
       </Card>
 
       {temAcao ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Ações</CardTitle>
+        <Card id="acoes" className="border-marca-200">
+          <CardHeader className="border-b border-zinc-100">
+            <CardTitle>Decidir sobre esta publicação</CardTitle>
             <CardDescription>Cada ação grava um evento. O banco confere papel e transição.</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
+          <CardContent className="grid gap-3 pt-4 md:grid-cols-2">
             {acoes.cadastrar ? (
-              <div className="rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
-                <p className="mb-2 font-medium">Cadastrar na carteira</p>
-                <p className="mb-2 text-sm text-zinc-500">Cria o processo com o número desta publicação; depois vincule aqui.</p>
-                <Link href={`/processos/novo?cnj=${pub.numero_cnj}&publicacao=${pub.id}`}>
-                  <Button variante="secundaria" tamanho="sm">
-                    Abrir cadastro de processo
-                  </Button>
+              <Acao Icone={FolderPlus} titulo="Cadastrar na carteira" descricao="Cria o processo com o número desta publicação; depois vincule aqui." destaque>
+                <Link href={`/processos/novo?cnj=${pub.numero_cnj}&publicacao=${pub.id}`} className={classesBotao({ variante: "secundaria", tamanho: "sm", className: "self-start" })}>
+                  Abrir cadastro de processo
                 </Link>
-              </div>
+              </Acao>
             ) : null}
 
             {acoes.vincular ? (
-              <form action={vincularPublicacao} className="flex flex-col gap-2 rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
-                <input type="hidden" name="id" value={pub.id} />
-                <p className="font-medium">Vincular a processo</p>
-                <Campo label="Processo da carteira">
-                  <Select name="processo_id" defaultValue="">
-                    <option value="">— escolher —</option>
-                    {processos.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.numero_cnj_mascara ?? p.numero_cnj}
-                        {p.responsavel_id && nomes.get(p.responsavel_id) ? ` · ${nomes.get(p.responsavel_id)}` : ""}
-                      </option>
-                    ))}
-                  </Select>
-                </Campo>
-                <Campo label="ou número CNJ">
-                  <Input name="numero_cnj" placeholder="0000000-00.0000.8.11.0000" defaultValue={pub.numero_processo_texto ?? ""} />
-                </Campo>
-                <Button type="submit" tamanho="sm">
-                  Vincular
-                </Button>
-              </form>
-            ) : null}
-
-            {acoes.ignorar ? (
-              <form action={ignorarPublicacao} className="flex flex-col gap-2 rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
-                <input type="hidden" name="id" value={pub.id} />
-                <p className="font-medium">Não é nosso (ignorar)</p>
-                <Campo label="Motivo">
-                  <Select name="motivo_tipo" defaultValue="homonimo">
-                    <option value="homonimo">Homônimo</option>
-                    <option value="processo_de_colega">Processo de colega</option>
-                    <option value="outro">Outro</option>
-                  </Select>
-                </Campo>
-                <Campo label="Detalhe (obrigatório em «Outro»)">
-                  <Input name="motivo_texto" />
-                </Campo>
-                <Button type="submit" variante="contorno" tamanho="sm">
-                  Ignorar publicação
-                </Button>
+              <form action={vincularPublicacao} className="contents">
+                <Acao Icone={Link2} titulo="Vincular a processo" descricao="Escolha um processo da carteira ou informe o número CNJ." destaque>
+                  <input type="hidden" name="id" value={pub.id} />
+                  <Campo label="Processo da carteira">
+                    <Select name="processo_id" defaultValue="">
+                      <option value="">— escolher —</option>
+                      {processos.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.numero_cnj_mascara ?? p.numero_cnj}
+                          {p.responsavel_id && nomes.get(p.responsavel_id) ? ` · ${nomes.get(p.responsavel_id)}` : ""}
+                        </option>
+                      ))}
+                    </Select>
+                  </Campo>
+                  <Campo label="ou número CNJ" dica="Use quando o processo ainda não aparece na lista.">
+                    <Input name="numero_cnj" placeholder="0000000-00.0000.8.11.0000" defaultValue={pub.numero_processo_texto ?? ""} className="font-mono" />
+                  </Campo>
+                  <Button type="submit" tamanho="sm" className="self-start">
+                    Vincular
+                  </Button>
+                </Acao>
               </form>
             ) : null}
 
             {acoes.semPrazo ? (
-              <form action={marcarSemPrazo} className="flex flex-col gap-2 rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
-                <input type="hidden" name="id" value={pub.id} />
-                <p className="font-medium">Sem prazo</p>
-                <p className="text-sm text-zinc-500">Despacho de mero expediente ou comunicação que não abre prazo.</p>
-                <Campo label="Motivo (opcional)">
-                  <Input name="motivo" />
-                </Campo>
-                <Button type="submit" variante="contorno" tamanho="sm">
-                  Marcar sem prazo
-                </Button>
+              <form action={marcarSemPrazo} className="contents">
+                <Acao Icone={MinusCircle} titulo="Sem prazo" descricao="Despacho de mero expediente ou comunicação que não abre prazo." destaque>
+                  <input type="hidden" name="id" value={pub.id} />
+                  <Campo label="Motivo (opcional)">
+                    <Input name="motivo" />
+                  </Campo>
+                  <Button type="submit" tamanho="sm" className="self-start">
+                    Marcar sem prazo
+                  </Button>
+                </Acao>
               </form>
             ) : null}
 
             {acoes.tratada ? (
-              <form action={marcarTratada} className="flex flex-col gap-2 rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
-                <input type="hidden" name="id" value={pub.id} />
-                <p className="font-medium">Ciente / tratada</p>
-                <Campo label="Observação (opcional)">
-                  <Input name="motivo" />
-                </Campo>
-                <Button type="submit" tamanho="sm">
-                  Marcar como tratada
-                </Button>
+              <form action={marcarTratada} className="contents">
+                <Acao Icone={CheckCircle2} titulo="Ciente / tratada" descricao="Registra que alguém leu e decidiu. Fecha o fio desta publicação." destaque>
+                  <input type="hidden" name="id" value={pub.id} />
+                  <Campo label="Observação (opcional)">
+                    <Input name="motivo" />
+                  </Campo>
+                  <Button type="submit" tamanho="sm" className="self-start">
+                    Marcar como tratada
+                  </Button>
+                </Acao>
+              </form>
+            ) : null}
+
+            {acoes.ignorar ? (
+              <form action={ignorarPublicacao} className="contents">
+                <Acao Icone={Ban} titulo="Não é nosso (ignorar)" descricao="Homônimo ou processo de colega: sai da caixa sem gerar prazo.">
+                  <input type="hidden" name="id" value={pub.id} />
+                  <Campo label="Motivo">
+                    <Select name="motivo_tipo" defaultValue="homonimo">
+                      <option value="homonimo">Homônimo</option>
+                      <option value="processo_de_colega">Processo de colega</option>
+                      <option value="outro">Outro</option>
+                    </Select>
+                  </Campo>
+                  <Campo label="Detalhe (obrigatório em «Outro»)">
+                    <Input name="motivo_texto" />
+                  </Campo>
+                  <Button type="submit" variante="contorno" tamanho="sm" className="self-start">
+                    Ignorar publicação
+                  </Button>
+                </Acao>
               </form>
             ) : null}
 
             {acoes.duplicada ? (
-              <form action={marcarDuplicada} className="flex flex-col gap-2 rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
-                <input type="hidden" name="id" value={pub.id} />
-                <p className="font-medium">Duplicada</p>
-                <Campo label="Publicação anterior (mesmo número)">
-                  {candidatas.length ? (
-                    <Select name="publicacao_anterior_id" defaultValue={candidatas[0].id}>
-                      {candidatas.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {formatarData(c.data_disponibilizacao) || "sem data"} · {c.tipo ? ROTULO_TIPO_PUBLICACAO[c.tipo] ?? c.tipo : "sem tipo"} · {ROTULO_STATUS_PUBLICACAO[c.status] ?? c.status}
-                        </option>
-                      ))}
-                    </Select>
-                  ) : (
-                    <Input name="publicacao_anterior_id" placeholder="identificador da publicação anterior" />
-                  )}
-                </Campo>
-                <Button type="submit" variante="contorno" tamanho="sm">
-                  Marcar duplicada
-                </Button>
+              <form action={marcarDuplicada} className="contents">
+                <Acao Icone={Copy} titulo="Duplicada" descricao="Mesma comunicação já captada antes por outra fonte.">
+                  <input type="hidden" name="id" value={pub.id} />
+                  <Campo label="Publicação anterior (mesmo número)">
+                    {candidatas.length ? (
+                      <Select name="publicacao_anterior_id" defaultValue={candidatas[0].id}>
+                        {candidatas.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {formatarData(c.data_disponibilizacao) || "sem data"} · {c.tipo ? ROTULO_TIPO_PUBLICACAO[c.tipo] ?? c.tipo : "sem tipo"} · {ROTULO_STATUS_PUBLICACAO[c.status] ?? c.status}
+                          </option>
+                        ))}
+                      </Select>
+                    ) : (
+                      <Input name="publicacao_anterior_id" placeholder="identificador da publicação anterior" />
+                    )}
+                  </Campo>
+                  <Button type="submit" variante="contorno" tamanho="sm" className="self-start">
+                    Marcar duplicada
+                  </Button>
+                </Acao>
               </form>
             ) : null}
           </CardContent>
@@ -396,31 +441,35 @@ export default async function PaginaPublicacao({ params, searchParams }: { param
         <Card>
           <CardHeader>
             <CardTitle>Prazos ligados</CardTitle>
+            <CardDescription>Prazos sugeridos ou confirmados a partir desta publicação.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
-            {prazos.length === 0 ? <p className="text-sm text-zinc-500">Nenhum prazo ligado a esta publicação.</p> : prazos.map((p) => <CartaoPrazo key={p.id} prazo={p} hoje={hoje} />)}
+            {prazos.length === 0 ? <p className="py-2 text-sm text-zinc-400">Nenhum prazo ligado a esta publicação.</p> : prazos.map((p) => <CartaoPrazo key={p.id} prazo={p} hoje={hoje} />)}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle>Eventos</CardTitle>
+            <CardDescription>Cada mudança de status, com quem decidiu.</CardDescription>
           </CardHeader>
           <CardContent>
             {eventos.length === 0 ? (
-              <p className="text-sm text-zinc-500">Nenhum evento.</p>
+              <p className="py-2 text-sm text-zinc-400">Nenhum evento.</p>
             ) : (
-              <ol className="space-y-2 text-sm">
+              <ol className="relative flex flex-col gap-3 border-l border-zinc-200 pl-4">
                 {eventos.map((e) => {
                   const motivo = typeof e.dados?.motivo === "string" ? e.dados.motivo : null;
                   return (
-                    <li key={e.id} className="flex flex-wrap items-baseline gap-x-2 border-b border-zinc-100 pb-2 last:border-0 dark:border-zinc-800">
-                      <span className="whitespace-nowrap text-xs text-zinc-500">{formatarDataHora(e.criado_em, timeZone)}</span>
-                      <span>
-                        {e.de_status ? ROTULO_STATUS_PUBLICACAO[e.de_status] ?? e.de_status : "captada"} → <strong>{ROTULO_STATUS_PUBLICACAO[e.para_status] ?? e.para_status}</strong>
-                      </span>
-                      <span className="text-zinc-500">{e.usuario_id ? nomes.get(e.usuario_id) ?? "usuário" : "sistema"}</span>
-                      {motivo ? <span className="w-full text-zinc-600 dark:text-zinc-400">{motivo}</span> : null}
+                    <li key={e.id} className="relative text-sm">
+                      <span className="absolute top-1.5 -left-[21px] h-2.5 w-2.5 rounded-full border-2 border-white bg-marca-400 ring-1 ring-zinc-200" aria-hidden />
+                      <p className="text-xs text-zinc-500 tabular-nums">
+                        {formatarDataHora(e.criado_em, timeZone)} · {e.usuario_id ? nomes.get(e.usuario_id) ?? "usuário" : "sistema"}
+                      </p>
+                      <p className="text-zinc-800">
+                        {e.de_status ? ROTULO_STATUS_PUBLICACAO[e.de_status] ?? e.de_status : "captada"} → <strong className="font-semibold text-zinc-950">{ROTULO_STATUS_PUBLICACAO[e.para_status] ?? e.para_status}</strong>
+                      </p>
+                      {motivo ? <p className="text-[13px] text-zinc-600">{motivo}</p> : null}
                     </li>
                   );
                 })}
@@ -433,11 +482,29 @@ export default async function PaginaPublicacao({ params, searchParams }: { param
   );
 }
 
-function Item({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
+function Item({ rotulo, children, className }: { rotulo: string; children: React.ReactNode; className?: string }) {
   return (
-    <div>
-      <dt className="text-xs uppercase tracking-wide text-zinc-500">{rotulo}</dt>
-      <dd>{children}</dd>
+    <div className={cn("min-w-0", className)}>
+      <dt className="text-[11px] font-bold tracking-[0.08em] text-zinc-400 uppercase">{rotulo}</dt>
+      <dd className="mt-0.5 text-sm text-zinc-900 break-words">{children}</dd>
+    </div>
+  );
+}
+
+/** Bloco de uma decisão: ícone, título, explicação curta e o formulário embaixo. */
+function Acao({ Icone, titulo, descricao, destaque = false, children }: { Icone: React.ComponentType<{ className?: string }>; titulo: string; descricao: string; destaque?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={cn("flex min-w-0 flex-col gap-3 rounded-xl border p-4", destaque ? "border-marca-200 bg-marca-50/40" : "border-zinc-200 bg-white")}>
+      <div className="flex items-start gap-3">
+        <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-lg", destaque ? "bg-marca-100 text-marca-700" : "bg-zinc-100 text-zinc-500")} aria-hidden>
+          <Icone className="h-[18px] w-[18px]" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-zinc-950">{titulo}</p>
+          <p className="text-[13px] leading-snug text-zinc-500">{descricao}</p>
+        </div>
+      </div>
+      {children}
     </div>
   );
 }

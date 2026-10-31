@@ -3,8 +3,8 @@ import { criarClienteServidor } from "@/lib/supabase/server";
 import { listarMembros, listarTelefones, ROTULO_PAPEL } from "@/server/equipe";
 import { formatarDataHora } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Campo, Input, Select, Textarea } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Campo, GrupoCampos, Input, Select, Textarea } from "@/components/ui/input";
+import { Button, classesBotao } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
@@ -29,7 +29,17 @@ export default async function PaginaEquipe({ searchParams }: { searchParams: Pro
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Configurações</h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">Configurações</h1>
+          <p className="text-sm text-zinc-500">Equipe do escritório: membros, convites, OAB e telefones do WhatsApp.</p>
+        </div>
+        {socio ? (
+          <a href="#editar" className={classesBotao({ variante: "contorno", tamanho: "sm" })}>
+            Convidar membro
+          </a>
+        ) : null}
+      </div>
       <NavegacaoConfiguracoes papel={sessao.papel} atual="/configuracoes/equipe" />
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       {ok ? <Alert tom="sucesso">{ok}</Alert> : null}
@@ -40,12 +50,12 @@ export default async function PaginaEquipe({ searchParams }: { searchParams: Pro
           <CardTitle>Meu telefone do WhatsApp</CardTitle>
           <CardDescription>Só telefone verificado recebe alertas e pode conversar com o sistema. Verifique enviando o código pelo próprio WhatsApp.</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-2">
+        <CardContent className="flex flex-col gap-3">
           {meuTelefone ? (
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="font-mono">{meuTelefone.telefone_e164}</span>
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50/60 px-4 py-2.5 text-sm">
+              <span className="font-mono font-semibold text-zinc-950 tabular-nums">{meuTelefone.telefone_e164}</span>
               {meuTelefone.verificado_em ? <Badge tom="sucesso">verificado em {formatarDataHora(meuTelefone.verificado_em, timeZone)}</Badge> : <Badge tom="alerta">não verificado</Badge>}
-              <form action={removerTelefone.bind(null, meuTelefone.id)}>
+              <form action={removerTelefone.bind(null, meuTelefone.id)} className="ml-auto">
                 <Button type="submit" variante="fantasma" tamanho="sm">
                   Remover
                 </Button>
@@ -79,21 +89,21 @@ export default async function PaginaEquipe({ searchParams }: { searchParams: Pro
                 const tel = m.usuario_id ? telefonePor.get(m.usuario_id) : null;
                 return (
                   <TR key={m.id} className={m.ativo ? "" : "opacity-60"}>
-                    <TD>
+                    <TD className="min-w-40 font-semibold text-zinc-950">
                       {m.nome_completo}
-                      {m.nomes_alternativos?.length ? <span className="block text-xs text-zinc-500">também: {m.nomes_alternativos.join("; ")}</span> : null}
+                      {m.nomes_alternativos?.length ? <span className="block text-xs font-normal text-zinc-500">também: {m.nomes_alternativos.join("; ")}</span> : null}
                     </TD>
                     <TD>
                       <Badge tom="contorno">{ROTULO_PAPEL[m.papel] ?? m.papel}</Badge>
                     </TD>
-                    <TD className="whitespace-nowrap">{m.oab_numero ? `${m.oab_numero}${m.oab_sufixo ? `-${m.oab_sufixo}` : ""}/${m.oab_uf ?? "MT"}` : "—"}</TD>
-                    <TD className="text-xs">{m.email_convite}</TD>
+                    <TD className="whitespace-nowrap tabular-nums">{m.oab_numero ? `${m.oab_numero}${m.oab_sufixo ? `-${m.oab_sufixo}` : ""}/${m.oab_uf ?? "MT"}` : "—"}</TD>
+                    <TD className="text-xs text-zinc-500">{m.email_convite}</TD>
                     <TD>{tel ? tel.verificado_em ? <Badge tom="sucesso">verificado</Badge> : <Badge tom="alerta">pendente</Badge> : <span className="text-zinc-400">—</span>}</TD>
                     <TD>{!m.ativo ? <Badge tom="neutro">desativado</Badge> : m.usuario_id ? <Badge tom="sucesso">ativo</Badge> : <Badge tom="alerta">convite pendente</Badge>}</TD>
                     {socio ? (
                       <TD>
                         <div className="flex flex-wrap gap-1">
-                          <a href={`/configuracoes/equipe?editar=${m.id}#editar`} className="inline-flex h-8 items-center rounded-md px-2 text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                          <a href={`/configuracoes/equipe?editar=${m.id}#editar`} className={classesBotao({ variante: "fantasma", tamanho: "sm", className: "text-xs" })}>
                             Editar
                           </a>
                           {!m.usuario_id && m.ativo ? (
@@ -136,23 +146,25 @@ export default async function PaginaEquipe({ searchParams }: { searchParams: Pro
               <CardDescription>A pessoa recebe um e-mail para criar a senha. Advogado e sócio precisam de OAB para a captação do DJEN.</CardDescription>
             </CardHeader>
             <CardContent>
-              <form action={convidarMembro} className="grid gap-3 sm:grid-cols-2">
-                <Campo label="E-mail" className="sm:col-span-2">
-                  <Input name="email" type="email" required />
-                </Campo>
-                <Campo label="Nome completo" className="sm:col-span-2">
-                  <Input name="nome_completo" required />
-                </Campo>
-                <Campo label="Papel">
-                  <Select name="papel" defaultValue="advogado">
-                    {Object.entries(ROTULO_PAPEL).map(([v, r]) => (
-                      <option key={v} value={v}>
-                        {r}
-                      </option>
-                    ))}
-                  </Select>
-                </Campo>
-                <div className="grid grid-cols-3 gap-2">
+              <form action={convidarMembro} className="flex flex-col gap-6">
+                <GrupoCampos titulo="Pessoa" colunas={2}>
+                  <Campo label="E-mail" className="sm:col-span-2">
+                    <Input name="email" type="email" required />
+                  </Campo>
+                  <Campo label="Nome completo" className="sm:col-span-2">
+                    <Input name="nome_completo" required />
+                  </Campo>
+                  <Campo label="Papel" dica="Define o que a pessoa pode ver e aprovar.">
+                    <Select name="papel" defaultValue="advogado">
+                      {Object.entries(ROTULO_PAPEL).map(([v, r]) => (
+                        <option key={v} value={v}>
+                          {r}
+                        </option>
+                      ))}
+                    </Select>
+                  </Campo>
+                </GrupoCampos>
+                <GrupoCampos titulo="OAB" descricao="Obrigatória para advogado e sócio: é por ela que o DJEN é captado." colunas={3}>
                   <Campo label="OAB nº">
                     <Input name="oab_numero" inputMode="numeric" />
                   </Campo>
@@ -162,11 +174,13 @@ export default async function PaginaEquipe({ searchParams }: { searchParams: Pro
                   <Campo label="Sufixo">
                     <Input name="oab_sufixo" placeholder="A, B…" maxLength={2} />
                   </Campo>
-                </div>
-                <Campo label="Nomes alternativos (um por linha; como aparecem nas publicações)" className="sm:col-span-2">
-                  <Textarea name="nomes_alternativos" rows={2} />
-                </Campo>
-                <div className="flex justify-end sm:col-span-2">
+                </GrupoCampos>
+                <GrupoCampos titulo="Captação" colunas={1}>
+                  <Campo label="Nomes alternativos (um por linha; como aparecem nas publicações)">
+                    <Textarea name="nomes_alternativos" rows={2} />
+                  </Campo>
+                </GrupoCampos>
+                <div className="flex justify-end">
                   <Button type="submit">Enviar convite</Button>
                 </div>
               </form>
@@ -180,20 +194,22 @@ export default async function PaginaEquipe({ searchParams }: { searchParams: Pro
                 <CardDescription>O e-mail não muda aqui (é a chave do convite).</CardDescription>
               </CardHeader>
               <CardContent>
-                <form action={editarMembro.bind(null, emEdicao.id)} className="grid gap-3 sm:grid-cols-2">
-                  <Campo label="Nome completo" className="sm:col-span-2">
-                    <Input name="nome_completo" required defaultValue={emEdicao.nome_completo} />
-                  </Campo>
-                  <Campo label="Papel">
-                    <Select name="papel" defaultValue={emEdicao.papel}>
-                      {Object.entries(ROTULO_PAPEL).map(([v, r]) => (
-                        <option key={v} value={v}>
-                          {r}
-                        </option>
-                      ))}
-                    </Select>
-                  </Campo>
-                  <div className="grid grid-cols-3 gap-2">
+                <form action={editarMembro.bind(null, emEdicao.id)} className="flex flex-col gap-6">
+                  <GrupoCampos titulo="Pessoa" colunas={2}>
+                    <Campo label="Nome completo" className="sm:col-span-2">
+                      <Input name="nome_completo" required defaultValue={emEdicao.nome_completo} />
+                    </Campo>
+                    <Campo label="Papel">
+                      <Select name="papel" defaultValue={emEdicao.papel}>
+                        {Object.entries(ROTULO_PAPEL).map(([v, r]) => (
+                          <option key={v} value={v}>
+                            {r}
+                          </option>
+                        ))}
+                      </Select>
+                    </Campo>
+                  </GrupoCampos>
+                  <GrupoCampos titulo="OAB" colunas={3}>
                     <Campo label="OAB nº">
                       <Input name="oab_numero" defaultValue={emEdicao.oab_numero ?? ""} inputMode="numeric" />
                     </Campo>
@@ -203,12 +219,14 @@ export default async function PaginaEquipe({ searchParams }: { searchParams: Pro
                     <Campo label="Sufixo">
                       <Input name="oab_sufixo" defaultValue={emEdicao.oab_sufixo ?? ""} maxLength={2} />
                     </Campo>
-                  </div>
-                  <Campo label="Nomes alternativos (um por linha)" className="sm:col-span-2">
-                    <Textarea name="nomes_alternativos" rows={2} defaultValue={(emEdicao.nomes_alternativos ?? []).join("\n")} />
-                  </Campo>
-                  <div className="flex justify-end gap-2 sm:col-span-2">
-                    <a href="/configuracoes/equipe" className="inline-flex h-9 items-center rounded-md border border-zinc-300 px-4 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
+                  </GrupoCampos>
+                  <GrupoCampos titulo="Captação" colunas={1}>
+                    <Campo label="Nomes alternativos (um por linha)">
+                      <Textarea name="nomes_alternativos" rows={2} defaultValue={(emEdicao.nomes_alternativos ?? []).join("\n")} />
+                    </Campo>
+                  </GrupoCampos>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <a href="/configuracoes/equipe" className={classesBotao({ variante: "contorno" })}>
                       Cancelar
                     </a>
                     <Button type="submit">Salvar</Button>

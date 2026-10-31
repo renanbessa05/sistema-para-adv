@@ -32,15 +32,15 @@ export async function ProdutividadeMes({ base, mes }: { base: string; mes?: stri
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold tracking-tight text-marca-900">Produtividade por pessoa</h2>
         <nav className="flex gap-2 text-sm">
-          <Link className="rounded-md border px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800" href={`${base}&mes=${mesAnterior(competencia).slice(0, 7)}`}>
+          <Link className="rounded-lg border px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800" href={`${base}&mes=${mesAnterior(competencia).slice(0, 7)}`}>
             Mês anterior
           </Link>
           {competencia !== atual ? (
-            <Link className="rounded-md border px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800" href={base}>
+            <Link className="rounded-lg border px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800" href={base}>
               Mês atual
             </Link>
           ) : null}
-          <a className="rounded-md border px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800" href={`/api/relatorios/csv?mes=${mesParam}`}>
+          <a className="rounded-lg border px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800" href={`/api/relatorios/csv?mes=${mesParam}`}>
             Baixar CSV
           </a>
         </nav>

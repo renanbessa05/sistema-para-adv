@@ -3,12 +3,12 @@ import { redirect } from "next/navigation";
 import { exigirSessao } from "@/server/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { listarComarcas } from "@/server/processos";
-import { formatarData, formatarDataHora } from "@/lib/utils";
+import { cn, formatarData, formatarDataHora } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Campo, Input, Select, Textarea } from "@/components/ui/input";
+import { Campo, GrupoCampos, Input, Select, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Alert } from "@/components/ui/alert";
+import { Alert, Vazio } from "@/components/ui/alert";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { NavegacaoConfiguracoes } from "../navegacao";
 import { adicionarFeriado, marcarAnoConferido, removerFeriado } from "./actions";
@@ -19,6 +19,9 @@ export const dynamic = "force-dynamic";
 const ABRANGENCIA: Record<string, string> = { nacional: "Nacional", estadual: "Estadual", municipal: "Municipal (comarca)", forense: "Forense (TJ)", recesso: "Recesso", suspensao_ad_hoc: "Suspensão ad hoc" };
 
 type Feriado = { id: string; tribunal_id: string | null; comarca_id: string | null; data: string; descricao: string; abrangencia: string; suspende_prazo: boolean; ato_normativo: string | null; url_fonte: string | null; conferido: boolean };
+
+const PILULA_ATIVA = "rounded-full bg-marca-600 px-3 py-1 text-[13px] font-semibold text-white shadow-marca";
+const PILULA_INATIVA = "rounded-full border border-zinc-200 bg-white px-3 py-1 text-[13px] font-semibold text-zinc-600 transition-colors hover:border-zinc-300 hover:text-zinc-900";
 
 export default async function PaginaCalendario({ searchParams }: { searchParams: Promise<{ ano?: string; comarca?: string; erro?: string; ok?: string }> }) {
   const sessao = await exigirSessao();
@@ -48,23 +51,28 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Configurações</h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">Configurações</h1>
+          <p className="text-sm text-zinc-500">Calendário forense: feriados e suspensões do TJ-MT por ano e comarca.</p>
+        </div>
+      </div>
       <NavegacaoConfiguracoes papel={sessao.papel} atual="/configuracoes/calendario" />
       {params.erro ? <Alert tom="perigo">{params.erro}</Alert> : null}
       {params.ok ? <Alert tom="sucesso">{params.ok}</Alert> : null}
       {!tribunalId ? <Alert tom="perigo">Tribunal TJMT não encontrado em ref.tribunais: aplique a migration de dados iniciais.</Alert> : null}
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm text-zinc-500">Ano:</span>
+        <span className="text-[11px] font-bold tracking-[0.08em] text-zinc-400 uppercase">Ano:</span>
         {anosDisponiveis.map((a) => (
-          <Link key={a} href={`/configuracoes/calendario?ano=${a}${comarcaFiltro ? `&comarca=${comarcaFiltro}` : ""}`} className={`rounded-md px-2 py-1 text-sm ${a === ano ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900" : "border hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}>
+          <Link key={a} href={`/configuracoes/calendario?ano=${a}${comarcaFiltro ? `&comarca=${comarcaFiltro}` : ""}`} className={cn("tabular-nums", a === ano ? PILULA_ATIVA : PILULA_INATIVA)}>
             {a}
             {(anos ?? []).some((x) => Number(x.ano) === a && x.conferido) ? " ✓" : ""}
           </Link>
         ))}
-        <form method="get" className="ml-auto flex items-center gap-2">
+        <form method="get" className="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto">
           <input type="hidden" name="ano" value={ano} />
-          <Select name="comarca" defaultValue={comarcaFiltro ?? ""} className="w-auto" aria-label="Comarca">
+          <Select name="comarca" defaultValue={comarcaFiltro ?? ""} className="h-9 w-full sm:w-auto sm:min-w-52" aria-label="Comarca">
             <option value="">Todas as comarcas</option>
             {comarcas.map((c) => (
               <option key={c.id} value={c.id}>
@@ -80,14 +88,14 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
 
       <Card>
         <CardHeader>
-          <CardTitle>
+          <CardTitle className="flex flex-wrap items-center gap-2">
             Dias sem expediente em {ano} {registroAno?.conferido ? <Badge tom="sucesso">ano conferido</Badge> : <Badge tom="alerta">ano não conferido</Badge>}
           </CardTitle>
           <CardDescription>Feriados nacionais, do TJ-MT e das comarcas. Enquanto o ano não estiver conferido contra a Portaria, os prazos nascem com aviso de calendário incompleto.</CardDescription>
         </CardHeader>
         <CardContent>
           {feriados.length === 0 ? (
-            <p className="text-sm text-zinc-500">Nenhum registro para {ano}.</p>
+            <Vazio titulo={`Nenhum registro para ${ano}.`} descricao="Importe a Portaria do TJ-MT ou adicione os feriados um a um no formulário abaixo." />
           ) : (
             <Table>
               <THead>
@@ -104,16 +112,16 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
               <TBody>
                 {feriados.map((f) => (
                   <TR key={f.id}>
-                    <TD className="whitespace-nowrap">{formatarData(f.data)}</TD>
-                    <TD>{f.descricao}</TD>
+                    <TD className="font-semibold whitespace-nowrap text-zinc-950 tabular-nums">{formatarData(f.data)}</TD>
+                    <TD className="min-w-48">{f.descricao}</TD>
                     <TD>
                       {ABRANGENCIA[f.abrangencia] ?? f.abrangencia}
                       {f.comarca_id ? <span className="block text-xs text-zinc-500">{nomeComarca.get(f.comarca_id) ?? "comarca"}</span> : null}
                     </TD>
                     <TD>{f.suspende_prazo ? "sim" : "não"}</TD>
-                    <TD className="text-xs">
+                    <TD className="text-xs text-zinc-500">
                       {f.url_fonte ? (
-                        <a href={f.url_fonte} target="_blank" rel="noreferrer" className="underline">
+                        <a href={f.url_fonte} target="_blank" rel="noreferrer" className="font-medium text-marca-700 underline-offset-2 hover:underline">
                           {f.ato_normativo ?? "fonte"}
                         </a>
                       ) : (
@@ -124,7 +132,7 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
                     <TD>
                       {f.tribunal_id || f.comarca_id ? (
                         <form action={removerFeriado.bind(null, f.id, String(ano))}>
-                          <Button type="submit" variante="fantasma" tamanho="sm" className="text-xs text-red-700">
+                          <Button type="submit" variante="fantasma" tamanho="sm" className="text-xs text-red-700 hover:bg-red-50 hover:text-red-800">
                             Remover
                           </Button>
                         </form>
@@ -146,48 +154,52 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
               <CardDescription>Sempre com o ato normativo (portaria, provimento ou decisão) e, se possível, a URL da fonte.</CardDescription>
             </CardHeader>
             <CardContent>
-              <form action={adicionarFeriado} className="grid gap-3 sm:grid-cols-2">
+              <form action={adicionarFeriado} className="flex flex-col gap-6">
                 <input type="hidden" name="tribunal_id" value={tribunalId} />
-                <Campo label="Data">
-                  <Input name="data" type="date" required defaultValue={`${ano}-01-01`} />
-                </Campo>
-                <Campo label="Abrangência">
-                  <Select name="abrangencia" defaultValue="forense">
-                    {Object.entries(ABRANGENCIA)
-                      .filter(([v]) => v !== "nacional")
-                      .map(([v, r]) => (
-                        <option key={v} value={v}>
-                          {r}
+                <GrupoCampos titulo="Quando e onde" colunas={2}>
+                  <Campo label="Data">
+                    <Input name="data" type="date" required defaultValue={`${ano}-01-01`} />
+                  </Campo>
+                  <Campo label="Abrangência">
+                    <Select name="abrangencia" defaultValue="forense">
+                      {Object.entries(ABRANGENCIA)
+                        .filter(([v]) => v !== "nacional")
+                        .map(([v, r]) => (
+                          <option key={v} value={v}>
+                            {r}
+                          </option>
+                        ))}
+                    </Select>
+                  </Campo>
+                  <Campo label="Descrição" className="sm:col-span-2">
+                    <Input name="descricao" required placeholder="Ex.: Aniversário de Cuiabá" />
+                  </Campo>
+                  <Campo label="Comarca (só para municipal/suspensão local)" className="sm:col-span-2">
+                    <Select name="comarca_id" defaultValue="">
+                      <option value="">Todo o tribunal</option>
+                      {comarcas.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nome}
                         </option>
                       ))}
-                  </Select>
-                </Campo>
-                <Campo label="Descrição" className="sm:col-span-2">
-                  <Input name="descricao" required placeholder="Ex.: Aniversário de Cuiabá" />
-                </Campo>
-                <Campo label="Comarca (só para municipal/suspensão local)" className="sm:col-span-2">
-                  <Select name="comarca_id" defaultValue="">
-                    <option value="">Todo o tribunal</option>
-                    {comarcas.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.nome}
-                      </option>
-                    ))}
-                  </Select>
-                </Campo>
-                <Campo label="Ato normativo">
-                  <Input name="ato_normativo" required placeholder="Portaria TJMT/PRES nº …" />
-                </Campo>
-                <Campo label="URL da fonte">
-                  <Input name="url_fonte" type="url" placeholder="https://…" />
-                </Campo>
-                <Campo label="Suspende prazo?">
-                  <Select name="suspende_prazo" defaultValue="1">
-                    <option value="1">Sim</option>
-                    <option value="0">Não (só sem expediente)</option>
-                  </Select>
-                </Campo>
-                <div className="flex items-end justify-end">
+                    </Select>
+                  </Campo>
+                </GrupoCampos>
+                <GrupoCampos titulo="Fonte e efeito" colunas={2}>
+                  <Campo label="Ato normativo">
+                    <Input name="ato_normativo" required placeholder="Portaria TJMT/PRES nº …" />
+                  </Campo>
+                  <Campo label="URL da fonte">
+                    <Input name="url_fonte" type="url" placeholder="https://…" />
+                  </Campo>
+                  <Campo label="Suspende prazo?" dica="“Não” registra só o dia sem expediente, sem mexer na contagem.">
+                    <Select name="suspende_prazo" defaultValue="1">
+                      <option value="1">Sim</option>
+                      <option value="0">Não (só sem expediente)</option>
+                    </Select>
+                  </Campo>
+                </GrupoCampos>
+                <div className="flex justify-end">
                   <Button type="submit">Adicionar</Button>
                 </div>
               </form>
@@ -202,21 +214,23 @@ export default async function PaginaCalendario({ searchParams }: { searchParams:
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form action={marcarAnoConferido} className="grid gap-3">
+              <form action={marcarAnoConferido} className="flex flex-col gap-6">
                 <input type="hidden" name="tribunal_id" value={tribunalId} />
                 <input type="hidden" name="ano" value={ano} />
-                <Campo label="Portaria / ato de referência">
-                  <Input name="ato_normativo" defaultValue={(registroAno?.ato_normativo as string | null) ?? ""} placeholder="Portaria TJMT/PRES nº …" />
-                </Campo>
-                <Campo label="URL da fonte">
-                  <Input name="url_fonte" type="url" defaultValue={(registroAno?.url_fonte as string | null) ?? ""} />
-                </Campo>
-                <Campo label="Observações">
-                  <Textarea name="observacoes" rows={2} defaultValue={(registroAno?.observacoes as string | null) ?? ""} />
-                </Campo>
-                <label className="inline-flex items-center gap-2 text-sm">
-                  <input type="checkbox" name="conferido" defaultChecked={Boolean(registroAno?.conferido)} /> Ano conferido contra a Portaria
-                </label>
+                <GrupoCampos titulo="Portaria de referência" colunas={1}>
+                  <Campo label="Portaria / ato de referência">
+                    <Input name="ato_normativo" defaultValue={(registroAno?.ato_normativo as string | null) ?? ""} placeholder="Portaria TJMT/PRES nº …" />
+                  </Campo>
+                  <Campo label="URL da fonte">
+                    <Input name="url_fonte" type="url" defaultValue={(registroAno?.url_fonte as string | null) ?? ""} />
+                  </Campo>
+                  <Campo label="Observações">
+                    <Textarea name="observacoes" rows={2} defaultValue={(registroAno?.observacoes as string | null) ?? ""} />
+                  </Campo>
+                  <label className="flex items-center gap-2.5 rounded-xl border border-zinc-200 bg-zinc-50/60 px-4 py-3 text-sm font-medium text-zinc-800">
+                    <input type="checkbox" name="conferido" defaultChecked={Boolean(registroAno?.conferido)} className="h-4 w-4 rounded border-zinc-300 accent-marca-600" /> Ano conferido contra a Portaria
+                  </label>
+                </GrupoCampos>
                 <div className="flex justify-end">
                   <Button type="submit">Salvar conferência</Button>
                 </div>

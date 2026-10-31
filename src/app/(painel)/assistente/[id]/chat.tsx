@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Loader2, SendHorizonal, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 interface Mensagem {
   id: string;
@@ -98,29 +100,61 @@ export function Chat({ conversaId, inicial, somenteLeitura }: { conversaId: stri
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex min-h-[40vh] flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
-        {mensagens.length === 0 ? <p className="text-sm text-zinc-500">Comece perguntando, por exemplo: &ldquo;quais meus prazos da semana?&rdquo; ou &ldquo;o que saiu no processo da Marina?&rdquo;.</p> : null}
-        {mensagens.map((m) => (
-          <div key={m.id} className={m.papel === "pessoa" ? "self-end" : "self-start"}>
-            {m.tipo === "sistema" || m.tipo === "resumo" ? (
-              <div className="max-w-3xl rounded-md border border-dashed border-zinc-300 px-3 py-2 text-xs text-zinc-500 dark:border-zinc-700">{m.tipo === "resumo" ? "Resumo da conversa anterior: " : ""}{m.texto}</div>
-            ) : m.papel === "pessoa" ? (
-              <div className="max-w-3xl whitespace-pre-wrap rounded-lg bg-zinc-900 px-3 py-2 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900">{m.texto}</div>
-            ) : (
-              <div className="prose prose-sm max-w-3xl rounded-lg bg-zinc-100 px-3 py-2 dark:prose-invert dark:bg-zinc-800">
-                {m.texto ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.texto}</ReactMarkdown> : <span className="text-zinc-400">…</span>}
-              </div>
-            )}
+      <div className="flex min-h-[40vh] flex-col gap-3 rounded-2xl border border-zinc-200 bg-zinc-50/70 p-3 shadow-xs sm:p-4" role="log" aria-live="polite">
+        {mensagens.length === 0 ? (
+          <div className="m-auto flex max-w-sm flex-col items-center gap-2 py-8 text-center">
+            <span className="grid h-11 w-11 place-items-center rounded-xl bg-marca-50 text-marca-600" aria-hidden>
+              <Sparkles className="h-5 w-5" />
+            </span>
+            <p className="text-sm text-zinc-500">Comece perguntando, por exemplo: &ldquo;quais meus prazos da semana?&rdquo; ou &ldquo;o que saiu no processo da Marina?&rdquo;.</p>
           </div>
-        ))}
-        {ferramenta ? <p className="text-xs text-zinc-500">⏳ {ROTULO_FERRAMENTA[ferramenta] ?? ferramenta}…</p> : null}
+        ) : null}
+        {mensagens.map((m) => {
+          const sistema = m.tipo === "sistema" || m.tipo === "resumo";
+          const pessoa = m.papel === "pessoa";
+          return (
+            <div key={m.id} className={cn("flex w-full", sistema ? "justify-center" : pessoa ? "justify-end" : "justify-start")}>
+              {sistema ? (
+                <div className="max-w-[90%] rounded-xl border border-dashed border-zinc-300 bg-white/60 px-3 py-2 text-center text-xs leading-snug text-zinc-500">
+                  {m.tipo === "resumo" ? "Resumo da conversa anterior: " : ""}
+                  {m.texto}
+                </div>
+              ) : pessoa ? (
+                <div className="max-w-[88%] rounded-2xl rounded-br-md bg-marca-100 px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap text-marca-900 sm:max-w-[75%]">{m.texto}</div>
+              ) : (
+                <div className="flex max-w-[92%] items-start gap-2.5 sm:max-w-[80%]">
+                  <span className="mt-1 hidden h-7 w-7 shrink-0 place-items-center rounded-lg bg-marca-600 text-white shadow-marca sm:grid" aria-hidden>
+                    <Sparkles className="h-3.5 w-3.5" />
+                  </span>
+                  <div className="prose prose-sm min-w-0 max-w-none rounded-2xl rounded-bl-md border border-zinc-200 bg-white px-4 py-2.5 shadow-xs">
+                    {m.texto ? (
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.texto}</ReactMarkdown>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 py-1 text-zinc-400" aria-label="Pensando">
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-300 [animation-delay:-0.3s]" />
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-300 [animation-delay:-0.15s]" />
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-300" />
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {ferramenta ? (
+          <p className="flex items-center gap-2 pl-1 text-xs text-zinc-500 sm:pl-10">
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-marca-600" aria-hidden />
+            {ROTULO_FERRAMENTA[ferramenta] ?? ferramenta}…
+          </p>
+        ) : null}
         <div ref={fim} />
       </div>
-      {erro ? <p className="text-sm text-red-700">{erro}</p> : null}
-      {pedirNova ? <p className="text-sm text-amber-700">Conversa longa: use &ldquo;Continuar em nova conversa&rdquo; para manter a qualidade.</p> : null}
+      {erro ? <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{erro}</p> : null}
+      {pedirNova ? <p className="rounded-lg bg-ouro-50 px-3 py-2 text-sm text-ouro-700">Conversa longa: use &ldquo;Continuar em nova conversa&rdquo; para manter a qualidade.</p> : null}
       {somenteLeitura ? null : (
         <form
-          className="flex gap-2"
+          className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-10 flex items-end gap-2 rounded-2xl border border-zinc-200 bg-white p-2 shadow-md md:bottom-4"
           onSubmit={(e) => {
             e.preventDefault();
             void enviar(texto);
@@ -139,9 +173,11 @@ export function Chat({ conversaId, inicial, somenteLeitura }: { conversaId: stri
             placeholder="Pergunte à assistente… (Enter envia, Shift+Enter quebra linha)"
             disabled={enviando}
             aria-label="Mensagem"
+            className="min-h-11 flex-1 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
           />
-          <Button type="submit" disabled={enviando || !texto.trim()}>
-            {enviando ? "Enviando…" : "Enviar"}
+          <Button type="submit" disabled={enviando || !texto.trim()} className="h-10 shrink-0 px-3 sm:px-4" aria-label={enviando ? "Enviando…" : "Enviar"}>
+            {enviando ? <Loader2 className="animate-spin" aria-hidden /> : <SendHorizonal aria-hidden />}
+            <span className="hidden sm:inline">{enviando ? "Enviando…" : "Enviar"}</span>
           </Button>
         </form>
       )}

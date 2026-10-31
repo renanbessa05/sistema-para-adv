@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { exigirSessao } from "@/server/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { listarMembros, mapaNomes, membrosComUsuario } from "@/server/equipe";
@@ -6,8 +7,9 @@ import { listarTarefasQuadro } from "@/server/tarefas";
 import { hojeNoFuso } from "@/lib/prazos";
 import { QuadroTarefas } from "@/components/dominio/QuadroTarefas";
 import { Select } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Button, classesBotao } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Tarefas" };
 export const dynamic = "force-dynamic";
@@ -36,25 +38,30 @@ export default async function PaginaTarefas({ searchParams }: { searchParams: Pr
   }
   const atrasadas = tarefas.filter((t) => t.atrasada).length;
   const criticas = tarefas.filter((t) => t.critica).length;
+  const abertas = tarefas.filter((t) => !["concluida", "cancelada"].includes(t.status)).length;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Tarefas</h1>
-          <p className="text-sm text-zinc-500">
-            {executorId === sessao.usuarioId ? "Suas tarefas" : executorId ? `Tarefas de ${nomes.get(executorId) ?? "membro"}` : "Todas as tarefas do escritório"} · {atrasadas} atrasada(s) · {criticas} crítica(s)
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">Tarefas</h1>
+          <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-500">
+            <span>{executorId === sessao.usuarioId ? "Suas tarefas" : executorId ? `Tarefas de ${nomes.get(executorId) ?? "membro"}` : "Todas as tarefas do escritório"}</span>
+            <Contador valor={abertas} rotulo={abertas === 1 ? "aberta" : "abertas"} />
+            <Contador valor={atrasadas} rotulo={atrasadas === 1 ? "atrasada" : "atrasadas"} tom={atrasadas ? "alerta" : "ok"} />
+            <Contador valor={criticas} rotulo={criticas === 1 ? "crítica" : "críticas"} tom={criticas ? "perigo" : "ok"} />
           </p>
         </div>
-        <Link href={`/tarefas/nova${processoId ? `?processo=${processoId}` : ""}`} className="inline-flex h-9 items-center rounded-md bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900">
+        <Link href={`/tarefas/nova${processoId ? `?processo=${processoId}` : ""}`} className={classesBotao()}>
+          <Plus aria-hidden />
           Nova tarefa
         </Link>
       </div>
       {filtros.erro ? <Alert tom="perigo">{filtros.erro}</Alert> : null}
       {filtros.ok ? <Alert tom="sucesso">{filtros.ok}</Alert> : null}
 
-      <form method="get" className="flex flex-wrap items-center gap-2">
-        <Select name="executor" defaultValue={executorId ?? "todos"} className="w-auto min-w-48" aria-label="Executor">
+      <form method="get" className="flex flex-wrap items-center gap-2 rounded-2xl border border-zinc-200 bg-white p-2 shadow-sm">
+        <Select name="executor" defaultValue={executorId ?? "todos"} className="h-9 w-full shadow-none sm:w-auto sm:min-w-52" aria-label="Executor">
           <option value={sessao.usuarioId}>Eu ({sessao.nome})</option>
           {socio ? <option value="todos">Todos do escritório</option> : null}
           {socio
@@ -67,7 +74,7 @@ export default async function PaginaTarefas({ searchParams }: { searchParams: Pr
                 ))
             : null}
         </Select>
-        <Select name="processo" defaultValue={processoId ?? ""} className="w-auto min-w-56" aria-label="Processo">
+        <Select name="processo" defaultValue={processoId ?? ""} className="h-9 w-full font-mono text-xs shadow-none sm:w-auto sm:min-w-60" aria-label="Processo">
           <option value="">Todos os processos</option>
           {[...processosNoQuadro.entries()].map(([id, numero]) => (
             <option key={id} value={id}>
@@ -75,12 +82,28 @@ export default async function PaginaTarefas({ searchParams }: { searchParams: Pr
             </option>
           ))}
         </Select>
-        <Button type="submit" variante="secundaria">
+        <Button type="submit" variante="secundaria" className="w-full sm:w-auto">
           Filtrar
         </Button>
       </form>
 
       <QuadroTarefas tarefas={tarefas} nomes={nomes} mostrarExecutor={executorId === null} />
     </div>
+  );
+}
+
+const TOM_CONTADOR = {
+  neutro: "text-zinc-700",
+  ok: "text-zinc-400",
+  alerta: "text-ouro-700",
+  perigo: "text-red-600",
+} as const;
+
+function Contador({ valor, rotulo, tom = "neutro" }: { valor: number; rotulo: string; tom?: keyof typeof TOM_CONTADOR }) {
+  return (
+    <span className={cn("inline-flex items-center gap-1 text-[13px]", TOM_CONTADOR[tom])}>
+      <span className="h-1 w-1 rounded-full bg-current opacity-50" aria-hidden />
+      <span className="font-bold tabular-nums">{valor}</span> {rotulo}
+    </span>
   );
 }

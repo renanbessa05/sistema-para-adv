@@ -5,9 +5,15 @@
  * Prazos e Configurações. Quem vê cada item segue as mesmas regras de papel de antes: nada novo fica visível
  * para papel que não via.
  */
+export type IconeMenu = "hoje" | "publicacoes" | "prazos" | "tarefas" | "processos" | "clientes" | "pecas" | "configuracoes" | "suporte";
+
 export interface ItemMenu {
   href: string;
   rotulo: string;
+  /** Ícone desenhado pelo componente de menu (chave, não componente, para o arquivo seguir puro). */
+  icone: IconeMenu;
+  /** Chave do contador mostrado ao lado do rótulo (ex.: publicações a tratar). */
+  contador?: "publicacoes" | "prazos";
 }
 
 export interface GrupoMenu {
@@ -22,26 +28,29 @@ export function gruposDoMenu(papel: Papel | string): GrupoMenu[] {
     {
       titulo: "Dia a dia",
       itens: [
-        { href: "/hoje", rotulo: "Hoje" },
-        { href: "/publicacoes", rotulo: "Publicações" },
-        { href: "/prazos", rotulo: "Prazos" },
-        { href: "/tarefas", rotulo: "Tarefas" },
+        { href: "/hoje", rotulo: "Hoje", icone: "hoje" },
+        { href: "/publicacoes", rotulo: "Publicações", icone: "publicacoes", contador: "publicacoes" },
+        { href: "/prazos", rotulo: "Prazos", icone: "prazos", contador: "prazos" },
+        { href: "/tarefas", rotulo: "Tarefas", icone: "tarefas" },
       ],
     },
     {
       titulo: "Carteira",
       itens: [
-        { href: "/processos", rotulo: "Processos" },
-        { href: "/clientes", rotulo: "Clientes" },
-        { href: "/minutas", rotulo: "Peças" },
+        { href: "/processos", rotulo: "Processos", icone: "processos" },
+        { href: "/clientes", rotulo: "Clientes", icone: "clientes" },
+        { href: "/minutas", rotulo: "Peças", icone: "pecas" },
       ],
     },
     {
       titulo: "Escritório",
-      itens: [{ href: "/configuracoes", rotulo: "Configurações" }],
+      itens: [{ href: "/configuracoes", rotulo: "Configurações", icone: "configuracoes" }],
     },
   ];
 
-  if (papel === "suporte") grupos.push({ titulo: "Suporte", itens: [{ href: "/admin/suporte", rotulo: "Suporte" }] });
+  if (papel === "suporte") grupos.push({ titulo: "Suporte", itens: [{ href: "/admin/suporte", rotulo: "Suporte", icone: "suporte" }] });
   return grupos;
 }
+
+/** Itens fixos da barra inferior do celular: os quatro mais usados; o resto fica em "Mais". */
+export const HREFS_BARRA_INFERIOR = ["/hoje", "/publicacoes", "/prazos", "/processos"];

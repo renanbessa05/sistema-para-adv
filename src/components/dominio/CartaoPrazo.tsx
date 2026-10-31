@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { formatarData } from "@/lib/utils";
+import { cn, formatarData } from "@/lib/utils";
 
 /** Rótulos, tons e urgência de prazos (puros, usados na lista, no detalhe e no detalhe da publicação). */
 
@@ -72,10 +72,38 @@ export function BadgeDataFinal({ dataFinal, hoje, status }: { dataFinal: string;
   const urgencia = urgenciaPrazo(dataFinal, hoje, status);
   const sufixo = urgencia === "vencido" ? " · vencido" : urgencia === "hoje" ? " · hoje" : "";
   return (
-    <Badge tom={TOM_URGENCIA[urgencia]} className="font-mono">
+    <Badge tom={TOM_URGENCIA[urgencia]}>
       {formatarData(dataFinal)}
       {sufixo}
     </Badge>
+  );
+}
+
+const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+const COR_DIA: Record<Urgencia, string> = {
+  vencido: "bg-red-50 text-red-700",
+  hoje: "bg-red-50 text-red-700",
+  proximo: "bg-ouro-100 text-ouro-700",
+  normal: "bg-marca-50 text-marca-700",
+  encerrado: "bg-zinc-100 text-zinc-500",
+};
+
+const TAMANHO_DIA = {
+  sm: { caixa: "h-9 w-9 rounded-lg", dia: "text-[13px]", mes: "text-[8px]" },
+  md: { caixa: "h-11 w-11 rounded-xl", dia: "text-[15px]", mes: "text-[9px]" },
+  lg: { caixa: "h-16 w-16 rounded-2xl", dia: "text-[24px]", mes: "text-[10px]" },
+} as const;
+
+/** Quadradinho de agenda com o dia e o mês, colorido pela urgência. */
+export function DiaAgenda({ data, urgencia, tamanho = "md", className }: { data: string; urgencia: Urgencia; tamanho?: keyof typeof TAMANHO_DIA; className?: string }) {
+  const [, m, d] = data.slice(0, 10).split("-");
+  const t = TAMANHO_DIA[tamanho];
+  return (
+    <span className={cn("flex shrink-0 flex-col items-center justify-center leading-none tabular-nums", t.caixa, COR_DIA[urgencia], className)} aria-hidden>
+      <span className={cn("font-extrabold tracking-[-0.02em]", t.dia)}>{d}</span>
+      <span className={cn("mt-0.5 font-bold tracking-[0.08em] uppercase opacity-80", t.mes)}>{MESES[Number(m) - 1] ?? m}</span>
+    </span>
   );
 }
 
@@ -91,17 +119,21 @@ export interface PrazoResumo {
 
 /** Linha compacta de um prazo, com link para o detalhe. */
 export function CartaoPrazo({ prazo, hoje }: { prazo: PrazoResumo; hoje: string }) {
+  const urgencia = urgenciaPrazo(prazo.data_final, hoje, prazo.status);
   return (
-    <Link href={`/prazos/${prazo.id}`} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-zinc-200 px-3 py-2 text-sm hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900">
-      <span className="flex flex-col">
-        <span className="font-medium">{prazo.ato_descricao ?? "ato a praticar"}</span>
-        {prazo.processo ? <span className="font-mono text-xs text-zinc-500">{prazo.processo.numero_cnj_mascara ?? "processo"}</span> : null}
+    <Link href={`/prazos/${prazo.id}`} className="flex flex-wrap items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm shadow-xs transition-colors hover:border-marca-200 hover:bg-marca-50/40 dark:border-zinc-800 dark:hover:bg-zinc-900">
+      <DiaAgenda data={prazo.data_final} urgencia={urgencia} />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate font-semibold text-zinc-950">{prazo.ato_descricao ?? "ato a praticar"}</span>
+        <span className="text-xs text-zinc-500 tabular-nums">
+          {prazo.processo ? <span className="font-mono">{prazo.processo.numero_cnj_mascara ?? "processo"}</span> : "sem processo"}
+          {prazo.data_interna ? ` · interna ${formatarData(prazo.data_interna)}` : ""}
+        </span>
       </span>
-      <span className="flex flex-wrap items-center gap-2">
+      <span className="flex flex-wrap items-center gap-1.5">
         {prazo.calendario_incompleto ? <Badge tom="alerta">calendário incompleto</Badge> : null}
         <Badge tom={TOM_STATUS_PRAZO[prazo.status] ?? "neutro"}>{ROTULO_STATUS_PRAZO[prazo.status] ?? prazo.status}</Badge>
         <BadgeDataFinal dataFinal={prazo.data_final} hoje={hoje} status={prazo.status} />
-        {prazo.data_interna ? <span className="text-xs text-zinc-500">interna {formatarData(prazo.data_interna)}</span> : null}
       </span>
     </Link>
   );

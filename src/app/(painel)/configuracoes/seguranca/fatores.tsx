@@ -43,11 +43,11 @@ export function BotaoRemoverFator({ id, nome, ultimoVerificado }: { id: string; 
 
   return (
     <div className="flex flex-col gap-1">
-      <Button type="button" variante="fantasma" tamanho="sm" className="w-fit text-xs text-red-700" onClick={remover} disabled={removendo}>
+      <Button type="button" variante="contorno" tamanho="sm" className="w-fit text-red-700 hover:border-red-200 hover:bg-red-50" onClick={remover} disabled={removendo}>
         {removendo ? "Removendo…" : "Remover"}
       </Button>
       {erro ? (
-        <p role="alert" className="max-w-xs text-xs text-red-700">
+        <p role="alert" className="max-w-xs rounded-lg bg-red-50 px-2.5 py-1.5 text-xs text-red-700">
           {erro}{" "}
           {/aal2|confirmado o código/i.test(erro) ? (
             <a href="/mfa?voltar=%2Fconfiguracoes%2Fseguranca" className="underline">

@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { ShieldCheck } from "lucide-react";
 import { exigirSessao } from "@/server/sessao";
 import { exigeMfa, listarFatores } from "@/server/mfa";
 import { formatarDataHora } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, Vazio } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { classesBotao } from "@/components/ui/button";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { NavegacaoConfiguracoes } from "../navegacao";
 import { BotaoRemoverFator } from "./fatores";
@@ -23,7 +25,12 @@ export default async function PaginaSeguranca() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Configurações</h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">Configurações</h1>
+          <p className="text-sm text-zinc-500">Segundo fator da sua conta: aplicativos autenticadores cadastrados.</p>
+        </div>
+      </div>
       <NavegacaoConfiguracoes papel={sessao.papel} atual="/configuracoes/seguranca" />
 
       {obrigatorio ? (
@@ -35,12 +42,15 @@ export default async function PaginaSeguranca() {
       )}
 
       <Card>
-        <CardHeader className="flex-row items-start justify-between gap-2">
-          <div className="flex flex-col gap-1">
-            <CardTitle>Autenticadores cadastrados</CardTitle>
+        <CardHeader className="flex-row flex-wrap items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-col gap-1">
+            <CardTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-marca-600" aria-hidden />
+              Autenticadores cadastrados
+            </CardTitle>
             <CardDescription>Aplicativos que geram o código de 6 dígitos pedido ao entrar. A conta é {sessao.email ?? "a sua"}.</CardDescription>
           </div>
-          <Link href={cadastrarHref} className="inline-flex h-9 shrink-0 items-center rounded-md bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200">
+          <Link href={cadastrarHref} className={classesBotao({ variante: "primaria", tamanho: "sm" })}>
             Cadastrar autenticador
           </Link>
         </CardHeader>
@@ -50,7 +60,7 @@ export default async function PaginaSeguranca() {
               titulo="Nenhum autenticador cadastrado"
               descricao="Cadastre um aplicativo autenticador no celular. Você vai precisar dele para entrar."
               acao={
-                <Link href={cadastrarHref} className="text-sm underline">
+                <Link href={cadastrarHref} className={classesBotao({ variante: "contorno", tamanho: "sm" })}>
                   Cadastrar agora
                 </Link>
               }
@@ -69,10 +79,10 @@ export default async function PaginaSeguranca() {
               <TBody>
                 {fatores.map((f) => (
                   <TR key={f.id}>
-                    <TD>{f.nome ?? "—"}</TD>
+                    <TD className="font-semibold text-zinc-950">{f.nome ?? "—"}</TD>
                     <TD>{TIPO[f.tipo] ?? f.tipo}</TD>
                     <TD>{f.status === "verified" ? <Badge tom="sucesso">Verificado</Badge> : <Badge tom="alerta">Pendente de verificação</Badge>}</TD>
-                    <TD className="whitespace-nowrap text-xs">{formatarDataHora(f.criadoEm)}</TD>
+                    <TD className="text-xs whitespace-nowrap text-zinc-500 tabular-nums">{formatarDataHora(f.criadoEm)}</TD>
                     <TD>
                       <BotaoRemoverFator id={f.id} nome={f.nome ?? TIPO[f.tipo] ?? f.tipo} ultimoVerificado={obrigatorio && f.status === "verified" && verificados.length === 1} />
                     </TD>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { List, Lock } from "lucide-react";
 import { exigirSessao } from "@/server/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { garantirFasesPadrao, podeEditarProcesso, proximosPrazosPorProcesso } from "@/server/processos";
@@ -6,7 +7,7 @@ import { hojeNoFuso } from "@/lib/prazos";
 import { formatarData } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Button, classesBotao } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { moverFase } from "../actions";
 
@@ -33,49 +34,54 @@ export default async function PaginaKanban({ searchParams }: { searchParams: Pro
   const colunas = [...fases.map((f) => ({ id: f.id as string | null, nome: f.nome, cor: f.cor })), { id: null, nome: "Sem fase", cor: null }];
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Kanban de processos</h1>
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">Kanban de processos</h1>
           <p className="text-sm text-zinc-500">Processos ativos e suspensos por fase. {podeMover ? "Para mover, escolha a fase no cartão." : "Seu papel só visualiza."} Fases em Configurações → Fases.</p>
         </div>
-        <Link href="/processos" className="text-sm hover:underline">
-          Ver em lista →
+        <Link href="/processos" className={classesBotao({ variante: "contorno", tamanho: "sm" })}>
+          <List aria-hidden />
+          Ver em lista
         </Link>
       </div>
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       {error ? <Alert tom="perigo">Não foi possível carregar: {error.message}</Alert> : null}
 
-      <div className="flex gap-3 overflow-x-auto pb-2">
+      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-3 md:mx-0 md:px-0">
         {colunas.map((coluna) => {
           const itens = cartoes.filter((c) => (coluna.id === null ? !c.fase_id || !faseIds.has(c.fase_id) : c.fase_id === coluna.id));
           return (
-            <section key={coluna.id ?? "sem"} className="flex w-64 shrink-0 flex-col gap-2 rounded-lg border border-zinc-200 bg-zinc-50/60 p-2 dark:border-zinc-800 dark:bg-zinc-900/40">
-              <header className="flex items-center justify-between px-1">
-                <h2 className="flex items-center gap-2 text-sm font-semibold">
-                  {coluna.cor ? <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: coluna.cor }} /> : null}
+            <section key={coluna.id ?? "sem"} className="flex w-72 shrink-0 flex-col gap-2 rounded-2xl border border-zinc-200 bg-zinc-100/60 p-2.5">
+              <header className="flex items-start justify-between gap-2 px-1 pt-0.5">
+                <h2 className="flex items-center gap-2 text-sm font-bold text-zinc-950">
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: coluna.cor ?? "#94a3b8" }} aria-hidden />
                   {coluna.nome}
                 </h2>
-                <span className="text-xs text-zinc-500">{itens.length}</span>
+                <span className="rounded-full bg-white px-2 text-xs font-bold leading-5 text-zinc-600 shadow-xs ring-1 ring-zinc-200 tabular-nums">{itens.length}</span>
               </header>
-              {itens.length === 0 ? <p className="py-4 text-center text-xs text-zinc-400">Nenhum processo.</p> : null}
+              {itens.length === 0 ? <p className="px-1 py-6 text-center text-xs text-zinc-400">Nenhum processo.</p> : null}
               {itens.map((c) => {
                 const prazo = prazos.get(c.id);
                 const cliente = (c.processo_partes ?? []).filter((p) => p.eh_cliente).map((p) => p.nome).join(", ");
+                const urgente = prazo ? prazo.status === "vencido" || prazo.data_final <= hoje : false;
                 return (
-                  <article key={c.id} className="rounded-md border border-zinc-200 bg-white p-2 text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-                    <Link href={`/processos/${c.id}`} className="font-mono text-xs hover:underline">
-                      {c.numero_cnj_mascara}
-                    </Link>
-                    {c.segredo_justica ? (
-                      <Badge tom="perigo" className="ml-1">
-                        sigiloso
-                      </Badge>
-                    ) : null}
-                    <p className="truncate text-xs text-zinc-600 dark:text-zinc-300" title={cliente}>
+                  <article key={c.id} className="rounded-xl border-l-[3px] bg-white p-3 text-sm shadow-xs ring-1 ring-zinc-200 transition-shadow hover:shadow-md" style={{ borderLeftColor: urgente ? "#dc2626" : (coluna.cor ?? "transparent") }}>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <Link href={`/processos/${c.id}`} className="font-mono text-xs font-semibold text-zinc-950 hover:text-marca-700">
+                        {c.numero_cnj_mascara}
+                      </Link>
+                      {c.segredo_justica ? (
+                        <Badge tom="perigo">
+                          <Lock className="h-3 w-3" aria-hidden />
+                          sigiloso
+                        </Badge>
+                      ) : null}
+                    </div>
+                    <p className="mt-0.5 truncate text-xs text-zinc-600" title={cliente}>
                       {cliente || "sem cliente"}
                     </p>
-                    <p className="mt-1 text-xs">
+                    <p className="mt-2 text-xs">
                       {prazo ? (
                         <Badge tom={prazo.status === "vencido" || prazo.data_final < hoje ? "perigo" : prazo.data_final === hoje ? "alerta" : "info"}>prazo {formatarData(prazo.data_final)}</Badge>
                       ) : (
@@ -83,7 +89,7 @@ export default async function PaginaKanban({ searchParams }: { searchParams: Pro
                       )}
                     </p>
                     {podeMover ? (
-                      <form action={moverFase.bind(null, c.id)} className="mt-2 flex gap-1">
+                      <form action={moverFase.bind(null, c.id)} className="mt-2.5 flex gap-1.5 border-t border-zinc-100 pt-2.5">
                         <input type="hidden" name="voltar" value="/processos/kanban" />
                         <Select name="fase_id" defaultValue={c.fase_id && faseIds.has(c.fase_id) ? c.fase_id : ""} className="h-8 text-xs" aria-label="Mover para a fase">
                           <option value="">Sem fase</option>

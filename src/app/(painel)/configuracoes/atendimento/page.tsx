@@ -4,6 +4,7 @@ import { criarClienteServidor } from "@/lib/supabase/server";
 import { APROVACAO_META } from "@/lib/whatsapp";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Campo, GrupoCampos, Input } from "@/components/ui/input";
 import { Alert } from "@/components/ui/alert";
 import { NavegacaoConfiguracoes } from "../navegacao";
 import { salvarRegrasAtendimento } from "./actions";
@@ -26,7 +27,12 @@ export default async function PaginaAtendimento({ searchParams }: { searchParams
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Configurações</h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">Configurações</h1>
+          <p className="text-sm text-zinc-500">Atendimento ao cliente por WhatsApp: quando o sistema pode responder e em que horário.</p>
+        </div>
+      </div>
       <NavegacaoConfiguracoes papel={sessao.papel} atual="/configuracoes/atendimento" />
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       {ok ? <Alert tom="sucesso">{ok}</Alert> : null}
@@ -39,34 +45,37 @@ export default async function PaginaAtendimento({ searchParams }: { searchParams
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={salvarRegrasAtendimento} className="flex flex-col gap-4">
-            <label className="flex items-center gap-2 text-sm font-medium">
-              <input type="checkbox" name="envio_ativo" defaultChecked={envio} className="h-4 w-4" />
-              Permitir envio ao cliente (respostas automáticas e respostas aprovadas)
+          <form action={salvarRegrasAtendimento} className="flex flex-col gap-5">
+            <label className="flex items-start gap-3 rounded-xl border border-zinc-200 bg-zinc-50/60 px-4 py-3 text-sm font-medium text-zinc-800">
+              <input type="checkbox" name="envio_ativo" defaultChecked={envio} className="mt-0.5 h-4 w-4 shrink-0 rounded border-zinc-300 accent-marca-600" />
+              <span className="min-w-0">Permitir envio ao cliente (respostas automáticas e respostas aprovadas)</span>
             </label>
-            <div className="flex flex-wrap gap-4">
-              <label className="flex flex-col gap-1 text-sm">
-                Início do atendimento
-                <input type="time" name="horario_inicio" defaultValue={inicio} className="rounded-md border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-zinc-900" />
-              </label>
-              <label className="flex flex-col gap-1 text-sm">
-                Fim do atendimento
-                <input type="time" name="horario_fim" defaultValue={fim} className="rounded-md border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-zinc-900" />
-              </label>
-            </div>
-            <fieldset className="flex flex-wrap gap-3 text-sm">
-              <legend className="mb-1 font-medium">Dias de atendimento</legend>
-              {Object.entries(ROTULO_DIA).map(([n, rotulo]) => (
-                <label key={n} className="flex items-center gap-1">
-                  <input type="checkbox" name="dias" value={n} defaultChecked={dias.includes(Number(n))} />
-                  {rotulo}
-                </label>
-              ))}
+
+            <GrupoCampos titulo="Horário de atendimento" descricao="Fora desse horário as respostas ficam em espera." colunas={2}>
+              <Campo label="Início do atendimento">
+                <Input type="time" name="horario_inicio" defaultValue={inicio} />
+              </Campo>
+              <Campo label="Fim do atendimento">
+                <Input type="time" name="horario_fim" defaultValue={fim} />
+              </Campo>
+            </GrupoCampos>
+
+            <fieldset className="flex min-w-0 flex-col gap-2">
+              <legend className="mb-1 text-sm font-bold text-zinc-950">Dias de atendimento</legend>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(ROTULO_DIA).map(([n, rotulo]) => (
+                  <label key={n} className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1 text-[13px] font-semibold text-zinc-600 shadow-xs transition-colors hover:border-zinc-300 hover:text-zinc-900 has-[:checked]:border-marca-600 has-[:checked]:bg-marca-600 has-[:checked]:text-white">
+                    <input type="checkbox" name="dias" value={n} defaultChecked={dias.includes(Number(n))} className="h-3.5 w-3.5 accent-white" />
+                    {rotulo}
+                  </label>
+                ))}
+              </div>
             </fieldset>
+
             <p className="text-xs text-zinc-500">
               Textos fixos e templates da Meta {APROVACAO_META}. Antes da aprovação do template, a mensagem fora da janela de 24 h não sai.
             </p>
-            <div>
+            <div className="flex justify-end">
               <Button type="submit">Salvar</Button>
             </div>
           </form>

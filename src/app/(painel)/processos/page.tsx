@@ -1,13 +1,15 @@
 import Link from "next/link";
+import { ChevronLeft, ChevronRight, Kanban, Plus, Search, Upload } from "lucide-react";
 import { exigirSessao } from "@/server/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { advogadosESocios, listarMembros, mapaNomes } from "@/server/equipe";
 import { mapaComarcas, podeEditarProcesso, podeImportarCarteira, proximosPrazosPorProcesso, STATUS_PROCESSO } from "@/server/processos";
 import { hojeNoFuso } from "@/lib/prazos";
 import { ListaProcessos, type LinhaProcesso } from "@/components/dominio/ListaProcessos";
-import { Button } from "@/components/ui/button";
+import { Button, classesBotao } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Alert } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Processos" };
 export const dynamic = "force-dynamic";
@@ -77,31 +79,40 @@ export default async function PaginaProcessos({ searchParams }: { searchParams: 
 
   const total = count ?? 0;
   const totalPaginas = Math.max(1, Math.ceil(total / POR_PAGINA));
-  const linkPagina = (n: number) => {
+  /** Link que preserva os filtros atuais, trocando só o que for passado. */
+  const linkCom = (mudancas: Partial<Busca>) => {
     const q = new URLSearchParams();
-    for (const [k, v] of Object.entries(filtros)) if (v && !["pagina", "erro", "ok"].includes(k)) q.set(k, v);
-    q.set("pagina", String(n));
-    return `/processos?${q.toString()}`;
+    for (const [k, v] of Object.entries({ ...filtros, ...mudancas })) if (v && !["erro", "ok"].includes(k)) q.set(k, v);
+    const qs = q.toString();
+    return qs ? `/processos?${qs}` : "/processos";
   };
+  const linkPagina = (n: number) => linkCom({ pagina: String(n) });
+  const statusAtual = filtros.status && filtros.status in STATUS_PROCESSO ? filtros.status : "";
+  const pilulasStatus: { valor: string; rotulo: string }[] = [{ valor: "", rotulo: "Todos" }, ...Object.entries(STATUS_PROCESSO).map(([valor, rotulo]) => ({ valor, rotulo }))];
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Processos</h1>
-          <p className="text-sm text-zinc-500">{total} processo(s) na carteira com os filtros atuais.</p>
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">Processos</h1>
+          <p className="text-sm text-zinc-500">
+            <span className="font-semibold text-zinc-700 tabular-nums">{total}</span> processo(s) na carteira com os filtros atuais.
+          </p>
         </div>
-        <div className="flex gap-2">
-          <Link href="/processos/kanban" className="inline-flex h-9 items-center rounded-md border border-zinc-300 px-4 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
+        <div className="flex flex-wrap gap-2">
+          <Link href="/processos/kanban" className={classesBotao({ variante: "contorno" })}>
+            <Kanban aria-hidden />
             Kanban
           </Link>
           {podeImportarCarteira(sessao.papel) ? (
-            <Link href="/processos/importar" className="inline-flex h-9 items-center rounded-md border border-zinc-300 px-4 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
+            <Link href="/processos/importar" className={classesBotao({ variante: "contorno" })}>
+              <Upload aria-hidden />
               Importar CSV
             </Link>
           ) : null}
           {podeEditarProcesso(sessao.papel) ? (
-            <Link href="/processos/novo" className="inline-flex h-9 items-center rounded-md bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900">
+            <Link href="/processos/novo" className={classesBotao({ variante: "primaria" })}>
+              <Plus aria-hidden />
               Novo processo
             </Link>
           ) : null}
@@ -112,56 +123,70 @@ export default async function PaginaProcessos({ searchParams }: { searchParams: 
       {filtros.ok ? <Alert tom="sucesso">{filtros.ok}</Alert> : null}
       {error ? <Alert tom="perigo">Não foi possível carregar os processos: {error.message}</Alert> : null}
 
-      <form method="get" className="grid gap-2 rounded-lg border border-zinc-200 bg-white p-3 sm:grid-cols-2 lg:grid-cols-5 dark:border-zinc-800 dark:bg-zinc-950">
-        <Input name="busca" defaultValue={busca} placeholder="Número CNJ ou nome de parte" className="lg:col-span-2" aria-label="Busca" />
-        <Select name="status" defaultValue={filtros.status ?? ""} aria-label="Status">
-          <option value="">Todos os status</option>
-          {Object.entries(STATUS_PROCESSO).map(([v, r]) => (
-            <option key={v} value={v}>
-              {r}
-            </option>
-          ))}
-        </Select>
-        <Select name="responsavel" defaultValue={filtros.responsavel ?? ""} aria-label="Responsável">
-          <option value="">Qualquer responsável</option>
-          <option value="sem">Sem responsável</option>
-          {advogadosESocios(membros).map((m) => (
-            <option key={m.usuario_id} value={m.usuario_id}>
-              {m.nome_completo}
-            </option>
-          ))}
-        </Select>
-        <div className="flex gap-2">
+      <div className="flex flex-col gap-3">
+        <nav className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-0.5 whitespace-nowrap md:mx-0 md:px-0" aria-label="Filtrar por status">
+          {pilulasStatus.map((p) => {
+            const on = statusAtual === p.valor;
+            return (
+              <Link
+                key={p.valor || "todos"}
+                href={linkCom({ status: p.valor || undefined, pagina: undefined })}
+                aria-current={on ? "page" : undefined}
+                className={cn("inline-flex h-8 shrink-0 items-center rounded-full border px-3.5 text-[13px] font-semibold transition-colors", on ? "border-marca-600 bg-marca-600 text-white shadow-marca" : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:text-zinc-900")}
+              >
+                {p.rotulo}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <form method="get" className="grid gap-2 rounded-2xl border border-zinc-200 bg-white p-3 shadow-xs sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+          {statusAtual ? <input type="hidden" name="status" value={statusAtual} /> : null}
+          <div className="relative sm:col-span-2 lg:col-span-1">
+            <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-zinc-400" aria-hidden />
+            <Input name="busca" defaultValue={busca} placeholder="Número CNJ ou nome de parte" className="pl-9" aria-label="Busca" />
+          </div>
+          <Select name="responsavel" defaultValue={filtros.responsavel ?? ""} aria-label="Responsável">
+            <option value="">Qualquer responsável</option>
+            <option value="sem">Sem responsável</option>
+            {advogadosESocios(membros).map((m) => (
+              <option key={m.usuario_id} value={m.usuario_id}>
+                {m.nome_completo}
+              </option>
+            ))}
+          </Select>
           <Select name="sigilo" defaultValue={filtros.sigilo ?? ""} aria-label="Sigilo">
             <option value="">Sigilo: todos</option>
             <option value="sim">Só sigilosos</option>
             <option value="nao">Só comuns</option>
           </Select>
-          <Button type="submit" variante="secundaria">
+          <Button type="submit" variante="secundaria" className="h-10 w-full lg:w-auto">
             Filtrar
           </Button>
-        </div>
-      </form>
+        </form>
+      </div>
 
-      <div className="rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <ListaProcessos linhas={linhas} hoje={hoje} timeZone={timeZone} />
       </div>
 
       {totalPaginas > 1 ? (
-        <nav className="flex items-center justify-between text-sm" aria-label="Paginação">
+        <nav className="flex items-center justify-between gap-3 text-sm" aria-label="Paginação">
           {pagina > 1 ? (
-            <Link href={linkPagina(pagina - 1)} className="hover:underline">
-              ← Anterior
+            <Link href={linkPagina(pagina - 1)} className={classesBotao({ variante: "contorno", tamanho: "sm" })}>
+              <ChevronLeft aria-hidden />
+              Anterior
             </Link>
           ) : (
             <span />
           )}
-          <span className="text-zinc-500">
+          <span className="text-zinc-500 tabular-nums">
             Página {pagina} de {totalPaginas}
           </span>
           {pagina < totalPaginas ? (
-            <Link href={linkPagina(pagina + 1)} className="hover:underline">
-              Próxima →
+            <Link href={linkPagina(pagina + 1)} className={classesBotao({ variante: "contorno", tamanho: "sm" })}>
+              Próxima
+              <ChevronRight aria-hidden />
             </Link>
           ) : (
             <span />

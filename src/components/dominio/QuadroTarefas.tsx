@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { formatarData } from "@/lib/utils";
+import { cn, formatarData } from "@/lib/utils";
 
 export interface CartaoTarefa {
   id: string;
@@ -18,11 +18,11 @@ export interface CartaoTarefa {
   critica: boolean;
 }
 
-const COLUNAS: { status: string; rotulo: string; descricao: string }[] = [
-  { status: "a_fazer", rotulo: "A fazer", descricao: "Ainda não iniciadas" },
-  { status: "em_andamento", rotulo: "Em andamento", descricao: "Alguém está fazendo" },
-  { status: "pronta_para_revisao", rotulo: "Pronta para revisão", descricao: "Aguarda advogado ou sócio" },
-  { status: "concluida", rotulo: "Concluída", descricao: "Últimos 7 dias" },
+const COLUNAS: { status: string; rotulo: string; descricao: string; cor: string }[] = [
+  { status: "a_fazer", rotulo: "A fazer", descricao: "Ainda não iniciadas", cor: "bg-zinc-400" },
+  { status: "em_andamento", rotulo: "Em andamento", descricao: "Alguém está fazendo", cor: "bg-marca-500" },
+  { status: "pronta_para_revisao", rotulo: "Pronta para revisão", descricao: "Aguarda advogado ou sócio", cor: "bg-ouro-500" },
+  { status: "concluida", rotulo: "Concluída", descricao: "Últimos 7 dias", cor: "bg-emerald-500" },
 ];
 
 const TOM_PRIORIDADE: Record<string, "neutro" | "info" | "alerta" | "perigo"> = { baixa: "neutro", normal: "info", alta: "alerta", critica: "perigo" };
@@ -34,21 +34,24 @@ export function QuadroTarefas({ tarefas, nomes, mostrarExecutor }: { tarefas: Ca
       {COLUNAS.map((coluna) => {
         const itens = tarefas.filter((t) => t.status === coluna.status);
         return (
-          <section key={coluna.status} className="flex flex-col gap-2 rounded-lg border border-zinc-200 bg-zinc-50/60 p-2 dark:border-zinc-800 dark:bg-zinc-900/40">
-            <header className="flex items-baseline justify-between px-1">
-              <div>
-                <h2 className="text-sm font-semibold">{coluna.rotulo}</h2>
-                <p className="text-xs text-zinc-500">{coluna.descricao}</p>
+          <section key={coluna.status} className="flex flex-col gap-2 rounded-2xl border border-zinc-200 bg-zinc-100/60 p-2.5 dark:border-zinc-800 dark:bg-zinc-900/40">
+            <header className="flex items-start justify-between gap-2 px-1 pt-0.5">
+              <div className="flex items-start gap-2">
+                <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", coluna.cor)} aria-hidden />
+                <div>
+                  <h2 className="text-sm font-bold text-zinc-950">{coluna.rotulo}</h2>
+                  <p className="text-xs text-zinc-500">{coluna.descricao}</p>
+                </div>
               </div>
-              <span className="text-xs text-zinc-500">{itens.length}</span>
+              <span className="rounded-full bg-white px-2 text-xs font-bold leading-5 text-zinc-600 shadow-xs ring-1 ring-zinc-200 tabular-nums">{itens.length}</span>
             </header>
             {itens.length === 0 ? (
-              <p className="px-1 py-4 text-center text-xs text-zinc-400">Nenhuma tarefa.</p>
+              <p className="px-1 py-6 text-center text-xs text-zinc-400">Nenhuma tarefa.</p>
             ) : (
               <ul className="flex flex-col gap-2">
                 {itens.map((t) => (
-                  <li key={t.id} className={`rounded-md border bg-white p-2 text-sm shadow-sm dark:bg-zinc-950 ${t.critica ? "border-red-300 dark:border-red-800" : t.atrasada ? "border-amber-300 dark:border-amber-800" : "border-zinc-200 dark:border-zinc-800"}`}>
-                    <Link href={`/tarefas/${t.id}`} className="font-medium hover:underline">
+                  <li key={t.id} className={cn("rounded-xl border-l-[3px] bg-white p-3 text-sm shadow-xs ring-1 ring-zinc-200 transition-shadow hover:shadow-md dark:bg-zinc-950", t.critica ? "border-l-red-500" : t.atrasada ? "border-l-ouro-500" : "border-l-transparent")}>
+                    <Link href={`/tarefas/${t.id}`} className="font-semibold text-zinc-950 hover:text-marca-700">
                       {t.titulo}
                     </Link>
                     {t.processos?.numero_cnj_mascara ? (
@@ -58,14 +61,14 @@ export function QuadroTarefas({ tarefas, nomes, mostrarExecutor }: { tarefas: Ca
                         </Link>
                       </p>
                     ) : null}
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
                       {t.critica ? <Badge tom="perigo">crítica</Badge> : null}
                       {t.atrasada ? <Badge tom="alerta">atrasada</Badge> : null}
                       {t.prioridade !== "normal" ? <Badge tom={TOM_PRIORIDADE[t.prioridade] ?? "neutro"}>{t.prioridade}</Badge> : null}
-                      {t.vencimento ? <span className="text-xs text-zinc-500">vence {formatarData(t.vencimento)}</span> : null}
-                      {t.prazos ? <span className="text-xs text-zinc-500">· fatal {formatarData(t.prazos.data_final)}</span> : null}
+                      {t.vencimento ? <span className="text-xs text-zinc-500 tabular-nums">vence {formatarData(t.vencimento)}</span> : null}
+                      {t.prazos ? <span className="text-xs text-zinc-500 tabular-nums">· fatal {formatarData(t.prazos.data_final)}</span> : null}
                     </div>
-                    {mostrarExecutor ? <p className="mt-1 text-xs text-zinc-500">{t.executor_id ? (nomes.get(t.executor_id) ?? "membro") : "sem executor"}</p> : null}
+                    {mostrarExecutor ? <p className="mt-1.5 text-xs text-zinc-500">{t.executor_id ? (nomes.get(t.executor_id) ?? "membro") : "sem executor"}</p> : null}
                   </li>
                 ))}
               </ul>

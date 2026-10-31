@@ -15,7 +15,7 @@ export function Tabs({ abas, valor, aoMudar, className }: { abas: Aba[]; valor?:
   };
   return (
     <div className={className}>
-      <div role="tablist" className="flex gap-1 border-b border-zinc-200 dark:border-zinc-800">
+      <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-zinc-200 dark:border-zinc-800">
         {abas.map((a) => (
           <button
             key={a.valor}
@@ -24,15 +24,15 @@ export function Tabs({ abas, valor, aoMudar, className }: { abas: Aba[]; valor?:
             aria-selected={atual === a.valor}
             onClick={() => mudar(a.valor)}
             className={cn(
-              "-mb-px border-b-2 px-3 py-2 text-sm font-medium",
-              atual === a.valor ? "border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100" : "border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200",
+              "-mb-px shrink-0 border-b-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors",
+              atual === a.valor ? "border-marca-600 font-semibold text-marca-700 dark:border-zinc-100 dark:text-zinc-100" : "border-transparent text-zinc-500 hover:border-zinc-300 hover:text-zinc-800 dark:hover:text-zinc-200",
             )}
           >
             {a.rotulo}
           </button>
         ))}
       </div>
-      <div role="tabpanel" className="pt-3">
+      <div role="tabpanel" className="pt-4">
         {abas.find((a) => a.valor === atual)?.conteudo}
       </div>
     </div>

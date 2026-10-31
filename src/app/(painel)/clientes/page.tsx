@@ -1,12 +1,14 @@
 import Link from "next/link";
+import { ChevronLeft, ChevronRight, FileText, Mail, MessageCircle, Phone, Plus, Search } from "lucide-react";
 import { exigirSessao } from "@/server/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { formatarDocumento, podeEditarProcesso } from "@/server/processos";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Button, classesBotao } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, Vazio } from "@/components/ui/alert";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Clientes" };
 export const dynamic = "force-dynamic";
@@ -47,23 +49,28 @@ export default async function PaginaClientes({ searchParams }: { searchParams: P
   const link = (n: number) => `/clientes?busca=${encodeURIComponent(busca)}&pagina=${n}${inativos === "1" ? "&inativos=1" : ""}`;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Clientes</h1>
-          <p className="text-sm text-zinc-500">{total} cliente(s).</p>
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">Clientes</h1>
+          <p className="text-sm text-zinc-500">
+            <span className="font-semibold text-zinc-700 tabular-nums">{total}</span> cliente(s){inativos === "1" ? ", incluindo inativos" : " ativos"}.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/contratos" className="inline-flex h-9 items-center rounded-md border border-zinc-300 px-4 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
+          <Link href="/contratos" className={classesBotao({ variante: "contorno" })}>
+            <FileText aria-hidden />
             Contratos
           </Link>
           {sessao.papel === "socio" || sessao.papel === "advogado" ? (
-            <Link href="/atendimento" className="inline-flex h-9 items-center rounded-md border border-zinc-300 px-4 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
+            <Link href="/atendimento" className={classesBotao({ variante: "contorno" })}>
+              <MessageCircle aria-hidden />
               Atendimento (WhatsApp)
             </Link>
           ) : null}
           {podeEditarProcesso(sessao.papel) ? (
-            <Link href="/clientes/novo" className="inline-flex h-9 items-center rounded-md bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900">
+            <Link href="/clientes/novo" className={classesBotao({ variante: "primaria" })}>
+              <Plus aria-hidden />
               Novo cliente
             </Link>
           ) : null}
@@ -73,17 +80,20 @@ export default async function PaginaClientes({ searchParams }: { searchParams: P
       {ok ? <Alert tom="sucesso">{ok}</Alert> : null}
       {error ? <Alert tom="perigo">Não foi possível carregar: {error.message}</Alert> : null}
 
-      <form method="get" className="flex flex-wrap items-center gap-2">
-        <Input name="busca" defaultValue={busca} placeholder="Nome, e-mail ou CPF/CNPJ" className="max-w-md" aria-label="Busca" />
-        <label className="inline-flex items-center gap-1 text-sm">
-          <input type="checkbox" name="inativos" value="1" defaultChecked={inativos === "1"} /> incluir inativos
+      <form method="get" className="flex flex-col gap-2 rounded-2xl border border-zinc-200 bg-white p-3 shadow-xs sm:flex-row sm:items-center">
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-zinc-400" aria-hidden />
+          <Input name="busca" defaultValue={busca} placeholder="Nome, e-mail ou CPF/CNPJ" className="pl-9" aria-label="Busca" />
+        </div>
+        <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg px-2 text-[13px] font-medium text-zinc-600 select-none hover:text-zinc-900">
+          <input type="checkbox" name="inativos" value="1" defaultChecked={inativos === "1"} className="h-4 w-4 rounded border-zinc-300 accent-marca-600" /> incluir inativos
         </label>
-        <Button type="submit" variante="secundaria">
+        <Button type="submit" variante="secundaria" className="h-10">
           Buscar
         </Button>
       </form>
 
-      <div className="rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         {(clientes ?? []).length === 0 ? (
           <Vazio titulo="Nenhum cliente encontrado" descricao="Cadastre um cliente novo ou importe a carteira em Processos → Importar CSV." />
         ) : (
@@ -91,51 +101,88 @@ export default async function PaginaClientes({ searchParams }: { searchParams: P
             <THead>
               <TR>
                 <TH>Nome</TH>
-                <TH>CPF/CNPJ</TH>
-                <TH>Contato</TH>
-                <TH>Processos</TH>
+                <TH className="hidden sm:table-cell">CPF/CNPJ</TH>
+                <TH className="hidden md:table-cell">Contato</TH>
+                <TH className="text-right">Processos</TH>
               </TR>
             </THead>
             <TBody>
-              {(clientes ?? []).map((c) => (
-                <TR key={c.id as string}>
-                  <TD>
-                    <Link href={`/clientes/${c.id}`} className="hover:underline">
-                      {c.nome as string}
-                    </Link>
-                    {c.tipo_pessoa === "juridica" ? (
-                      <Badge tom="contorno" className="ml-2">
-                        PJ
-                      </Badge>
-                    ) : null}
-                    {c.ativo === false ? (
-                      <Badge tom="neutro" className="ml-2">
-                        inativo
-                      </Badge>
-                    ) : null}
-                  </TD>
-                  <TD className="font-mono text-xs">{formatarDocumento(c.cpf_cnpj as string | null) || "—"}</TD>
-                  <TD className="text-xs text-zinc-600 dark:text-zinc-300">
-                    {(c.email as string | null) ?? ""}
-                    {c.email && c.telefone_e164 ? " · " : ""}
-                    {(c.telefone_e164 as string | null) ?? ""}
-                    {!c.email && !c.telefone_e164 ? "—" : ""}
-                  </TD>
-                  <TD>{contagem.get(c.id as string) ?? 0}</TD>
-                </TR>
-              ))}
+              {(clientes ?? []).map((c) => {
+                const nome = c.nome as string;
+                const inativo = c.ativo === false;
+                const n = contagem.get(c.id as string) ?? 0;
+                return (
+                  <TR key={c.id as string}>
+                    <TD>
+                      <div className="flex items-center gap-3">
+                        <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-bold", inativo ? "bg-zinc-100 text-zinc-400" : "bg-marca-50 text-marca-700")} aria-hidden>
+                          {nome.trim().charAt(0).toUpperCase()}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                            <Link href={`/clientes/${c.id}`} className={cn("truncate font-semibold hover:text-marca-700", inativo ? "text-zinc-500" : "text-zinc-950")}>
+                              {nome}
+                            </Link>
+                            {c.tipo_pessoa === "juridica" ? <Badge tom="contorno">PJ</Badge> : null}
+                            {inativo ? <Badge tom="neutro">inativo</Badge> : null}
+                          </div>
+                          <p className="truncate font-mono text-xs text-zinc-500 sm:hidden">{formatarDocumento(c.cpf_cnpj as string | null) || (c.email as string | null) || (c.telefone_e164 as string | null) || ""}</p>
+                        </div>
+                      </div>
+                    </TD>
+                    <TD className="hidden font-mono text-xs whitespace-nowrap text-zinc-700 sm:table-cell">{formatarDocumento(c.cpf_cnpj as string | null) || <span className="text-zinc-300">—</span>}</TD>
+                    <TD className="hidden text-xs text-zinc-600 md:table-cell">
+                      {c.email || c.telefone_e164 ? (
+                        <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                          {c.email ? (
+                            <span className="inline-flex min-w-0 items-center gap-1.5">
+                              <Mail className="h-3.5 w-3.5 shrink-0 text-zinc-400" aria-hidden />
+                              <span className="truncate">{c.email as string}</span>
+                            </span>
+                          ) : null}
+                          {c.telefone_e164 ? (
+                            <span className="inline-flex items-center gap-1.5 whitespace-nowrap tabular-nums">
+                              <Phone className="h-3.5 w-3.5 shrink-0 text-zinc-400" aria-hidden />
+                              {c.telefone_e164 as string}
+                            </span>
+                          ) : null}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-300">—</span>
+                      )}
+                    </TD>
+                    <TD className="text-right">
+                      <span className={cn("inline-flex min-w-7 justify-center rounded-full px-2 text-xs font-bold leading-5 tabular-nums", n ? "bg-marca-50 text-marca-700" : "bg-zinc-100 text-zinc-400")}>{n}</span>
+                    </TD>
+                  </TR>
+                );
+              })}
             </TBody>
           </Table>
         )}
       </div>
 
       {totalPaginas > 1 ? (
-        <nav className="flex items-center justify-between text-sm" aria-label="Paginação">
-          {pagina > 1 ? <Link href={link(pagina - 1)}>← Anterior</Link> : <span />}
-          <span className="text-zinc-500">
+        <nav className="flex items-center justify-between gap-3 text-sm" aria-label="Paginação">
+          {pagina > 1 ? (
+            <Link href={link(pagina - 1)} className={classesBotao({ variante: "contorno", tamanho: "sm" })}>
+              <ChevronLeft aria-hidden />
+              Anterior
+            </Link>
+          ) : (
+            <span />
+          )}
+          <span className="text-zinc-500 tabular-nums">
             Página {pagina} de {totalPaginas}
           </span>
-          {pagina < totalPaginas ? <Link href={link(pagina + 1)}>Próxima →</Link> : <span />}
+          {pagina < totalPaginas ? (
+            <Link href={link(pagina + 1)} className={classesBotao({ variante: "contorno", tamanho: "sm" })}>
+              Próxima
+              <ChevronRight aria-hidden />
+            </Link>
+          ) : (
+            <span />
+          )}
         </nav>
       ) : null}
     </div>

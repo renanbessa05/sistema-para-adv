@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatarDataHora } from "@/lib/utils";
 import { redirect } from "next/navigation";
 import { ROTINAS_MONITORADAS, avaliarRotinas } from "@/lib/operacao/rotinas";
-import { Alert } from "@/components/ui/alert";
+import { Alert, Vazio } from "@/components/ui/alert";
 
 export const metadata = { title: "Rotinas" };
 export const dynamic = "force-dynamic";
@@ -33,8 +33,13 @@ export default async function PaginaStatus() {
   );
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Rotinas</h1>
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">Rotinas</h1>
+          <p className="mt-1 text-sm text-zinc-500">Backups, última execução de cada rotina automática e captações do DJEN deste escritório.</p>
+        </div>
+      </div>
       {alertas.length > 0 && (
         <Alert tom="perigo" titulo="Rotinas sem execução no prazo">
           <ul className="list-disc pl-5">
@@ -53,35 +58,34 @@ export default async function PaginaStatus() {
           <CardDescription>Snapshot diário em área privada do Supabase. A restauração é manual (runbook restauracao-por-tenant).</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <THead>
-              <TR>
-                <TH>Gerado em</TH>
-                <TH>Status</TH>
-                <TH>Tamanho</TH>
-                <TH>Linhas</TH>
-                <TH>Erro</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {(backups ?? []).map((b, i) => (
-                <TR key={i}>
-                  <TD>{formatarDataHora(b.gerado_em)}</TD>
-                  <TD>
-                    <Badge tom={b.status === "ok" ? "sucesso" : "perigo"}>{b.status}</Badge>
-                  </TD>
-                  <TD>{b.tamanho_bytes ? `${Math.round(Number(b.tamanho_bytes) / 1024)} KB` : "—"}</TD>
-                  <TD>{Object.values((b.contagens as Record<string, number>) ?? {}).reduce((s, n) => s + Number(n), 0)}</TD>
-                  <TD className="max-w-md truncate text-xs text-red-700">{b.erro ?? ""}</TD>
-                </TR>
-              ))}
-              {(backups ?? []).length === 0 && (
+          {(backups ?? []).length === 0 ? (
+            <Vazio titulo="Nenhum backup registrado ainda." />
+          ) : (
+            <Table>
+              <THead>
                 <TR>
-                  <TD colSpan={5}>Nenhum backup registrado ainda.</TD>
+                  <TH>Gerado em</TH>
+                  <TH>Status</TH>
+                  <TH>Tamanho</TH>
+                  <TH>Linhas</TH>
+                  <TH>Erro</TH>
                 </TR>
-              )}
-            </TBody>
-          </Table>
+              </THead>
+              <TBody>
+                {(backups ?? []).map((b, i) => (
+                  <TR key={i}>
+                    <TD className="whitespace-nowrap font-semibold text-zinc-950 tabular-nums">{formatarDataHora(b.gerado_em)}</TD>
+                    <TD>
+                      <Badge tom={b.status === "ok" ? "sucesso" : "perigo"}>{b.status}</Badge>
+                    </TD>
+                    <TD className="whitespace-nowrap tabular-nums">{b.tamanho_bytes ? `${Math.round(Number(b.tamanho_bytes) / 1024)} KB` : "—"}</TD>
+                    <TD className="tabular-nums">{Object.values((b.contagens as Record<string, number>) ?? {}).reduce((s, n) => s + Number(n), 0)}</TD>
+                    <TD className="max-w-md truncate text-xs text-red-700">{b.erro ?? ""}</TD>
+                  </TR>
+                ))}
+              </TBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
       <Card>
@@ -106,11 +110,11 @@ export default async function PaginaStatus() {
                 const e = ultimaPorJob.get(job);
                 return (
                   <TR key={job}>
-                    <TD className="font-mono text-xs">{job}</TD>
-                    <TD>{e ? formatarDataHora(e.iniciado_em) : "—"}</TD>
-                    <TD>{e?.finalizado_em ? formatarDataHora(e.finalizado_em) : "—"}</TD>
+                    <TD className="font-mono text-xs font-semibold text-zinc-950">{job}</TD>
+                    <TD className="whitespace-nowrap tabular-nums">{e ? formatarDataHora(e.iniciado_em) : "—"}</TD>
+                    <TD className="whitespace-nowrap tabular-nums">{e?.finalizado_em ? formatarDataHora(e.finalizado_em) : "—"}</TD>
                     <TD>{e ? <Badge tom={e.status === "ok" ? "sucesso" : e.status === "erro" ? "perigo" : "alerta"}>{e.status}</Badge> : <Badge tom="contorno">nunca rodou</Badge>}</TD>
-                    <TD>{e?.itens ?? "—"}</TD>
+                    <TD className="tabular-nums">{e?.itens ?? "—"}</TD>
                     <TD className="max-w-md truncate text-xs text-red-700">{e?.erro ?? ""}</TD>
                   </TR>
                 );
@@ -122,34 +126,39 @@ export default async function PaginaStatus() {
       <Card>
         <CardHeader>
           <CardTitle>Últimas captações do DJEN</CardTitle>
+          <CardDescription>As dez captações mais recentes, com o que chegou, o que era novo e o que já estava no sistema.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <THead>
-              <TR>
-                <TH>Início</TH>
-                <TH>Status</TH>
-                <TH>Recebidas</TH>
-                <TH>Novas</TH>
-                <TH>Duplicadas</TH>
-                <TH>Erros</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {(captacoes ?? []).map((c, i) => (
-                <TR key={i}>
-                  <TD>{formatarDataHora(c.iniciada_em)}</TD>
-                  <TD>
-                    <Badge tom={c.status === "ok" ? "sucesso" : c.status === "parcial" ? "alerta" : "perigo"}>{c.status}</Badge>
-                  </TD>
-                  <TD>{c.itens_recebidos ?? 0}</TD>
-                  <TD>{c.itens_novos ?? 0}</TD>
-                  <TD>{c.itens_duplicados ?? 0}</TD>
-                  <TD className="text-xs text-red-700">{Array.isArray(c.erros) ? c.erros.join("; ") : ""}</TD>
+          {(captacoes ?? []).length === 0 ? (
+            <Vazio titulo="Nenhuma captação registrada ainda." />
+          ) : (
+            <Table>
+              <THead>
+                <TR>
+                  <TH>Início</TH>
+                  <TH>Status</TH>
+                  <TH>Recebidas</TH>
+                  <TH>Novas</TH>
+                  <TH>Duplicadas</TH>
+                  <TH>Erros</TH>
                 </TR>
-              ))}
-            </TBody>
-          </Table>
+              </THead>
+              <TBody>
+                {(captacoes ?? []).map((c, i) => (
+                  <TR key={i}>
+                    <TD className="whitespace-nowrap font-semibold text-zinc-950 tabular-nums">{formatarDataHora(c.iniciada_em)}</TD>
+                    <TD>
+                      <Badge tom={c.status === "ok" ? "sucesso" : c.status === "parcial" ? "alerta" : "perigo"}>{c.status}</Badge>
+                    </TD>
+                    <TD className="tabular-nums">{c.itens_recebidos ?? 0}</TD>
+                    <TD className="tabular-nums">{c.itens_novos ?? 0}</TD>
+                    <TD className="tabular-nums">{c.itens_duplicados ?? 0}</TD>
+                    <TD className="max-w-md text-xs text-red-700">{Array.isArray(c.erros) ? c.erros.join("; ") : ""}</TD>
+                  </TR>
+                ))}
+              </TBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

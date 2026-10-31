@@ -7,7 +7,7 @@ import { hojeNoFuso } from "@/lib/prazos/datas";
 import { formatarData, formatarDataHora } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Campo, Input, Select, Textarea } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Button, classesBotao } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, Vazio } from "@/components/ui/alert";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
@@ -62,18 +62,20 @@ export default async function PaginaDivergencias({ searchParams }: { searchParam
   const filtrosAtivos = Boolean(filtroSemana || filtroTipo || situacao !== "abertas");
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Divergências da operação paralela</h1>
-        <p className="text-sm text-zinc-500">
-          Toda sexta, cruze os prazos do sistema com o PJe e registre aqui o que divergiu. Divergência sem causa preenchida conta como &quot;não explicada&quot; e zera a contagem. Runbook: <code>docs/runbooks/operacao-paralela.md</code>.
-        </p>
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0 max-w-3xl">
+          <h1 className="text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">Divergências da operação paralela</h1>
+          <p className="mt-1 text-sm text-zinc-500">
+            Toda sexta, cruze os prazos do sistema com o PJe e registre aqui o que divergiu. Divergência sem causa preenchida conta como &quot;não explicada&quot; e zera a contagem. Runbook: <code className="rounded bg-zinc-100 px-1 py-0.5 text-xs">docs/runbooks/operacao-paralela.md</code>.
+          </p>
+        </div>
       </div>
 
       {q.erro ? <Alert tom="perigo">{q.erro}</Alert> : null}
       {q.ok ? <Alert tom="sucesso">{q.ok}</Alert> : null}
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
         <Cartao
           titulo="Semanas consecutivas limpas"
           valor={`${resumo.semanasConsecutivasLimpas} / ${resumo.meta}`}
@@ -82,14 +84,14 @@ export default async function PaginaDivergencias({ searchParams }: { searchParam
         />
         <Cartao titulo="Abertas" valor={String(resumo.abertas)} detalhe={`${resumo.naoExplicadas} sem causa (não explicadas)`} tom={resumo.naoExplicadas > 0 ? "perigo" : "neutro"} />
         <Cartao titulo={`Semana de ${formatarData(resumo.semanaReferencia)}`} valor={String(resumo.semanaAtual.total)} detalhe={`${resumo.semanaAtual.abertas} abertas · ${resumo.semanaAtual.naoExplicadas} sem causa`} tom="neutro" />
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-zinc-500">Por tipo (total · abertas)</p>
-            <ul className="mt-1 space-y-0.5 text-xs">
+        <Card className="col-span-2 xl:col-span-1">
+          <CardContent className="flex h-full flex-col gap-2 p-4 sm:p-5">
+            <p className="text-[12.5px] leading-snug font-semibold text-zinc-500">Por tipo (total · abertas)</p>
+            <ul className="space-y-1 text-xs text-zinc-700">
               {TIPOS_DIVERGENCIA.map((t) => (
                 <li key={t} className="flex justify-between gap-2">
-                  <span>{ROTULO_TIPO_DIVERGENCIA[t]}</span>
-                  <span className="font-mono">
+                  <span className="min-w-0 truncate">{ROTULO_TIPO_DIVERGENCIA[t]}</span>
+                  <span className="shrink-0 font-semibold text-zinc-950 tabular-nums">
                     {resumo.porTipo[t].total} · {resumo.porTipo[t].abertas}
                   </span>
                 </li>
@@ -171,7 +173,7 @@ export default async function PaginaDivergencias({ searchParams }: { searchParam
           <CardDescription>Filtre por semana, tipo e situação. &quot;Resolver&quot; grava a data da resolução e, se preenchidas, a causa e a correção.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <form method="get" className="grid gap-2 sm:grid-cols-4">
+          <form method="get" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Campo label="Semana">
               <Select name="semana" defaultValue={filtroSemana ?? ""}>
                 <option value="">Todas</option>
@@ -204,7 +206,7 @@ export default async function PaginaDivergencias({ searchParams }: { searchParam
                 Filtrar
               </Button>
               {filtrosAtivos ? (
-                <Link href="/admin/divergencias" className="text-sm text-zinc-500 hover:underline">
+                <Link href="/admin/divergencias" className={classesBotao({ variante: "fantasma", tamanho: "sm" })}>
                   limpar
                 </Link>
               ) : null}
@@ -230,7 +232,7 @@ export default async function PaginaDivergencias({ searchParams }: { searchParam
               <TBody>
                 {lista.map((d) => (
                   <TR key={d.id}>
-                    <TD className="whitespace-nowrap">{formatarData(d.semana)}</TD>
+                    <TD className="whitespace-nowrap font-semibold text-zinc-950 tabular-nums">{formatarData(d.semana)}</TD>
                     <TD>
                       <Badge tom="contorno">{ROTULO_TIPO_DIVERGENCIA[d.tipo] ?? d.tipo}</Badge>
                     </TD>
@@ -240,33 +242,33 @@ export default async function PaginaDivergencias({ searchParams }: { searchParam
                     <TD className="text-xs">
                       <div className="flex flex-col gap-0.5">
                         {d.prazo_id ? (
-                          <Link href={`/prazos/${d.prazo_id}`} className="hover:underline">
+                          <Link href={`/prazos/${d.prazo_id}`} className="font-semibold text-marca-600 hover:underline">
                             prazo
                           </Link>
                         ) : null}
                         {d.publicacao_id ? (
-                          <Link href={`/publicacoes/${d.publicacao_id}`} className="hover:underline">
+                          <Link href={`/publicacoes/${d.publicacao_id}`} className="font-semibold text-marca-600 hover:underline">
                             publicação
                           </Link>
                         ) : null}
                         {d.processo_id ? (
-                          <Link href={`/processos/${d.processo_id}`} className="font-mono hover:underline">
+                          <Link href={`/processos/${d.processo_id}`} className="font-mono text-xs text-marca-600 hover:underline">
                             {d.processos?.numero_cnj_mascara ?? "processo"}
                           </Link>
                         ) : null}
                         {!d.prazo_id && !d.publicacao_id && !d.processo_id ? "—" : null}
                       </div>
                     </TD>
-                    <TD className="whitespace-nowrap text-xs text-zinc-500">
+                    <TD className="whitespace-nowrap text-xs text-zinc-500 tabular-nums">
                       {formatarDataHora(d.criado_em, timeZone)}
                       <br />
                       {d.registrada_por ? nomes.get(d.registrada_por) ?? "membro" : "—"}
                     </TD>
                     <TD>
                       {d.resolvida_em ? (
-                        <span className="text-xs text-zinc-500">resolvida em {formatarDataHora(d.resolvida_em, timeZone)}</span>
+                        <span className="text-xs text-emerald-700 tabular-nums">resolvida em {formatarDataHora(d.resolvida_em, timeZone)}</span>
                       ) : !podeRegistrar ? (
-                        <span className="text-xs text-zinc-500">aberta</span>
+                        <Badge tom="alerta">aberta</Badge>
                       ) : (
                         <form action={resolver.bind(null, d.id)} className="flex flex-col gap-1">
                           {naoExplicada(d) ? <Input name="causa" placeholder="causa" required className="h-8 text-xs" /> : null}
@@ -289,13 +291,13 @@ export default async function PaginaDivergencias({ searchParams }: { searchParam
 }
 
 function Cartao({ titulo, valor, detalhe, tom }: { titulo: string; valor: string; detalhe?: string; tom: "neutro" | "sucesso" | "alerta" | "perigo" }) {
-  const cor = { neutro: "", sucesso: "text-emerald-700 dark:text-emerald-300", alerta: "text-amber-700 dark:text-amber-300", perigo: "text-red-700 dark:text-red-300" }[tom];
+  const cor = { neutro: "text-zinc-950", sucesso: "text-emerald-700", alerta: "text-ouro-700", perigo: "text-red-600" }[tom];
   return (
-    <Card>
-      <CardContent className="p-4">
-        <p className="text-sm text-zinc-500">{titulo}</p>
-        <p className={`text-3xl font-semibold ${cor}`}>{valor}</p>
-        {detalhe ? <p className="text-xs text-zinc-500">{detalhe}</p> : null}
+    <Card className="h-full">
+      <CardContent className="flex h-full flex-col gap-2.5 p-4 sm:p-5">
+        <p className="text-[12.5px] leading-snug font-semibold text-zinc-500">{titulo}</p>
+        <p className={`text-[28px] leading-none font-extrabold tracking-[-0.03em] tabular-nums ${cor}`}>{valor}</p>
+        {detalhe ? <p className="text-xs leading-snug text-zinc-500">{detalhe}</p> : null}
       </CardContent>
     </Card>
   );

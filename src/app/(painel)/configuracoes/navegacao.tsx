@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Papel } from "@/server/sessao";
+import { cn } from "@/lib/utils";
 
 export type GrupoArea = "Escritório" | "Prazos e processos" | "Comunicação" | "Operação" | "Conformidade";
 
@@ -36,18 +37,27 @@ export function areasPara(papel: Papel) {
   return AREAS.filter((a) => a.papeis.includes(papel));
 }
 
+const PILULA = "shrink-0 rounded-full px-3 py-1 text-[13px] font-semibold transition-colors";
+const PILULA_ATIVA = "bg-marca-600 text-white shadow-marca";
+const PILULA_INATIVA = "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:text-zinc-900";
+
 /** Barra das Configurações: a visão geral e as áreas do mesmo grupo da área atual (todas, na visão geral). */
 export function NavegacaoConfiguracoes({ papel, atual }: { papel: Papel; atual: string }) {
   const grupoAtual = AREAS.find((a) => a.href === atual)?.grupo ?? null;
   const areas = areasPara(papel).filter((a) => grupoAtual === null || a.grupo === grupoAtual);
   return (
-    <nav className="flex gap-1 overflow-x-auto whitespace-nowrap border-b border-zinc-200 pb-2 text-sm" aria-label="Configurações">
-      <Link href="/configuracoes" className={`rounded-md px-3 py-1.5 ${atual === "/configuracoes" ? "bg-marca-600 text-white shadow-sm" : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"}`}>
+    <nav className="-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 pb-1 whitespace-nowrap [scrollbar-width:none] md:mx-0 md:px-0" aria-label="Configurações">
+      <Link href="/configuracoes" aria-current={atual === "/configuracoes" ? "page" : undefined} className={cn(PILULA, atual === "/configuracoes" ? PILULA_ATIVA : PILULA_INATIVA)}>
         Visão geral
       </Link>
-      {grupoAtual ? <span className="px-1 py-1.5 text-zinc-300">·</span> : null}
+      {grupoAtual ? (
+        <span className="flex shrink-0 items-center gap-1.5 pl-1 text-[11px] font-bold tracking-[0.08em] text-zinc-400 uppercase" aria-hidden>
+          <span className="h-4 w-px bg-zinc-200" />
+          {grupoAtual}
+        </span>
+      ) : null}
       {areas.map((a) => (
-        <Link key={a.href} href={a.href} className={`rounded-md px-3 py-1.5 ${atual === a.href ? "bg-marca-600 text-white shadow-sm" : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"}`}>
+        <Link key={a.href} href={a.href} aria-current={atual === a.href ? "page" : undefined} className={cn(PILULA, atual === a.href ? PILULA_ATIVA : PILULA_INATIVA)}>
           {a.rotulo}
         </Link>
       ))}

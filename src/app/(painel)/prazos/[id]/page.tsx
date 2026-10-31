@@ -1,19 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Calculator, CalendarCheck2, Newspaper } from "lucide-react";
 import { exigirSessao, podeConfirmarPrazo } from "@/server/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { listarMembros, mapaNomes, obterTimezone } from "@/server/publicacoes";
 import { cancelarPrazo, confirmarPrazo, cumprirPrazo, rejeitarPrazo, retomarPrazo, suspenderOuProrrogarPrazo } from "@/server/prazos-acoes";
 import { hojeNoFuso } from "@/lib/prazos/datas";
-import { formatarData, formatarDataHora } from "@/lib/utils";
+import { cn, formatarData, formatarDataHora } from "@/lib/utils";
 import { MemoriaContagem } from "@/components/dominio/MemoriaContagem";
-import { BadgeDataFinal, ROTULO_CONTAGEM, ROTULO_ORIGEM_PRAZO, ROTULO_STATUS_PRAZO, TOM_STATUS_PRAZO } from "@/components/dominio/CartaoPrazo";
+import { BadgeDataFinal, DiaAgenda, ROTULO_CONTAGEM, ROTULO_ORIGEM_PRAZO, ROTULO_STATUS_PRAZO, TOM_STATUS_PRAZO, urgenciaPrazo } from "@/components/dominio/CartaoPrazo";
 import { ROTULO_TIPO_PUBLICACAO } from "@/components/dominio/CaixaPublicacoes";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Campo, Input, Select, Textarea } from "@/components/ui/input";
+import { Campo, GrupoCampos, Input, Select, Textarea } from "@/components/ui/input";
 import { ProximoPasso } from "@/components/dominio/ProximoPasso";
 
 export const metadata = { title: "Prazo" };
@@ -138,34 +139,45 @@ export default async function PaginaPrazo({ params, searchParams }: { params: Pr
     ...(tarefaLigada ? [{ href: `/tarefas/${tarefaLigada.id as string}`, rotulo: "tarefa" }] : []),
   ];
   const tarefaAberta = Boolean(tarefaLigada) && !["concluida", "cancelada"].includes((tarefaLigada?.status as string) ?? "");
+  const urgencia = urgenciaPrazo(prazo.data_final, hoje, st);
+  const temAcaoSecundaria = mostrar.rejeitar || mostrar.suspenderProrrogar || mostrar.cumprir || mostrar.cancelar;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <p className="text-sm text-zinc-500">
-            <Link href="/prazos" className="hover:underline">
-              Prazos
-            </Link>{" "}
-            / detalhe
-          </p>
-          <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold">
-            {prazo.ato_descricao ?? "Prazo"}
-            <Badge tom={TOM_STATUS_PRAZO[st] ?? "neutro"}>{ROTULO_STATUS_PRAZO[st] ?? st}</Badge>
-            {prazo.calendario_incompleto ? <Badge tom="alerta">calendário incompleto</Badge> : null}
-            {prazo.processos?.segredo_justica ? <Badge tom="perigo">segredo de justiça</Badge> : null}
-          </h1>
-          <p className="text-sm text-zinc-500">
-            <Link href={`/processos/${prazo.processo_id}`} className="font-mono hover:underline">
-              {prazo.processos?.numero_cnj_mascara ?? "processo"}
-            </Link>
-            {prazo.responsavel_id ? ` · responsável: ${nomes.get(prazo.responsavel_id) ?? "—"}` : " · sem responsável"}
-          </p>
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-4">
+          <DiaAgenda data={prazo.data_final} urgencia={urgencia} className="mt-6 hidden h-14 w-14 rounded-2xl sm:flex [&>span:first-child]:text-[20px] [&>span:last-child]:text-[10px]" />
+          <div className="min-w-0">
+            <p className="text-[13px] text-zinc-500">
+              <Link href="/prazos" className="font-semibold text-marca-600 hover:underline">
+                Prazos
+              </Link>
+              <span className="mx-1.5 text-zinc-300">/</span>
+              detalhe
+            </p>
+            <h1 className="mt-1 flex flex-wrap items-center gap-2 text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">
+              {prazo.ato_descricao ?? "Prazo"}
+              <span className="flex flex-wrap items-center gap-1.5">
+                <Badge tom={TOM_STATUS_PRAZO[st] ?? "neutro"}>{ROTULO_STATUS_PRAZO[st] ?? st}</Badge>
+                {prazo.calendario_incompleto ? <Badge tom="alerta">calendário incompleto</Badge> : null}
+                {prazo.processos?.segredo_justica ? <Badge tom="perigo">segredo de justiça</Badge> : null}
+              </span>
+            </h1>
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-zinc-500">
+              <Link href={`/processos/${prazo.processo_id}`} className="font-mono text-xs text-zinc-700 hover:text-marca-700 hover:underline">
+                {prazo.processos?.numero_cnj_mascara ?? "processo"}
+              </Link>
+              <span>· {prazo.responsavel_id ? `responsável ${nomes.get(prazo.responsavel_id) ?? "—"}` : "sem responsável"}</span>
+            </p>
+          </div>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <BadgeDataFinal dataFinal={prazo.data_final} hoje={hoje} status={st} />
+        <div className="flex flex-col items-start gap-1.5 sm:items-end">
+          <span className="flex items-center gap-2">
+            <span className="text-[11px] font-bold tracking-[0.08em] text-zinc-400 uppercase">Data final</span>
+            <BadgeDataFinal dataFinal={prazo.data_final} hoje={hoje} status={st} />
+          </span>
           {sessao.papel !== "estagiario" ? (
-            <Link href={`/admin/divergencias?prazo=${prazo.id}`} className="text-xs text-zinc-500 hover:underline">
+            <Link href={`/admin/divergencias?prazo=${prazo.id}`} className="text-xs font-medium text-zinc-500 underline decoration-zinc-300 underline-offset-[3px] hover:text-zinc-900">
               Registrar divergência
             </Link>
           ) : null}
@@ -206,38 +218,57 @@ export default async function PaginaPrazo({ params, searchParams }: { params: Pr
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Datas e contagem</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <CalendarCheck2 className="h-4 w-4 text-marca-600" aria-hidden />
+              Datas e contagem
+            </CardTitle>
+            <CardDescription>Do marco inicial à data final, com a data interna que vira vencimento da tarefa.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
-              <Item rotulo="Disponibilização">{formatarData(prazo.data_disponibilizacao) || "—"}</Item>
-              <Item rotulo="Publicação">{formatarData(prazo.data_publicacao) || "—"}</Item>
-              <Item rotulo="Início da contagem">{formatarData(prazo.data_inicio_contagem) || "—"}</Item>
-              <Item rotulo="Data final">
-                <span className="font-semibold">{formatarData(prazo.data_final)}</span>
-                <span className="block text-xs text-zinc-500">
-                  até {prazo.hora_limite?.slice(0, 5) ?? "23:59"} ({prazo.timezone_juizo})
-                </span>
-              </Item>
-              <Item rotulo="Data interna">{formatarData(prazo.data_interna) || "—"}</Item>
-              <Item rotulo="Sugerida pelo sistema">{formatarData(prazo.data_sugerida_ia) || "—"}</Item>
-              <Item rotulo="Confirmada">{formatarData(prazo.data_confirmada) || "—"}</Item>
+          <CardContent className="flex flex-col gap-5">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Marco rotulo="Início da contagem" valor={formatarData(prazo.data_inicio_contagem) || "—"} />
+              <Marco rotulo="Data interna" valor={formatarData(prazo.data_interna) || "—"} dica="vencimento da tarefa" />
+              <Marco
+                rotulo="Data final"
+                valor={formatarData(prazo.data_final)}
+                dica={`até ${prazo.hora_limite?.slice(0, 5) ?? "23:59"} (${prazo.timezone_juizo})`}
+                tom={urgencia === "vencido" || urgencia === "hoje" ? "perigo" : urgencia === "proximo" ? "alerta" : urgencia === "encerrado" ? "neutro" : "marca"}
+              />
+            </div>
+            <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
               <Item rotulo="Quantidade">
-                {prazo.quantidade ? `${prazo.quantidade} × ${prazo.multiplicador} = ${efetiva} ${ROTULO_CONTAGEM[prazo.contagem] ?? prazo.contagem}` : "—"}
+                {prazo.quantidade ? (
+                  <span className="tabular-nums">
+                    {prazo.quantidade} × {prazo.multiplicador} = <strong className="font-semibold">{efetiva}</strong> {ROTULO_CONTAGEM[prazo.contagem] ?? prazo.contagem}
+                  </span>
+                ) : (
+                  "—"
+                )}
                 {prazo.fundamento_dobro ? <span className="block text-xs text-zinc-500">dobro: {prazo.fundamento_dobro}</span> : null}
               </Item>
+              <Item rotulo="Disponibilização">{formatarData(prazo.data_disponibilizacao) || "—"}</Item>
+              <Item rotulo="Publicação">{formatarData(prazo.data_publicacao) || "—"}</Item>
+              <Item rotulo="Sugerida pelo sistema">{formatarData(prazo.data_sugerida_ia) || "—"}</Item>
+              <Item rotulo="Confirmada">{formatarData(prazo.data_confirmada) || "—"}</Item>
               <Item rotulo="Origem">{ROTULO_ORIGEM_PRAZO[prazo.origem] ?? prazo.origem}</Item>
               <Item rotulo="Tipo">{prazo.tipo}</Item>
               <Item rotulo="Criado em">{formatarDataHora(prazo.criado_em, timeZone)}</Item>
               {prazo.confirmado_em ? <Item rotulo="Confirmado">{`${formatarDataHora(prazo.confirmado_em, timeZone)}${prazo.confirmado_por ? ` por ${nomes.get(prazo.confirmado_por) ?? "usuário"}` : ""}`}</Item> : null}
               {prazo.cumprido_em ? <Item rotulo="Cumprido">{`${formatarDataHora(prazo.cumprido_em, timeZone)}${prazo.cumprido_por ? ` por ${nomes.get(prazo.cumprido_por) ?? "usuário"}` : ""} · ${ROTULO_EVIDENCIA[prazo.cumprimento_evidencia ?? ""] ?? prazo.cumprimento_evidencia ?? ""}`}</Item> : null}
-              {prazo.motivo_rejeicao ? <Item rotulo="Motivo da rejeição">{prazo.motivo_rejeicao}</Item> : null}
-              {prazo.motivo_cancelamento ? <Item rotulo="Motivo do cancelamento">{prazo.motivo_cancelamento}</Item> : null}
+              {prazo.motivo_rejeicao ? (
+                <Item rotulo="Motivo da rejeição" className="sm:col-span-2 lg:col-span-3">
+                  {prazo.motivo_rejeicao}
+                </Item>
+              ) : null}
+              {prazo.motivo_cancelamento ? (
+                <Item rotulo="Motivo do cancelamento" className="sm:col-span-2 lg:col-span-3">
+                  {prazo.motivo_cancelamento}
+                </Item>
+              ) : null}
               {prazo.observacoes ? (
-                <div className="sm:col-span-2 lg:col-span-4">
-                  <dt className="text-xs uppercase tracking-wide text-zinc-500">Observações</dt>
-                  <dd>{prazo.observacoes}</dd>
-                </div>
+                <Item rotulo="Observações" className="sm:col-span-2 lg:col-span-3">
+                  <span className="whitespace-pre-line">{prazo.observacoes}</span>
+                </Item>
               ) : null}
             </dl>
           </CardContent>
@@ -245,16 +276,19 @@ export default async function PaginaPrazo({ params, searchParams }: { params: Pr
 
         <Card>
           <CardHeader>
-            <CardTitle>Publicação ligada</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Newspaper className="h-4 w-4 text-zinc-400" aria-hidden />
+              Publicação ligada
+            </CardTitle>
           </CardHeader>
           <CardContent className="text-sm">
             {prazo.publicacao_id ? (
-              <div className="flex flex-col gap-1">
-                <Link href={`/publicacoes/${prazo.publicacao_id}`} className="font-medium hover:underline">
+              <div className="flex flex-col gap-2">
+                <Link href={`/publicacoes/${prazo.publicacao_id}`} className="font-semibold text-zinc-950 hover:text-marca-700">
                   {prazo.publicacoes?.tipo ? ROTULO_TIPO_PUBLICACAO[prazo.publicacoes.tipo] ?? prazo.publicacoes.tipo : "Publicação"}
-                  {prazo.publicacoes?.data_disponibilizacao ? ` · ${formatarData(prazo.publicacoes.data_disponibilizacao)}` : ""}
+                  {prazo.publicacoes?.data_disponibilizacao ? <span className="font-normal text-zinc-500"> · {formatarData(prazo.publicacoes.data_disponibilizacao)}</span> : ""}
                 </Link>
-                {prazo.publicacoes?.resumo_ia ? <p className="text-zinc-600 dark:text-zinc-400">{prazo.publicacoes.resumo_ia}</p> : null}
+                {prazo.publicacoes?.resumo_ia ? <p className="leading-relaxed text-zinc-600">{prazo.publicacoes.resumo_ia}</p> : null}
               </div>
             ) : (
               <p className="text-zinc-500">Prazo sem publicação ligada (lançamento manual, audiência ou decisão).</p>
@@ -265,7 +299,10 @@ export default async function PaginaPrazo({ params, searchParams }: { params: Pr
 
       <Card>
         <CardHeader>
-          <CardTitle>Memória de cálculo</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Calculator className="h-4 w-4 text-zinc-400" aria-hidden />
+            Memória de cálculo
+          </CardTitle>
           <CardDescription>Contagem dia a dia feita pelo motor de prazos. O dia final aparece destacado; avisos pedem conferência.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -274,21 +311,23 @@ export default async function PaginaPrazo({ params, searchParams }: { params: Pr
       </Card>
 
       {mostrar.retomar ? (
-        <Card>
+        <Card className="border-marca-200">
           <CardHeader>
             <CardTitle>Retomar prazo</CardTitle>
             <CardDescription>O prazo suspenso volta a contar como confirmado. Exige fundamento (ato normativo ou decisão); a nova data final é opcional e não pode ser anterior à atual.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form action={retomarPrazo} className="grid gap-2 sm:grid-cols-2">
+            <form action={retomarPrazo} className="flex flex-col gap-4">
               <input type="hidden" name="id" value={prazo.id} />
-              <Campo label="Nova data final (opcional)">
-                <Input name="nova_data" type="date" min={prazo.data_final} />
-              </Campo>
-              <Campo label="Fundamento">
-                <Input name="fundamento" placeholder="Ex.: fim da suspensão (Portaria TJMT nº ...), decisão de ..." required />
-              </Campo>
-              <div className="sm:col-span-2">
+              <GrupoCampos>
+                <Campo label="Nova data final (opcional)" dica="Vazio mantém a data atual.">
+                  <Input name="nova_data" type="date" min={prazo.data_final} />
+                </Campo>
+                <Campo label="Fundamento">
+                  <Input name="fundamento" placeholder="Ex.: fim da suspensão (Portaria TJMT nº ...), decisão de ..." required />
+                </Campo>
+              </GrupoCampos>
+              <div className="flex justify-end">
                 <Button type="submit">Retomar prazo</Button>
               </div>
             </form>
@@ -297,169 +336,180 @@ export default async function PaginaPrazo({ params, searchParams }: { params: Pr
       ) : null}
 
       {mostrar.confirmar ? (
-        <Card>
+        <Card id="confirmar" className="border-marca-200 bg-gradient-to-b from-marca-50/50 to-white to-[80px]">
           <CardHeader>
             <CardTitle>Confirmar prazo</CardTitle>
             <CardDescription>Pode trocar o ato, o multiplicador e a data final antes. Ao confirmar, a tarefa é criada para o responsável.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form action={confirmarPrazo} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <form action={confirmarPrazo} className="flex flex-col gap-4">
               <input type="hidden" name="id" value={prazo.id} />
-              <Campo label="Ato">
-                <Select name="ato_id" defaultValue={prazo.ato_id ?? ""}>
-                  <option value="">{prazo.ato_descricao ? `manter: ${prazo.ato_descricao}` : "— manter —"}</option>
-                  {atos.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.nome} · {a.dias} {ROTULO_CONTAGEM[a.contagem] ?? a.contagem}
-                    </option>
-                  ))}
-                </Select>
-              </Campo>
-              <Campo label="Multiplicador">
-                <Select name="multiplicador" defaultValue={String(prazo.multiplicador || 1)}>
-                  <option value="1">1 (simples)</option>
-                  <option value="2">2 (em dobro)</option>
-                </Select>
-              </Campo>
-              <Campo label="Data final">
-                <Input name="data_final" type="date" defaultValue={prazo.data_final} required />
-              </Campo>
-              <Campo label="Observação (opcional)">
-                <Input name="observacao" />
-              </Campo>
+              <GrupoCampos colunas={2}>
+                <Campo label="Ato" dica="Trocar o ato recalcula a quantidade de dias.">
+                  <Select name="ato_id" defaultValue={prazo.ato_id ?? ""}>
+                    <option value="">{prazo.ato_descricao ? `manter: ${prazo.ato_descricao}` : "— manter —"}</option>
+                    {atos.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.nome} · {a.dias} {ROTULO_CONTAGEM[a.contagem] ?? a.contagem}
+                      </option>
+                    ))}
+                  </Select>
+                </Campo>
+                <Campo label="Multiplicador" dica="Em dobro para Fazenda, MP, Defensoria e litisconsortes com advogados diferentes.">
+                  <Select name="multiplicador" defaultValue={String(prazo.multiplicador || 1)}>
+                    <option value="1">1 (simples)</option>
+                    <option value="2">2 (em dobro)</option>
+                  </Select>
+                </Campo>
+                <Campo label="Data final">
+                  <Input name="data_final" type="date" defaultValue={prazo.data_final} required className="tabular-nums" />
+                </Campo>
+                <Campo label="Observação (opcional)">
+                  <Input name="observacao" />
+                </Campo>
+              </GrupoCampos>
               {prazo.calendario_incompleto ? (
-                <label className="flex items-center gap-2 text-sm sm:col-span-2 lg:col-span-4">
-                  <input type="checkbox" name="reconhecer_calendario" className="h-4 w-4" required />
-                  Reconheço que o calendário forense está incompleto e conferi a data final manualmente.
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-ouro-300 bg-ouro-50 px-3.5 py-3 text-sm text-ouro-700">
+                  <input type="checkbox" name="reconhecer_calendario" className="mt-0.5 h-4 w-4 shrink-0 accent-marca-600" required />
+                  <span>Reconheço que o calendário forense está incompleto e conferi a data final manualmente.</span>
                 </label>
               ) : null}
-              <div className="sm:col-span-2 lg:col-span-4">
-                <Button type="submit">Confirmar prazo</Button>
+              <div className="flex justify-end">
+                <Button type="submit" tamanho="lg">
+                  Confirmar prazo
+                </Button>
               </div>
             </form>
           </CardContent>
         </Card>
       ) : null}
 
-      {mostrar.rejeitar || mostrar.suspenderProrrogar || mostrar.cumprir || mostrar.cancelar ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          {mostrar.rejeitar ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Rejeitar sugestão</CardTitle>
-                <CardDescription>Não gera prazo, intimação de terceiro ou erro de classificação.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form action={rejeitarPrazo} className="flex flex-col gap-2">
-                  <input type="hidden" name="id" value={prazo.id} />
-                  <Campo label="Motivo">
-                    <Textarea name="motivo" rows={2} required />
-                  </Campo>
-                  <Button type="submit" variante="contorno" className="self-start">
-                    Rejeitar
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          ) : null}
+      {temAcaoSecundaria ? (
+        <section className="flex flex-col gap-3">
+          <p className="text-[11px] font-bold tracking-[0.08em] text-zinc-400 uppercase">Outras ações</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            {mostrar.rejeitar ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Rejeitar sugestão</CardTitle>
+                  <CardDescription>Não gera prazo, intimação de terceiro ou erro de classificação.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form action={rejeitarPrazo} className="flex flex-col gap-3">
+                    <input type="hidden" name="id" value={prazo.id} />
+                    <Campo label="Motivo">
+                      <Textarea name="motivo" rows={2} required className="min-h-20" />
+                    </Campo>
+                    <Button type="submit" variante="contorno" className="self-end">
+                      Rejeitar
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            ) : null}
 
-          {mostrar.suspenderProrrogar ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>{st === "suspenso" ? "Prorrogar (ou manter suspenso com nova data)" : st === "prorrogado" ? "Prorrogar de novo ou suspender" : "Suspender ou prorrogar"}</CardTitle>
-                <CardDescription>Exige fundamento (ato normativo ou decisão). Prorrogar exige a nova data final, nunca anterior à atual.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form action={suspenderOuProrrogarPrazo} className="grid gap-2 sm:grid-cols-2">
-                  <input type="hidden" name="id" value={prazo.id} />
-                  <Campo label="Novo status">
-                    <Select name="novo_status" defaultValue="prorrogado">
-                      <option value="prorrogado">Prorrogado</option>
-                      <option value="suspenso">{st === "suspenso" ? "Suspenso (manter, com nova data)" : "Suspenso"}</option>
-                    </Select>
-                  </Campo>
-                  <Campo label="Nova data final">
-                    <Input name="nova_data" type="date" min={prazo.data_final} />
-                  </Campo>
-                  <Campo label="Fundamento" className="sm:col-span-2">
-                    <Input name="fundamento" placeholder="Ex.: Portaria TJMT nº ..., decisão de ..." required />
-                  </Campo>
-                  <div className="sm:col-span-2">
-                    <Button type="submit" variante="secundaria">
+            {mostrar.suspenderProrrogar ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>{st === "suspenso" ? "Prorrogar (ou manter suspenso com nova data)" : st === "prorrogado" ? "Prorrogar de novo ou suspender" : "Suspender ou prorrogar"}</CardTitle>
+                  <CardDescription>Exige fundamento (ato normativo ou decisão). Prorrogar exige a nova data final, nunca anterior à atual.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form action={suspenderOuProrrogarPrazo} className="flex flex-col gap-3">
+                    <input type="hidden" name="id" value={prazo.id} />
+                    <GrupoCampos>
+                      <Campo label="Novo status">
+                        <Select name="novo_status" defaultValue="prorrogado">
+                          <option value="prorrogado">Prorrogado</option>
+                          <option value="suspenso">{st === "suspenso" ? "Suspenso (manter, com nova data)" : "Suspenso"}</option>
+                        </Select>
+                      </Campo>
+                      <Campo label="Nova data final">
+                        <Input name="nova_data" type="date" min={prazo.data_final} />
+                      </Campo>
+                      <Campo label="Fundamento" className="sm:col-span-2">
+                        <Input name="fundamento" placeholder="Ex.: Portaria TJMT nº ..., decisão de ..." required />
+                      </Campo>
+                    </GrupoCampos>
+                    <Button type="submit" variante="secundaria" className="self-end">
                       Aplicar
                     </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          ) : null}
+                  </form>
+                </CardContent>
+              </Card>
+            ) : null}
 
-          {mostrar.cumprir ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Marcar como cumprido</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form action={cumprirPrazo} className="flex flex-col gap-2">
-                  <input type="hidden" name="id" value={prazo.id} />
-                  <Campo label="Evidência">
-                    <Select name="evidencia" defaultValue="manual">
-                      <option value="manual">Manual (protocolado)</option>
-                      <option value="pje">PJe</option>
-                      <option value="datajud">DataJud</option>
-                      <option value="tarefa">Tarefa concluída</option>
-                    </Select>
-                  </Campo>
-                  <Button type="submit" className="self-start">
-                    Cumprido
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          ) : null}
+            {mostrar.cumprir ? (
+              <Card className="border-emerald-200">
+                <CardHeader>
+                  <CardTitle>Marcar como cumprido</CardTitle>
+                  <CardDescription>O ato foi praticado. A publicação de origem é marcada como tratada.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form action={cumprirPrazo} className="flex flex-col gap-3">
+                    <input type="hidden" name="id" value={prazo.id} />
+                    <Campo label="Evidência">
+                      <Select name="evidencia" defaultValue="manual">
+                        <option value="manual">Manual (protocolado)</option>
+                        <option value="pje">PJe</option>
+                        <option value="datajud">DataJud</option>
+                        <option value="tarefa">Tarefa concluída</option>
+                      </Select>
+                    </Campo>
+                    <Button type="submit" className="self-end">
+                      Cumprido
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            ) : null}
 
-          {mostrar.cancelar ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Cancelar prazo</CardTitle>
-                <CardDescription>Prazo não existia, processo encerrado etc.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form action={cancelarPrazo} className="flex flex-col gap-2">
-                  <input type="hidden" name="id" value={prazo.id} />
-                  <Campo label="Motivo">
-                    <Textarea name="motivo" rows={2} required />
-                  </Campo>
-                  <Button type="submit" variante="perigo" className="self-start">
-                    Cancelar prazo
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          ) : null}
-        </div>
+            {mostrar.cancelar ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Cancelar prazo</CardTitle>
+                  <CardDescription>Prazo não existia, processo encerrado etc.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form action={cancelarPrazo} className="flex flex-col gap-3">
+                    <input type="hidden" name="id" value={prazo.id} />
+                    <Campo label="Motivo">
+                      <Textarea name="motivo" rows={2} required className="min-h-20" />
+                    </Campo>
+                    <Button type="submit" variante="perigo" className="self-end">
+                      Cancelar prazo
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            ) : null}
+          </div>
+        </section>
       ) : null}
 
       <Card>
         <CardHeader>
           <CardTitle>Eventos</CardTitle>
+          <CardDescription>Histórico do prazo, do nascimento à decisão.</CardDescription>
         </CardHeader>
         <CardContent>
           {eventos.length === 0 ? (
-            <p className="text-sm text-zinc-500">Nenhum evento.</p>
+            <p className="py-2 text-sm text-zinc-400">Nenhum evento.</p>
           ) : (
-            <ol className="space-y-2 text-sm">
+            <ol className="relative flex flex-col gap-3 border-l border-zinc-200 pl-4">
               {eventos.map((e) => {
                 const detalhe = resumirDados(e.dados ?? {});
                 return (
-                  <li key={e.id} className="flex flex-wrap items-baseline gap-x-2 border-b border-zinc-100 pb-2 last:border-0 dark:border-zinc-800">
-                    <span className="whitespace-nowrap text-xs text-zinc-500">{formatarDataHora(e.criado_em, timeZone)}</span>
-                    <span>
-                      <strong>{e.tipo}</strong>
+                  <li key={e.id} className="relative text-sm">
+                    <span className="absolute top-1.5 -left-[21px] h-2.5 w-2.5 rounded-full border-2 border-white bg-marca-400 ring-1 ring-zinc-200" aria-hidden />
+                    <p className="text-xs text-zinc-500 tabular-nums">
+                      {formatarDataHora(e.criado_em, timeZone)} · {e.usuario_id ? nomes.get(e.usuario_id) ?? "usuário" : "sistema"}
+                    </p>
+                    <p className="text-zinc-800">
+                      <strong className="font-semibold text-zinc-950">{e.tipo}</strong>
                       {e.para_status ? ` · ${e.de_status ? ROTULO_STATUS_PRAZO[e.de_status] ?? e.de_status : "criado"} → ${ROTULO_STATUS_PRAZO[e.para_status] ?? e.para_status}` : ""}
-                    </span>
-                    <span className="text-zinc-500">{e.usuario_id ? nomes.get(e.usuario_id) ?? "usuário" : "sistema"}</span>
-                    {detalhe ? <span className="w-full text-zinc-600 dark:text-zinc-400">{detalhe}</span> : null}
+                    </p>
+                    {detalhe ? <p className="text-[13px] text-zinc-600">{detalhe}</p> : null}
                   </li>
                 );
               })}
@@ -471,11 +521,29 @@ export default async function PaginaPrazo({ params, searchParams }: { params: Pr
   );
 }
 
-function Item({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
+function Item({ rotulo, children, className }: { rotulo: string; children: React.ReactNode; className?: string }) {
   return (
-    <div>
-      <dt className="text-xs uppercase tracking-wide text-zinc-500">{rotulo}</dt>
-      <dd>{children}</dd>
+    <div className={cn("min-w-0", className)}>
+      <dt className="text-[11px] font-bold tracking-[0.08em] text-zinc-400 uppercase">{rotulo}</dt>
+      <dd className="mt-0.5 text-sm text-zinc-900 break-words">{children}</dd>
+    </div>
+  );
+}
+
+const TOM_MARCO = {
+  neutro: "border-zinc-200 bg-zinc-50/60 text-zinc-950",
+  marca: "border-marca-200 bg-marca-50/60 text-marca-900",
+  alerta: "border-ouro-300 bg-ouro-50 text-ouro-700",
+  perigo: "border-red-200 bg-red-50 text-red-700",
+} as const;
+
+/** Data de destaque (início, interna, final) em caixa própria, para ler de longe. */
+function Marco({ rotulo, valor, dica, tom = "neutro" }: { rotulo: string; valor: string; dica?: string; tom?: keyof typeof TOM_MARCO }) {
+  return (
+    <div className={cn("rounded-xl border px-4 py-3", TOM_MARCO[tom])}>
+      <p className="text-[11px] font-bold tracking-[0.08em] uppercase opacity-70">{rotulo}</p>
+      <p className="mt-0.5 text-[22px] leading-none font-extrabold tracking-[-0.02em] tabular-nums">{valor}</p>
+      {dica ? <p className="mt-1 text-xs opacity-70">{dica}</p> : null}
     </div>
   );
 }

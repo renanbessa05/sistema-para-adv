@@ -32,7 +32,7 @@ export default async function PaginaConversa({ params, searchParams }: { params:
           <Link href="/assistente" className="text-sm text-zinc-500 hover:underline">
             ← Conversas
           </Link>
-          <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold">
+          <h1 className="flex flex-wrap items-center gap-2 text-xl font-bold tracking-[-0.02em] text-zinc-950">
             {conversa.titulo ?? "Conversa"}
             {conversa.encerrada_em ? <Badge tom="neutro">encerrada</Badge> : null}
             {!propria ? <Badge tom="alerta">conversa de outra pessoa (só leitura)</Badge> : null}

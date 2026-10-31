@@ -34,7 +34,12 @@ export default async function PaginaRelatorios({ searchParams }: { searchParams:
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Configurações</h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">Configurações</h1>
+          <p className="text-sm text-zinc-500">Relatórios do escritório: produtividade, métricas, custo de IA e CSV mensal.</p>
+        </div>
+      </div>
       <NavegacaoConfiguracoes papel={sessao.papel} atual={BASE} />
       <Abas base={BASE} abas={abas} atual={atual} />
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}

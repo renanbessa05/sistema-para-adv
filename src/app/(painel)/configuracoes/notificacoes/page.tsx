@@ -52,7 +52,12 @@ export default async function PaginaNotificacoes({ searchParams }: { searchParam
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Configurações</h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">Configurações</h1>
+          <p className="text-sm text-zinc-500">Notificações: quais canais ficam ligados para cada evento do escritório.</p>
+        </div>
+      </div>
       <NavegacaoConfiguracoes papel={sessao.papel} atual="/configuracoes/notificacoes" />
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       {ok ? <Alert tom="sucesso">{ok}</Alert> : null}
@@ -79,9 +84,9 @@ export default async function PaginaNotificacoes({ searchParams }: { searchParam
                 const regra = REGRAS[evento];
                 return (
                   <TR key={evento}>
-                    <TD>{ROTULO_EVENTO[evento] ?? evento}</TD>
-                    <TD className="text-xs">{ROTULO_DESTINATARIOS[regra.destinatarios] ?? regra.destinatarios}</TD>
-                    <TD className="text-xs">
+                    <TD className="min-w-48 font-semibold text-zinc-950">{ROTULO_EVENTO[evento] ?? evento}</TD>
+                    <TD className="text-xs text-zinc-600">{ROTULO_DESTINATARIOS[regra.destinatarios] ?? regra.destinatarios}</TD>
+                    <TD className="text-xs whitespace-nowrap text-zinc-600 tabular-nums">
                       {regra.horarioLocal === "imediato" || !regra.horarioLocal ? "imediato" : `às ${regra.horarioLocal}`}
                       {regra.somenteDiasUteis ? ", dias úteis" : ""}
                     </TD>
@@ -92,21 +97,21 @@ export default async function PaginaNotificacoes({ searchParams }: { searchParam
                       const ativo = temOverride ? override.get(chave)! : padrao;
                       return (
                         <TD key={canal}>
-                          <div className="flex flex-col items-start gap-1">
+                          <div className="flex flex-col items-start gap-1.5">
                             <form action={alternarCanal}>
                               <input type="hidden" name="evento" value={evento} />
                               <input type="hidden" name="canal" value={canal} />
                               <input type="hidden" name="ativo" value={ativo ? "0" : "1"} />
-                              <Button type="submit" variante={ativo ? "primaria" : "contorno"} tamanho="sm" className="min-w-20 text-xs" aria-label={`${ativo ? "Desativar" : "Ativar"} ${ROTULO_CANAL[canal]} para ${ROTULO_EVENTO[evento] ?? evento}`}>
+                              <Button type="submit" variante={ativo ? "primaria" : "contorno"} tamanho="sm" className={ativo ? "min-w-24 rounded-full text-xs" : "min-w-24 rounded-full text-xs text-zinc-500"} aria-label={`${ativo ? "Desativar" : "Ativar"} ${ROTULO_CANAL[canal]} para ${ROTULO_EVENTO[evento] ?? evento}`}>
                                 {ativo ? "ativo" : "desligado"}
                               </Button>
                             </form>
                             {temOverride ? (
-                              <form action={restaurarPadrao} className="flex items-center gap-1">
+                              <form action={restaurarPadrao} className="flex flex-wrap items-center gap-1">
                                 <input type="hidden" name="evento" value={evento} />
                                 <input type="hidden" name="canal" value={canal} />
                                 <Badge tom="alerta">alterado</Badge>
-                                <button type="submit" className="text-xs text-zinc-500 underline-offset-2 hover:underline">
+                                <button type="submit" className="text-xs whitespace-nowrap text-zinc-500 underline-offset-2 hover:text-marca-700 hover:underline">
                                   padrão: {padrao ? "ativo" : "desligado"}
                                 </button>
                               </form>

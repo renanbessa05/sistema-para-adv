@@ -3,10 +3,10 @@ import { exigirSessao } from "@/server/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { listarFases } from "@/server/processos";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Campo, Input, Select } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Campo, GrupoCampos, Input, Select } from "@/components/ui/input";
+import { Button, classesBotao } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Alert } from "@/components/ui/alert";
+import { Alert, Vazio } from "@/components/ui/alert";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { NavegacaoConfiguracoes } from "../navegacao";
 import { criarFase, criarFasesPadrao, editarFase, excluirFase } from "./actions";
@@ -29,7 +29,15 @@ export default async function PaginaFases({ searchParams }: { searchParams: Prom
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Configurações</h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">Configurações</h1>
+          <p className="text-sm text-zinc-500">Colunas do quadro de processos e os códigos TPU que sugerem a fase automaticamente.</p>
+        </div>
+        <a href="#formulario" className={classesBotao({ variante: "contorno", tamanho: "sm" })}>
+          Nova fase
+        </a>
+      </div>
       <NavegacaoConfiguracoes papel={sessao.papel} atual="/configuracoes/fases" />
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       {ok ? <Alert tom="sucesso">{ok}</Alert> : null}
@@ -41,14 +49,17 @@ export default async function PaginaFases({ searchParams }: { searchParams: Prom
         </CardHeader>
         <CardContent>
           {fases.length === 0 ? (
-            <div className="flex flex-col items-start gap-2 text-sm">
-              <p className="text-zinc-500">Nenhuma fase cadastrada.</p>
-              <form action={criarFasesPadrao}>
-                <Button type="submit" variante="secundaria">
-                  Criar fases padrão
-                </Button>
-              </form>
-            </div>
+            <Vazio
+              titulo="Nenhuma fase cadastrada."
+              descricao="Comece pelas fases padrão do escritório e ajuste depois, ou crie a primeira fase no formulário abaixo."
+              acao={
+                <form action={criarFasesPadrao}>
+                  <Button type="submit" variante="secundaria">
+                    Criar fases padrão
+                  </Button>
+                </form>
+              }
+            />
           ) : (
             <Table>
               <THead>
@@ -63,23 +74,23 @@ export default async function PaginaFases({ searchParams }: { searchParams: Prom
               <TBody>
                 {fases.map((f) => (
                   <TR key={f.id} className={f.ativa ? "" : "opacity-60"}>
-                    <TD>{f.ordem}</TD>
-                    <TD>
-                      <span className="inline-flex items-center gap-2">
-                        {f.cor ? <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: f.cor }} /> : null}
+                    <TD className="text-zinc-500 tabular-nums">{f.ordem}</TD>
+                    <TD className="font-semibold text-zinc-950">
+                      <span className="inline-flex flex-wrap items-center gap-2">
+                        {f.cor ? <span className="inline-block h-3 w-3 shrink-0 rounded-full ring-2 ring-white" style={{ backgroundColor: f.cor }} /> : null}
                         {f.nome}
                         {!f.ativa ? <Badge tom="neutro">inativa</Badge> : null}
                       </span>
                     </TD>
-                    <TD className="font-mono text-xs">{f.codigos_tpu?.length ? f.codigos_tpu.join(", ") : "—"}</TD>
-                    <TD>{porFase.get(f.id) ?? 0}</TD>
+                    <TD className="font-mono text-xs text-zinc-600">{f.codigos_tpu?.length ? f.codigos_tpu.join(", ") : "—"}</TD>
+                    <TD className="tabular-nums">{porFase.get(f.id) ?? 0}</TD>
                     <TD>
                       <div className="flex gap-1">
-                        <a href={`/configuracoes/fases?editar=${f.id}#formulario`} className="inline-flex h-8 items-center rounded-md px-2 text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                        <a href={`/configuracoes/fases?editar=${f.id}#formulario`} className={classesBotao({ variante: "fantasma", tamanho: "sm", className: "text-xs" })}>
                           Editar
                         </a>
                         <form action={excluirFase.bind(null, f.id)}>
-                          <Button type="submit" variante="fantasma" tamanho="sm" className="text-xs text-red-700">
+                          <Button type="submit" variante="fantasma" tamanho="sm" className="text-xs text-red-700 hover:bg-red-50 hover:text-red-800">
                             Excluir
                           </Button>
                         </form>
@@ -98,28 +109,32 @@ export default async function PaginaFases({ searchParams }: { searchParams: Prom
           <CardTitle>{emEdicao ? `Editar: ${emEdicao.nome}` : "Nova fase"}</CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={emEdicao ? editarFase.bind(null, emEdicao.id) : criarFase} className="grid gap-3 sm:grid-cols-4">
-            <Campo label="Nome" className="sm:col-span-2">
-              <Input name="nome" required defaultValue={emEdicao?.nome ?? ""} />
-            </Campo>
-            <Campo label="Ordem">
-              <Input name="ordem" type="number" min={1} defaultValue={String(emEdicao?.ordem ?? fases.length + 1)} />
-            </Campo>
-            <Campo label="Cor">
-              <Input name="cor" type="color" defaultValue={emEdicao?.cor ?? "#64748b"} className="h-9 p-1" />
-            </Campo>
-            <Campo label="Códigos TPU de movimento (separados por vírgula)" className="sm:col-span-3">
-              <Input name="codigos_tpu" defaultValue={(emEdicao?.codigos_tpu ?? []).join(", ")} placeholder="Ex.: 193, 196, 198" />
-            </Campo>
-            <Campo label="Situação">
-              <Select name="ativa" defaultValue={emEdicao?.ativa === false ? "0" : "1"}>
-                <option value="1">Ativa</option>
-                <option value="0">Inativa</option>
-              </Select>
-            </Campo>
-            <div className="flex justify-end gap-2 sm:col-span-4">
+          <form action={emEdicao ? editarFase.bind(null, emEdicao.id) : criarFase} className="flex flex-col gap-6">
+            <GrupoCampos titulo="Fase" colunas={2}>
+              <Campo label="Nome">
+                <Input name="nome" required defaultValue={emEdicao?.nome ?? ""} />
+              </Campo>
+              <Campo label="Ordem" dica="Posição da coluna no quadro, da esquerda para a direita.">
+                <Input name="ordem" type="number" min={1} defaultValue={String(emEdicao?.ordem ?? fases.length + 1)} />
+              </Campo>
+              <Campo label="Cor">
+                <Input name="cor" type="color" defaultValue={emEdicao?.cor ?? "#64748b"} className="h-10 w-20 cursor-pointer p-1" />
+              </Campo>
+              <Campo label="Situação">
+                <Select name="ativa" defaultValue={emEdicao?.ativa === false ? "0" : "1"}>
+                  <option value="1">Ativa</option>
+                  <option value="0">Inativa</option>
+                </Select>
+              </Campo>
+            </GrupoCampos>
+            <GrupoCampos titulo="Sugestão automática" colunas={1}>
+              <Campo label="Códigos TPU de movimento (separados por vírgula)" dica="Quando o DataJud trouxer um movimento com um destes códigos, o sistema sugere esta fase.">
+                <Input name="codigos_tpu" defaultValue={(emEdicao?.codigos_tpu ?? []).join(", ")} placeholder="Ex.: 193, 196, 198" />
+              </Campo>
+            </GrupoCampos>
+            <div className="flex flex-wrap justify-end gap-2">
               {emEdicao ? (
-                <a href="/configuracoes/fases" className="inline-flex h-9 items-center rounded-md border border-zinc-300 px-4 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
+                <a href="/configuracoes/fases" className={classesBotao({ variante: "contorno" })}>
                   Cancelar
                 </a>
               ) : null}

@@ -14,6 +14,17 @@ function qrComoUrl(qr: string): string {
   return qr.startsWith("data:") ? qr : `data:image/svg+xml;utf-8,${encodeURIComponent(qr)}`;
 }
 
+function Passo({ n, children }: { n: number; children: React.ReactNode }) {
+  return (
+    <li className="flex items-start gap-2.5">
+      <span className="mt-px grid h-5 w-5 shrink-0 place-items-center rounded-full bg-marca-50 text-[11px] font-extrabold text-marca-700 tabular-nums" aria-hidden>
+        {n}
+      </span>
+      <span className="min-w-0 leading-snug">{children}</span>
+    </li>
+  );
+}
+
 function nomeDoFator(): string {
   const agora = new Date();
   const data = agora.toLocaleDateString("pt-BR", { timeZone: "America/Cuiaba" });
@@ -75,8 +86,8 @@ export function CadastroTotp({ voltar, email, podeCancelar }: { voltar: string; 
 
   if (etapa.tipo === "gerando") {
     return (
-      <div className="flex flex-col items-center gap-3" aria-busy="true" aria-label="Gerando QR code">
-        <Skeleton className="h-48 w-48" />
+      <div className="flex flex-col items-center gap-3 py-2" aria-busy="true" aria-label="Gerando QR code">
+        <Skeleton className="h-48 w-48 rounded-xl" />
         <p className="text-sm text-zinc-500">Gerando o QR code…</p>
       </div>
     );
@@ -94,25 +105,25 @@ export function CadastroTotp({ voltar, email, podeCancelar }: { voltar: string; 
   }
 
   return (
-    <form className="flex flex-col gap-3" onSubmit={verificar}>
-      <ol className="list-decimal space-y-1 pl-5 text-sm text-zinc-700 dark:text-zinc-300">
-        <li>Abra o aplicativo autenticador e escolha adicionar uma conta.</li>
-        <li>
-          Aponte a câmera para o QR code abaixo (conta <span className="font-medium">{email}</span>).
-        </li>
-        <li>Digite o código de 6 dígitos que aparecer para confirmar.</li>
+    <form className="flex flex-col gap-4" onSubmit={verificar}>
+      <ol className="flex flex-col gap-2 text-sm text-zinc-700">
+        <Passo n={1}>Abra o aplicativo autenticador e escolha adicionar uma conta.</Passo>
+        <Passo n={2}>
+          Aponte a câmera para o QR code abaixo (conta <span className="font-semibold text-zinc-900">{email}</span>).
+        </Passo>
+        <Passo n={3}>Digite o código de 6 dígitos que aparecer para confirmar.</Passo>
       </ol>
-      <div className="flex justify-center rounded-md border border-zinc-200 bg-white p-2 dark:border-zinc-700">
+      <div className="flex justify-center rounded-2xl border border-zinc-200 bg-white p-3 shadow-xs">
         {/* eslint-disable-next-line @next/next/no-img-element -- SVG em data URI gerado pelo Auth; não passa pelo otimizador */}
-        <img src={etapa.qrCode} alt="QR code para cadastrar o autenticador" width={192} height={192} className="h-48 w-48" />
+        <img src={etapa.qrCode} alt="QR code para cadastrar o autenticador" width={192} height={192} className="h-48 w-48 rounded-lg" />
       </div>
       <div className="text-xs text-zinc-500">
         Não consegue ler o QR code?{" "}
-        <button type="button" className="underline-offset-2 hover:underline" onClick={() => setMostrarSegredo((v) => !v)}>
+        <button type="button" className="font-semibold text-marca-600 underline-offset-2 hover:underline" onClick={() => setMostrarSegredo((v) => !v)}>
           {mostrarSegredo ? "Esconder a chave" : "Digitar a chave manualmente"}
         </button>
         {mostrarSegredo ? (
-          <code className="mt-1 block select-all break-all rounded bg-zinc-100 px-2 py-1 font-mono text-sm text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100" aria-label="Chave secreta">
+          <code className="mt-2 block rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 font-mono text-[13px] leading-relaxed break-all text-zinc-900 select-all" aria-label="Chave secreta">
             {etapa.segredo}
           </code>
         ) : null}
@@ -129,16 +140,16 @@ export function CadastroTotp({ voltar, email, podeCancelar }: { voltar: string; 
           value={codigo}
           onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ""))}
           placeholder="000000"
-          className="text-center text-lg tracking-widest"
+          className="h-14 text-center font-mono text-2xl font-semibold tracking-[0.4em] tabular-nums placeholder:tracking-[0.4em] placeholder:text-zinc-300"
         />
       </Campo>
-      <div className="flex gap-2">
+      <div className="flex flex-col-reverse gap-2 sm:flex-row">
         {podeCancelar ? (
-          <Button type="button" variante="contorno" className="flex-1" onClick={() => router.push(voltar)}>
+          <Button type="button" variante="contorno" tamanho="lg" className="flex-1" onClick={() => router.push(voltar)}>
             Cancelar
           </Button>
         ) : null}
-        <Button type="submit" className="flex-1" disabled={enviando || codigo.length !== 6}>
+        <Button type="submit" tamanho="lg" className="flex-1" disabled={enviando || codigo.length !== 6}>
           {enviando ? "Verificando…" : "Confirmar e ativar"}
         </Button>
       </div>

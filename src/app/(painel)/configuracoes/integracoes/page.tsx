@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
+import { KeyRound } from "lucide-react";
 import { exigirSessao } from "@/server/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { envServidor } from "@/lib/config/env";
 import { formatarDataHora } from "@/lib/utils";
 import { DEFINICOES_INTEGRACAO, origemDoSegredo, rotuloOrigem, TIPOS_INTEGRACAO_COM_SEGREDO, type OrigemSegredo, type TipoIntegracaoComSegredo } from "@/lib/integracoes";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Campo, Input } from "@/components/ui/input";
+import { Campo, GrupoCampos, Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
@@ -47,12 +48,17 @@ export default async function PaginaIntegracoes({ searchParams }: { searchParams
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold tracking-tight text-marca-900">Configurações</h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-[26px] leading-tight font-extrabold tracking-[-0.03em] text-zinc-950">Configurações</h1>
+          <p className="text-sm text-zinc-500">Integrações externas: segredos do WhatsApp e do DataJud guardados no Vault.</p>
+        </div>
+      </div>
       <NavegacaoConfiguracoes papel={sessao.papel} atual="/configuracoes/integracoes" />
       {erro ? <Alert tom="perigo">{erro}</Alert> : null}
       {ok ? <Alert tom="sucesso">{ok}</Alert> : null}
       <Alert tom="info">
-        O segredo vai direto para o Supabase Vault e nunca é exibido de volta: para trocar, cole o novo valor e salve. Enquanto não houver segredo no Vault, vale a variável de ambiente da Vercel. Passo a passo em <code>docs/runbooks/rotacao-de-segredos.md</code>.
+        O segredo vai direto para o Supabase Vault e nunca é exibido de volta: para trocar, cole o novo valor e salve. Enquanto não houver segredo no Vault, vale a variável de ambiente da Vercel. Passo a passo em <code className="rounded bg-marca-100/60 px-1 py-0.5 font-mono text-[12px]">docs/runbooks/rotacao-de-segredos.md</code>.
       </Alert>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -69,12 +75,16 @@ function CartaoIntegracao({ tipo, linha, timeZone, temAmbiente, configAmbiente }
   const origem: OrigemSegredo = origemDoSegredo({ temVault: Boolean(linha?.vault_secret_id), temAmbiente });
   const status = linha?.status ?? "inativa";
   const config = (linha?.config ?? {}) as Record<string, unknown>;
+  const camposConfig = Object.entries(def.rotulosConfig);
 
   return (
-    <Card>
+    <Card className="flex flex-col">
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle>{def.rotulo}</CardTitle>
+          <CardTitle className="flex min-w-0 items-center gap-2">
+            <KeyRound className="h-4 w-4 shrink-0 text-marca-600" aria-hidden />
+            {def.rotulo}
+          </CardTitle>
           <div className="flex flex-wrap gap-1">
             <Badge tom={TOM_STATUS[status] ?? "neutro"}>{ROTULO_STATUS[status] ?? status}</Badge>
             <Badge tom={TOM_ORIGEM[origem ?? "nenhum"]}>segredo: {rotuloOrigem(origem)}</Badge>
@@ -86,23 +96,29 @@ function CartaoIntegracao({ tipo, linha, timeZone, temAmbiente, configAmbiente }
           {origem === null ? " Sem segredo: a integração não funciona até você gravar um aqui." : ""}
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-1 flex-col gap-4">
         {linha?.ultimo_erro ? (
           <Alert tom="perigo" titulo="Último erro">
             {linha.ultimo_erro}
           </Alert>
         ) : null}
-        <form action={salvarSegredo} className="flex flex-col gap-3" autoComplete="off">
+        <form action={salvarSegredo} className="flex flex-1 flex-col gap-5" autoComplete="off">
           <input type="hidden" name="tipo" value={tipo} />
-          <Campo label={def.rotuloSegredo}>
-            <Input name="segredo" type="password" required minLength={8} autoComplete="new-password" placeholder={origem ? "Cole o novo valor para trocar" : "Cole o valor"} />
-          </Campo>
-          {Object.entries(def.rotulosConfig).map(([chave, rotulo]) => (
-            <Campo key={chave} label={rotulo}>
-              <Input name={chave} inputMode="numeric" required defaultValue={typeof config[chave] === "string" ? (config[chave] as string) : ""} placeholder={configAmbiente[chave] ? `hoje vem de ${def.variaveisConfig[chave]}` : ""} />
+          <GrupoCampos titulo="Segredo" colunas={1}>
+            <Campo label={def.rotuloSegredo} dica="Nunca é exibido de volta; para trocar, cole o novo valor e salve.">
+              <Input name="segredo" type="password" required minLength={8} autoComplete="new-password" placeholder={origem ? "Cole o novo valor para trocar" : "Cole o valor"} />
             </Campo>
-          ))}
-          <div className="flex justify-end">
+          </GrupoCampos>
+          {camposConfig.length ? (
+            <GrupoCampos titulo="Identificadores" colunas={1}>
+              {camposConfig.map(([chave, rotulo]) => (
+                <Campo key={chave} label={rotulo}>
+                  <Input name={chave} inputMode="numeric" required defaultValue={typeof config[chave] === "string" ? (config[chave] as string) : ""} placeholder={configAmbiente[chave] ? `hoje vem de ${def.variaveisConfig[chave]}` : ""} />
+                </Campo>
+              ))}
+            </GrupoCampos>
+          ) : null}
+          <div className="mt-auto flex justify-end">
             <Button type="submit">Salvar no Vault</Button>
           </div>
         </form>
