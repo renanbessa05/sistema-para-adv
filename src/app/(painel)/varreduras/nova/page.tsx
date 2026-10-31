@@ -4,7 +4,7 @@ import { criarClienteServidor } from "@/lib/supabase/server";
 import { listarDocumentos } from "@/server/documentos";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { BotaoEnviar } from "@/components/ui/BotaoEnviar";
 import { Campo, Input, Select } from "@/components/ui/input";
 import { novaVarreduraAction } from "../actions";
 
@@ -74,7 +74,7 @@ export default async function PaginaNovaVarredura({ searchParams }: { searchPara
               <p className="text-xs text-zinc-500 sm:col-span-2">Escolha o processo e recarregue com ?processo=… para listar os autos (ou use o botão na tela do processo).</p>
             )}
             <div className="flex justify-end sm:col-span-2">
-              <Button type="submit">Varrer os autos com a IA</Button>
+              <BotaoEnviar rotuloEnviando="Varrendo os autos… pode levar uns minutos">Varrer os autos com a IA</BotaoEnviar>
             </div>
           </form>
         </CardContent>

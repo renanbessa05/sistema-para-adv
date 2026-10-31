@@ -4,6 +4,7 @@ import { obterRevisao } from "@/server/revisoes";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { BotaoEnviar } from "@/components/ui/BotaoEnviar";
 import { Button } from "@/components/ui/button";
 import { Campo, Input, Select, Textarea } from "@/components/ui/input";
 import { Markdown } from "@/components/dominio/Markdown";
@@ -62,7 +63,7 @@ export default async function PaginaRevisor({ searchParams }: { searchParams: Pr
               <Textarea name="texto" rows={14} required minLength={200} />
             </Campo>
             <div className="flex justify-end sm:col-span-3">
-              <Button type="submit">Revisar</Button>
+              <BotaoEnviar rotuloEnviando="Revisando… pode levar uns minutos">Revisar</BotaoEnviar>
             </div>
           </form>
         </CardContent>

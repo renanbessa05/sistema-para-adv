@@ -15,6 +15,7 @@ import { Markdown } from "@/components/dominio/Markdown";
 import { CartaoDocumentos } from "@/components/dominio/CartaoDocumentos";
 import { formatarDataHora } from "@/lib/utils";
 import { ProximoPasso } from "@/components/dominio/ProximoPasso";
+import { BotaoEnviar } from "@/components/ui/BotaoEnviar";
 import { aprovarEtapaAction, arquivarMinutaAction, devolverEtapaAction, enviarAprovacaoMinutaAction, gerarEtapaAction, marcarProtocoladaAction, novaVersaoAction, pularEtapasAction, revisarVersaoAction } from "../actions";
 
 export const metadata = { title: "Minuta" };
@@ -134,9 +135,9 @@ export default async function PaginaMinuta({ params, searchParams }: { params: P
                   {atual ? (
                     <div className="flex flex-wrap gap-2">
                       <form action={gerarEtapaAction.bind(null, id, n)}>
-                        <Button type="submit" variante={e ? "contorno" : "primaria"}>
+                        <BotaoEnviar variante={e ? "contorno" : "primaria"} rotuloEnviando="Gerando… pode levar uns minutos">
                           {e ? "Gerar de novo" : "Gerar com a IA"}
-                        </Button>
+                        </BotaoEnviar>
                       </form>
                       {e && e.status !== "aprovada" && podeAprovar ? (
                         <>
@@ -187,9 +188,9 @@ export default async function PaginaMinuta({ params, searchParams }: { params: P
           <CardContent className="flex flex-col gap-3">
             {emAndamento ? (
               <form action={gerarEtapaAction.bind(null, id, 6)}>
-                <Button type="submit" variante={versaoAtual ? "contorno" : "primaria"}>
+                <BotaoEnviar variante={versaoAtual ? "contorno" : "primaria"} rotuloEnviando="Redigindo… leva uns 2 minutos, não saia da tela">
                   {versaoAtual ? "Redigir de novo com a IA" : "Redigir com a IA"}
-                </Button>
+                </BotaoEnviar>
               </form>
             ) : null}
             {validacao.itens?.length ? (
@@ -233,9 +234,9 @@ export default async function PaginaMinuta({ params, searchParams }: { params: P
                     <p className="text-xs text-zinc-500">Crítico aberto segura o envio para aprovação até ser resolvido ou justificado no relatório.</p>
                   </div>
                   <form action={revisarVersaoAction.bind(null, id, versaoAtual.id)}>
-                    <Button type="submit" variante="secundaria">
+                    <BotaoEnviar variante="secundaria" rotuloEnviando="Revisando… pode levar uns minutos">
                       Revisar esta versão com a IA
-                    </Button>
+                    </BotaoEnviar>
                   </form>
                 </div>
                 {revisoes.length ? (

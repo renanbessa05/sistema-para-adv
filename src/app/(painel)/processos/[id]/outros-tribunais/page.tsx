@@ -6,7 +6,7 @@ import { identificarTribunal } from "@/lib/tribunais/codigos";
 import { Markdown } from "@/components/dominio/Markdown";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { BotaoEnviar } from "@/components/ui/BotaoEnviar";
 import { Campo, Input, Select } from "@/components/ui/input";
 import { gerarOutrosTribunaisAction } from "./actions";
 
@@ -75,7 +75,7 @@ export default async function PaginaOutrosTribunais({
                 <Input name="prazo" type="date" />
               </Campo>
               <div className="flex justify-end sm:col-span-3">
-                <Button type="submit">Analisar os autos</Button>
+                <BotaoEnviar rotuloEnviando="Analisando… pode levar uns minutos">Analisar os autos</BotaoEnviar>
               </div>
             </form>
           </CardContent>

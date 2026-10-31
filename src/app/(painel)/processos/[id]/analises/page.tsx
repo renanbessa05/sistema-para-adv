@@ -6,7 +6,7 @@ import { identificarTribunal } from "@/lib/tribunais/codigos";
 import { Markdown } from "@/components/dominio/Markdown";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { BotaoEnviar } from "@/components/ui/BotaoEnviar";
 import { Campo, Input } from "@/components/ui/input";
 import { gerarMapaJulgadorAction } from "./actions";
 
@@ -61,7 +61,7 @@ export default async function PaginaAnalises({
                 <Input name="foco" placeholder="ex.: conferir a prescrição das parcelas" />
               </Campo>
               <div className="flex items-end justify-end">
-                <Button type="submit">Analisar como julgador</Button>
+                <BotaoEnviar rotuloEnviando="Analisando… pode levar uns minutos">Analisar como julgador</BotaoEnviar>
               </div>
             </form>
           </CardContent>

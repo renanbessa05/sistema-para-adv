@@ -3,7 +3,7 @@ import { exigirSessao } from "@/server/sessao";
 import { criarClienteServidor } from "@/lib/supabase/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { BotaoEnviar } from "@/components/ui/BotaoEnviar";
 import { Campo, Input, Select, Textarea } from "@/components/ui/input";
 import { novoContratoAction } from "../actions";
 
@@ -74,7 +74,7 @@ export default async function PaginaNovoContrato({ searchParams }: { searchParam
               <Textarea name="relato" rows={8} placeholder="O que aconteceu, o que o cliente quer, valores envolvidos, documentos que tem, urgência, parte contrária, comarca…" required minLength={20} />
             </Campo>
             <div className="flex justify-end sm:col-span-2">
-              <Button type="submit">Diagnosticar com a IA</Button>
+              <BotaoEnviar rotuloEnviando="Diagnosticando… pode levar um minuto">Diagnosticar com a IA</BotaoEnviar>
             </div>
           </form>
         </CardContent>
