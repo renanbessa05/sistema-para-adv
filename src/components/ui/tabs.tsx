@@ -15,7 +15,7 @@ export function Tabs({ abas, valor, aoMudar, className }: { abas: Aba[]; valor?:
   };
   return (
     <div className={className}>
-      <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-zinc-200 dark:border-zinc-800">
+      <div role="tablist" className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-zinc-200 dark:border-zinc-800">
         {abas.map((a) => (
           <button
             key={a.valor}

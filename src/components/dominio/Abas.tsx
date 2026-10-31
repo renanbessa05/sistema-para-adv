@@ -16,7 +16,7 @@ export interface Aba {
  */
 export function Abas({ base, abas, atual, extra }: { base: string; abas: Aba[]; atual: string; extra?: Record<string, string | undefined> }) {
   return (
-    <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 whitespace-nowrap border-b border-zinc-200 text-sm md:mx-0 md:px-0" aria-label="Seções">
+    <nav className="-mx-4 flex gap-1 overflow-x-auto overflow-y-hidden px-4 whitespace-nowrap border-b border-zinc-200 text-sm md:mx-0 md:px-0" aria-label="Seções">
       {abas.map((a) => {
         const q = new URLSearchParams();
         if (a.chave !== abas[0]?.chave) q.set("aba", a.chave);
