@@ -23,6 +23,10 @@ export async function GET(request: NextRequest) {
   } else if (tokenHash && TIPOS_OTP.has(tipo)) {
     const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: tipo as EmailOtpType });
     if (!error) return NextResponse.redirect(`${origin}${voltar}`);
+  } else if (!tokenHash) {
+    // Link de convite ou recuperação do Supabase: a sessão vem no fragmento (#access_token), que não chega ao servidor.
+    // O redirect preserva o fragmento; a página /auth/fragmento lê e grava a sessão no navegador.
+    return NextResponse.redirect(`${origin}/auth/fragmento?voltar=${encodeURIComponent(voltar)}`);
   }
   return NextResponse.redirect(`${origin}/login?erro=${encodeURIComponent("Link inválido ou expirado. Peça um novo.")}`);
 }

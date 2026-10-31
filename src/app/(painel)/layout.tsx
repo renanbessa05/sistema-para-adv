@@ -14,9 +14,11 @@ const PAPEIS: Record<string, string> = { socio: "Sócio(a)", advogado: "Advogado
 export default async function LayoutPainel({ children }: { children: React.ReactNode }) {
   const sessao = await obterSessao();
   if (!sessao) redirect("/sem-escritorio");
-  await exigirMfaSeNecessario(sessao);
   const supabase = await criarClienteServidor();
-  const { count } = await supabase.from("notificacoes").select("id", { count: "exact", head: true }).eq("destinatario_id", sessao.usuarioId).eq("canal", "painel").in("status", ["enviada", "entregue"]).is("lida_em", null);
+  const [, { count }] = await Promise.all([
+    exigirMfaSeNecessario(sessao),
+    supabase.from("notificacoes").select("id", { count: "exact", head: true }).eq("destinatario_id", sessao.usuarioId).eq("canal", "painel").in("status", ["enviada", "entregue"]).is("lida_em", null),
+  ]);
   const naoLidas = count ?? 0;
   const grupos = gruposDoMenu(sessao.papel);
 

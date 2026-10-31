@@ -26,9 +26,17 @@ export default async function PaginaHoje({ searchParams }: { searchParams: Promi
   const escritorioInteiro = sessao.papel === "socio" && visao === "escritorio";
   const supabase = await criarClienteServidor();
 
-  const { data: escritorio } = await supabase.from("escritorios").select("timezone, semana_inclui_proxima_segunda").eq("id", sessao.escritorioId).maybeSingle();
+  // Consultas independentes saem juntas: cada ida e volta ao Supabase custa caro daqui (região distante).
+  const tarefasQuery = supabase.from("tarefas").select("id, titulo, vencimento, status, prioridade").not("status", "in", "(concluida,cancelada)").order("vencimento", { ascending: true, nullsFirst: false }).limit(50);
+  const [{ data: escritorio }, calendario, { count: publicacoesATratar }, { count: prazosSugeridos }, { data: tarefas }, { data: anos }] = await Promise.all([
+    supabase.from("escritorios").select("timezone, semana_inclui_proxima_segunda").eq("id", sessao.escritorioId).maybeSingle(),
+    carregarCalendario(supabase, { tribunalId: null, comarcaId: null }),
+    supabase.from("publicacoes").select("id", { count: "exact", head: true }).in("status", ["nova", "classificada", "vinculada", "sem_processo", "com_prazo_sugerido"]),
+    supabase.from("prazos").select("id", { count: "exact", head: true }).eq("status", "sugerido"),
+    escritorioInteiro ? tarefasQuery : tarefasQuery.eq("executor_id", sessao.usuarioId),
+    supabase.schema("ref").from("calendario_anos").select("ano, conferido"),
+  ]);
   const timeZone = (escritorio?.timezone as string | undefined) ?? "America/Cuiaba";
-  const calendario = await carregarCalendario(supabase, { tribunalId: null, comarcaId: null });
   const periodos = calcularPeriodos(calendario, { timeZone, incluirProximaSegunda: escritorio?.semana_inclui_proxima_segunda !== false });
 
   const prazosQuery = supabase
@@ -38,14 +46,6 @@ export default async function PaginaHoje({ searchParams }: { searchParams: Promi
     .lte("data_final", periodos.semanaFim)
     .order("data_final");
   const { data: prazos } = escritorioInteiro ? await prazosQuery : await prazosQuery.eq("responsavel_id", sessao.usuarioId);
-
-  const { count: publicacoesATratar } = await supabase.from("publicacoes").select("id", { count: "exact", head: true }).in("status", ["nova", "classificada", "vinculada", "sem_processo", "com_prazo_sugerido"]);
-  const { count: prazosSugeridos } = await supabase.from("prazos").select("id", { count: "exact", head: true }).eq("status", "sugerido");
-
-  const tarefasQuery = supabase.from("tarefas").select("id, titulo, vencimento, status, prioridade").not("status", "in", "(concluida,cancelada)").order("vencimento", { ascending: true, nullsFirst: false }).limit(50);
-  const { data: tarefas } = escritorioInteiro ? await tarefasQuery : await tarefasQuery.eq("executor_id", sessao.usuarioId);
-
-  const { data: anos } = await supabase.schema("ref").from("calendario_anos").select("ano, conferido");
   const proximoAno = Number(periodos.hoje.slice(0, 4)) + 1;
   const calendarioProximoAno = (anos ?? []).some((a) => Number(a.ano) === proximoAno);
 

@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { criarClienteServidor } from "@/lib/supabase/server";
 
@@ -48,7 +49,7 @@ export async function listarVinculos(): Promise<Vinculo[]> {
  * Sessão do usuário logado com os claims do escritório (gravados pelo Custom Access Token Hook).
  * Usuário logado sem vínculo ativo cai em /sem-escritorio.
  */
-export async function obterSessao(): Promise<Sessao | null> {
+async function carregarSessao(): Promise<Sessao | null> {
   const supabase = await criarClienteServidor();
   const {
     data: { user },
@@ -67,6 +68,9 @@ export async function obterSessao(): Promise<Sessao | null> {
   const vinculos = await listarVinculos();
   return { usuarioId: user.id, email: user.email ?? null, escritorioId, papel, nome, accessToken: session.access_token, vinculos };
 }
+
+/** Memo por requisição: layout e página pedem a sessão no mesmo render; sem isso cada chamada ao Auth e à RPC se repete. */
+export const obterSessao = cache(carregarSessao);
 
 export async function exigirSessao(): Promise<Sessao> {
   const s = await obterSessao();

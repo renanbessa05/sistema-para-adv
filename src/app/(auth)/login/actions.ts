@@ -18,16 +18,6 @@ export async function entrarComLink(fd: FormData) {
   redirect("/login?enviado=1");
 }
 
-export async function entrarComSenha(fd: FormData) {
-  const email = String(fd.get("email") ?? "").trim().toLowerCase();
-  const senha = String(fd.get("senha") ?? "");
-  const voltar = destinoSeguro(fd.get("voltar"));
-  const supabase = await criarClienteServidor();
-  const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
-  if (error) redirect(`/login?erro=${encodeURIComponent("E-mail ou senha inválidos.")}`);
-  redirect(voltar);
-}
-
 export async function sair() {
   const supabase = await criarClienteServidor();
   await supabase.auth.signOut();
